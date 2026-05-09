@@ -1,0 +1,197 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  USERSHOP
+}
+
+enum ProductMediaType {
+  IMAGE
+  VIDEO
+}
+
+enum TrendPeriod {
+  WEEK
+  MONTH
+  YEAR
+}
+
+enum TrendDirection {
+  RISING
+  FALLING
+  STABLE
+}
+
+enum ErpSyncTrigger {
+  MANUAL
+  SCRIPT
+  AUTOMATIC
+}
+
+enum ErpSyncStatus {
+  RUNNING
+  SUCCESS
+  ERROR
+  CANCELED
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  phone        String?  @db.VarChar(32)
+  passwordHash String
+  role         UserRole @default(ADMIN)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Product {
+  id              String         @id @default(cuid())
+  code            String         @unique @db.VarChar(64)
+  slug            String         @unique @db.VarChar(140)
+  name            String         @db.VarChar(180)
+  description     String?        @db.Text
+  brand           String?        @db.VarChar(120)
+  category        String?        @db.VarChar(120)
+  categoryId      String?
+  categoryRef     Category?      @relation("CategoryToProduct", fields: [categoryId], references: [id], onDelete: SetNull)
+  imageUrl        String?        @db.Text
+  unitLabel       String         @default("unidad") @db.VarChar(40)
+  unitPrice       Decimal        @db.Decimal(10, 2)
+  wholesalePrice  Decimal?       @db.Decimal(10, 2)
+  wholesaleMinQty Int            @default(3)
+  boxPrice        Decimal?       @db.Decimal(10, 2)
+  unitsPerBox     Int?
+  stockUnits      Int            @default(0)
+  isVisible       Boolean        @default(true)
+  isFeatured      Boolean        @default(false)
+  externalSource  String?        @db.VarChar(80)
+  externalId      String?        @db.VarChar(120)
+  externalCode    String?        @db.VarChar(120)
+  syncEnabled     Boolean        @default(false)
+  lastSyncedAt    DateTime?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  media           ProductMedia[]
+
+  @@index([name])
+  @@index([code])
+  @@index([category, isVisible])
+  @@index([brand, isVisible])
+  @@index([isVisible, updatedAt(sort: Desc)])
+  @@index([stockUnits])
+  @@index([categoryId])
+  @@index([externalSource, externalId])
+  @@index([externalSource, externalCode])
+  @@index([syncEnabled, lastSyncedAt])
+}
+
+model ProductMedia {
+  id        String           @id @default(cuid())
+  productId String
+  product   Product          @relation(fields: [productId], references: [id], onDelete: Cascade)
+  type      ProductMediaType
+  url       String           @db.Text
+  altText   String?          @db.VarChar(180)
+  sortOrder Int              @default(0)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  @@index([productId, sortOrder])
+}
+
+model Category {
+  id        String    @id @default(cuid())
+  name      String    @unique @db.VarChar(120)
+  slug      String    @unique @db.VarChar(140)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  products  Product[] @relation("CategoryToProduct")
+
+  @@index([name])
+}
+
+model StoreSettings {
+  id                  Int      @id @default(1)
+  businessName        String   @default("Importaciones Super")
+  heroTitle           String   @default("Catálogo mayorista con pedido directo por WhatsApp")
+  heroDescription     String   @default("Explora el stock disponible, arma tu pedido y envíalo en segundos sin llamadas ni pasos innecesarios.")
+  heroSlides          Json?
+  heroAutoplaySeconds Int      @default(5)
+  whatsappNumber      String   @default("51999999999")
+  orderIntro          String   @default("Hola, quiero cotizar estos productos:")
+  orderFooter         String   @default("Quedo atento a la confirmación de stock y total final.")
+  currencySymbol      String   @default("S/")
+  highlightMessage    String   @default("Precios por unidad y mayorista sincronizados con el ERP.")
+  supportHours        String   @default("Lun a sáb 8:00 am - 7:00 pm")
+  primaryColor        String   @default("#147cc4")
+  accentColor         String   @default("#63cfff")
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+model SalesTrendSnapshot {
+  id          String      @id @default(cuid())
+  period      TrendPeriod
+  periodLabel String      @db.VarChar(50)
+  periodStart DateTime
+  periodEnd   DateTime
+  revenue     Decimal     @db.Decimal(12, 2)
+  orders      Int
+  unitsSold   Int
+  forecast    Decimal     @db.Decimal(12, 2)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@index([period, periodStart(sort: Desc)])
+}
+
+model ProductTrendSnapshot {
+  id            String         @id @default(cuid())
+  period        TrendPeriod
+  periodLabel   String         @db.VarChar(50)
+  productCode   String         @db.VarChar(64)
+  productName   String         @db.VarChar(180)
+  unitsSold     Int
+  deltaPercent  Decimal        @db.Decimal(8, 2)
+  momentumScore Decimal        @db.Decimal(8, 2)
+  direction     TrendDirection
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@index([period, direction])
+  @@index([period, momentumScore(sort: Desc)])
+}
+
+model ErpSyncLog {
+  id               String         @id @default(cuid())
+  source           String         @db.VarChar(80)
+  trigger          ErpSyncTrigger @default(SCRIPT)
+  status           ErpSyncStatus  @default(RUNNING)
+  fetchedCount     Int            @default(0)
+  createdCount     Int            @default(0)
+  updatedCount     Int            @default(0)
+  skippedCount     Int            @default(0)
+  skippedPreview   Json?
+  errorMessage     String?        @db.Text
+  cancelRequestedAt DateTime?
+  initiatedByName  String?        @db.VarChar(120)
+  initiatedByEmail String?        @db.VarChar(180)
+  canceledByName   String?        @db.VarChar(120)
+  canceledByEmail  String?        @db.VarChar(180)
+  startedAt        DateTime       @default(now())
+  finishedAt       DateTime?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  @@index([createdAt(sort: Desc)])
+  @@index([status, createdAt(sort: Desc)])
+}

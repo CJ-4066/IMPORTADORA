@@ -1,0 +1,811 @@
+import type { Prisma } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
+import { cleanWhatsappNumber, formatCurrency } from "@/lib/utils";
+import type {
+  ShopAssistantProductCard,
+  ShopAssistantQuickAction,
+  ShopAssistantReply,
+} from "@/lib/shop-assistant-types";
+
+const MAX_PRODUCTS = 4;
+const STOPWORDS = new Set([
+  "a",
+  "al",
+  "algo",
+  "alguna",
+  "alguno",
+  "algun",
+  "busca",
+  "busco",
+  "como",
+  "con",
+  "cual",
+  "cuanto",
+  "cuesta",
+  "de",
+  "del",
+  "el",
+  "en",
+  "es",
+  "esta",
+  "este",
+  "hay",
+  "la",
+  "las",
+  "los",
+  "me",
+  "muestrame",
+  "muéstrame",
+  "necesito",
+  "para",
+  "por",
+  "precio",
+  "producto",
+  "productos",
+  "quiero",
+  "tendra",
+  "tendran",
+  "tendrás",
+  "tiene",
+  "tienen",
+  "tienes",
+  "tu",
+  "un",
+  "una",
+  "unas",
+  "unos",
+  "ver",
+]);
+
+export type AssistantProductRecord = {
+  id: string;
+  slug: string;
+  code: string;
+  externalCode?: string | null;
+  externalId?: string | null;
+  name: string;
+  description: string | null;
+  brand: string | null;
+  category: string | null;
+  categoryId?: string | null;
+  unitPrice: Prisma.Decimal | number;
+  wholesalePrice: Prisma.Decimal | number | null;
+  wholesaleMinQty: number;
+  boxPrice: Prisma.Decimal | number | null;
+  unitsPerBox: number | null;
+  stockUnits: number;
+  isVisible?: boolean;
+};
+
+export type AssistantCategoryRecord = {
+  id: string;
+  name: string;
+  slug: string;
+};
+
+export type AssistantSettingsRecord = {
+  businessName: string;
+  currencySymbol: string;
+  supportHours: string;
+  whatsappNumber: string;
+};
+
+export type ShopAssistantRepository = {
+  getBaseData: () => Promise<{
+    settings: AssistantSettingsRecord;
+    categories: AssistantCategoryRecord[];
+  }>;
+  findProductByCode: (code: string) => Promise<AssistantProductRecord | null>;
+  searchVisibleProducts: (query: string) => Promise<AssistantProductRecord[]>;
+  getFeaturedProducts: () => Promise<AssistantProductRecord[]>;
+  getCategoryProducts: (categoryId: string) => Promise<AssistantProductRecord[]>;
+  getRelatedProducts: (product: AssistantProductRecord) => Promise<AssistantProductRecord[]>;
+};
+
+export function normalizeAssistantText(value: string) {
+  return value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^\w\s-]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function getAvailabilityLabel(stockUnits: number) {
+  if (stockUnits <= 0) {
+    return "Sin stock";
+  }
+
+  if (stockUnits <= 12) {
+    return "Stock bajo";
+  }
+
+  return "Disponible";
+}
+
+function mapAssistantProduct(
+  product: AssistantProductRecord,
+  currencySymbol: string,
+): ShopAssistantProductCard {
+  const unitPrice = Number(product.unitPrice);
+  const wholesalePrice = product.wholesalePrice !== null ? Number(product.wholesalePrice) : null;
+
+  return {
+    id: product.id,
+    slug: product.slug,
+    code: product.code,
+    name: product.name,
+    brand: product.brand,
+    category: product.category,
+    unitPrice: formatCurrency(unitPrice, currencySymbol),
+    wholesalePrice: wholesalePrice ? formatCurrency(wholesalePrice, currencySymbol) : null,
+    wholesaleMinQty: product.wholesaleMinQty,
+    unitsPerBox: product.unitsPerBox,
+    availabilityLabel: getAvailabilityLabel(product.stockUnits),
+    stockUnits: product.stockUnits,
+  };
+}
+
+function extractProductCode(message: string) {
+  const normalized = message
+    .toUpperCase()
+    .replace(/\bCODIGO\b/g, " ")
+    .replace(/\bCÓDIGO\b/g, " ")
+    .trim();
+
+  const compoundMatch = normalized.match(/\b([A-Z]{2,})\s*-?\s*(\d{2,})\b/);
+  if (compoundMatch) {
+    return `${compoundMatch[1]}-${compoundMatch[2]}`;
+  }
+
+  const numericMatch = normalized.match(/\b(\d{2,})\s*-\s*(\d{2,})\b/);
+  if (numericMatch) {
+    return `${numericMatch[1]}-${numericMatch[2]}`;
+  }
+
+  const compactMatches = normalized.match(/\b[A-Z0-9-]{4,}\b/g) ?? [];
+
+  for (const match of compactMatches) {
+    const candidate = match.replace(/\s+/g, "");
+
+    if (/\d/.test(candidate)) {
+      return candidate;
+    }
+  }
+
+  return null;
+}
+
+function buildCodeCandidates(code: string) {
+  const normalized = code.trim().toUpperCase();
+  const compact = normalized.replace(/[^A-Z0-9]/g, "");
+  const withHyphen = compact.replace(/^([A-Z]{1,6})(\d{2,})$/, "$1-$2");
+
+  return Array.from(new Set([normalized, compact, withHyphen].filter(Boolean)));
+}
+
+function extractSearchTerms(message: string) {
+  const normalized = normalizeAssistantText(message);
+  const tokens = normalized
+    .split(" ")
+    .map((token) => token.trim())
+    .filter((token) => token.length >= 2 && !STOPWORDS.has(token));
+
+  return tokens.join(" ").trim();
+}
+
+function scoreAssistantProduct(product: AssistantProductRecord, query: string) {
+  const normalizedQuery = normalizeAssistantText(query);
+  const normalizedCode = normalizeAssistantText(product.code);
+  const normalizedName = normalizeAssistantText(product.name);
+  const normalizedBrand = normalizeAssistantText(product.brand ?? "");
+  const normalizedCategory = normalizeAssistantText(product.category ?? "");
+  let score = 0;
+
+  if (normalizedCode === normalizedQuery) score += 120;
+  if (normalizedCode.startsWith(normalizedQuery)) score += 90;
+  if (normalizedName.startsWith(normalizedQuery)) score += 72;
+  if (normalizedName.includes(normalizedQuery)) score += 48;
+  if (normalizedBrand.includes(normalizedQuery)) score += 24;
+  if (normalizedCategory.includes(normalizedQuery)) score += 20;
+  if (product.stockUnits > 0) score += 8;
+  if (product.wholesalePrice !== null) score += 5;
+
+  return score;
+}
+
+function buildQuickActions(actions: ShopAssistantQuickAction[]) {
+  return actions.slice(0, 6);
+}
+
+function buildDefaultPrompts() {
+  return [
+    "Busca el código CRE-085",
+    "Muéstrame ofertas",
+    "¿Qué categorías tienes?",
+    "¿Cómo cotizo mi pedido?",
+  ];
+}
+
+function formatProductAnswer(product: AssistantProductRecord, currencySymbol: string) {
+  const unitPrice = Number(product.unitPrice);
+  const wholesalePrice = product.wholesalePrice !== null ? Number(product.wholesalePrice) : null;
+  const description =
+    product.description &&
+    normalizeAssistantText(product.description) !== normalizeAssistantText(product.name)
+      ? `Descripción: ${product.description}. `
+      : "";
+  const pricingLines = [
+    `Precio unitario: ${formatCurrency(unitPrice, currencySymbol)}`,
+    wholesalePrice
+      ? `Mayorista desde ${product.wholesaleMinQty}: ${formatCurrency(wholesalePrice, currencySymbol)}`
+      : "Mayorista: mantiene el precio unitario",
+  ];
+
+  return `${product.name} (${product.code}). ${description}${pricingLines.join(". ")}. Stock sincronizado: ${product.stockUnits} unidades (${getAvailabilityLabel(product.stockUnits)}).`;
+}
+
+function createRealRepository(): ShopAssistantRepository {
+  return {
+    async getBaseData() {
+      const [settings, categories] = await prisma.$transaction([
+        prisma.storeSettings.findUnique({ where: { id: 1 } }),
+        prisma.category.findMany({
+          orderBy: { name: "asc" },
+          select: { id: true, name: true, slug: true },
+        }),
+      ]);
+
+      return {
+        settings: {
+          businessName: settings?.businessName ?? "Importaciones Super",
+          currencySymbol: settings?.currencySymbol ?? "S/",
+          supportHours: settings?.supportHours ?? "Lun a sáb 8:00 am - 7:00 pm",
+          whatsappNumber: settings?.whatsappNumber ?? "51999999999",
+        },
+        categories,
+      };
+    },
+
+    async findProductByCode(code) {
+      const candidates = buildCodeCandidates(code);
+
+      return prisma.product.findFirst({
+        where: {
+          OR: [
+            ...candidates.map((candidate) => ({
+              code: {
+                equals: candidate,
+                mode: "insensitive" as const,
+              },
+            })),
+            ...candidates.map((candidate) => ({
+              externalCode: {
+                equals: candidate,
+                mode: "insensitive" as const,
+              },
+            })),
+            ...candidates.map((candidate) => ({
+              externalId: {
+                equals: candidate,
+                mode: "insensitive" as const,
+              },
+            })),
+          ],
+        },
+        select: {
+          id: true,
+          slug: true,
+          code: true,
+          externalCode: true,
+          externalId: true,
+          name: true,
+          description: true,
+          brand: true,
+          category: true,
+          categoryId: true,
+          unitPrice: true,
+          wholesalePrice: true,
+          wholesaleMinQty: true,
+          boxPrice: true,
+          unitsPerBox: true,
+          stockUnits: true,
+          isVisible: true,
+        },
+      });
+    },
+
+    async searchVisibleProducts(query) {
+      if (!query.trim()) {
+        return [] satisfies AssistantProductRecord[];
+      }
+
+      const searchTokens = query
+        .split(" ")
+        .map((token) => token.trim())
+        .filter((token) => token.length >= 2)
+        .slice(0, 4);
+
+      const filters = searchTokens.flatMap((token) => [
+        { code: { contains: token, mode: "insensitive" as const } },
+        { name: { contains: token, mode: "insensitive" as const } },
+        { description: { contains: token, mode: "insensitive" as const } },
+        { brand: { contains: token, mode: "insensitive" as const } },
+        { category: { contains: token, mode: "insensitive" as const } },
+      ]);
+
+      const products = await prisma.product.findMany({
+        where: {
+          isVisible: true,
+          stockUnits: { gt: 0 },
+          OR: filters.length
+            ? filters
+            : [
+                { code: { contains: query, mode: "insensitive" } },
+                { name: { contains: query, mode: "insensitive" } },
+                { description: { contains: query, mode: "insensitive" } },
+                { brand: { contains: query, mode: "insensitive" } },
+                { category: { contains: query, mode: "insensitive" } },
+              ],
+        },
+        orderBy: [{ isFeatured: "desc" }, { updatedAt: "desc" }],
+        take: MAX_PRODUCTS * 3,
+        select: {
+          id: true,
+          slug: true,
+          code: true,
+          externalCode: true,
+          externalId: true,
+          name: true,
+          description: true,
+          brand: true,
+          category: true,
+          categoryId: true,
+          unitPrice: true,
+          wholesalePrice: true,
+          wholesaleMinQty: true,
+          boxPrice: true,
+          unitsPerBox: true,
+          stockUnits: true,
+          isVisible: true,
+        },
+      });
+
+      return products
+        .sort((left, right) => scoreAssistantProduct(right, query) - scoreAssistantProduct(left, query))
+        .slice(0, MAX_PRODUCTS);
+    },
+
+    async getFeaturedProducts() {
+      return prisma.product.findMany({
+        where: {
+          isVisible: true,
+          stockUnits: { gt: 0 },
+          isFeatured: true,
+        },
+        orderBy: [{ updatedAt: "desc" }],
+        take: MAX_PRODUCTS,
+        select: {
+          id: true,
+          slug: true,
+          code: true,
+          externalCode: true,
+          externalId: true,
+          name: true,
+          description: true,
+          brand: true,
+          category: true,
+          categoryId: true,
+          unitPrice: true,
+          wholesalePrice: true,
+          wholesaleMinQty: true,
+          boxPrice: true,
+          unitsPerBox: true,
+          stockUnits: true,
+          isVisible: true,
+        },
+      });
+    },
+
+    async getCategoryProducts(categoryId) {
+      return prisma.product.findMany({
+        where: {
+          isVisible: true,
+          stockUnits: { gt: 0 },
+          categoryId,
+        },
+        orderBy: [{ isFeatured: "desc" }, { updatedAt: "desc" }],
+        take: MAX_PRODUCTS,
+        select: {
+          id: true,
+          slug: true,
+          code: true,
+          externalCode: true,
+          externalId: true,
+          name: true,
+          description: true,
+          brand: true,
+          category: true,
+          categoryId: true,
+          unitPrice: true,
+          wholesalePrice: true,
+          wholesaleMinQty: true,
+          boxPrice: true,
+          unitsPerBox: true,
+          stockUnits: true,
+          isVisible: true,
+        },
+      });
+    },
+
+    async getRelatedProducts(product) {
+      return prisma.product.findMany({
+        where: {
+          id: { not: product.id },
+          isVisible: true,
+          stockUnits: { gt: 0 },
+          ...(product.categoryId
+            ? { categoryId: product.categoryId }
+            : product.category
+              ? { category: product.category }
+              : {}),
+        },
+        orderBy: [{ isFeatured: "desc" }, { updatedAt: "desc" }],
+        take: MAX_PRODUCTS,
+        select: {
+          id: true,
+          slug: true,
+          code: true,
+          externalCode: true,
+          externalId: true,
+          name: true,
+          description: true,
+          brand: true,
+          category: true,
+          categoryId: true,
+          unitPrice: true,
+          wholesalePrice: true,
+          wholesaleMinQty: true,
+          boxPrice: true,
+          unitsPerBox: true,
+          stockUnits: true,
+          isVisible: true,
+        },
+      });
+    },
+  };
+}
+
+export function createShopAssistantService(repository: ShopAssistantRepository) {
+  return async function answer(input: {
+    message: string;
+    productContextCode?: string | null;
+    contextCategorySlug?: string | null;
+    recentMessages?: Array<{ role: "assistant" | "user"; text: string }>;
+  }): Promise<ShopAssistantReply> {
+    const trimmedMessage = input.message.trim();
+    const normalized = normalizeAssistantText(trimmedMessage);
+    const baseData = await repository.getBaseData();
+    const whatsappHref = `https://wa.me/${cleanWhatsappNumber(baseData.settings.whatsappNumber)}`;
+    const recentConversation = (input.recentMessages ?? [])
+      .map((item) => normalizeAssistantText(item.text))
+      .filter(Boolean)
+      .join(" ");
+
+    if (!trimmedMessage) {
+      return {
+        text: `Puedo ayudarte a buscar productos por código, nombre, categoría, ofertas o compra por WhatsApp en ${baseData.settings.businessName}.`,
+        quickActions: buildQuickActions([
+          { label: "Ver ofertas", href: "/?featured=1", accent: true },
+          { label: "Buscar catálogo", href: "/?focus=search" },
+        ]),
+        suggestedPrompts: buildDefaultPrompts(),
+      };
+    }
+
+    const matchedCategory = baseData.categories.find((category) => {
+      const normalizedName = normalizeAssistantText(category.name);
+      const normalizedSlug = category.slug.replace(/-/g, " ");
+      return (
+        normalized.includes(normalizedName) ||
+        normalized.includes(normalizedSlug) ||
+        recentConversation.includes(normalizedName) ||
+        recentConversation.includes(normalizedSlug)
+      );
+    });
+    const contextCategory =
+      matchedCategory ??
+      baseData.categories.find((category) => category.slug === input.contextCategorySlug) ??
+      null;
+
+    const wantsOffers = /(oferta|ofertas|promo|promocion|promociones|destacado|destacados)/.test(
+      normalized,
+    );
+    const wantsCategories = /(categoria|categorias|rubro|rubros|seccion|secciones)/.test(
+      normalized,
+    );
+    const wantsSupport =
+      /(whatsapp|contacto|horario|hora|pedido|comprar|compra|envio|entrega|delivery|pago|cotizacion|cotizar)/.test(
+        normalized,
+      );
+    const wantsSimilar = /(similar|parecid|alternativ|relacionad)/.test(normalized);
+    const wantsStock = /(stock|disponible|disponibilidad|queda|quedan|tienes|hay)/.test(
+      normalized,
+    );
+    const wantsContinuation = /(mas|más|otra|otro|otras|otros|ver mas|ver más|muestrame mas|muestrame más)/.test(
+      normalized,
+    );
+
+    if (wantsOffers) {
+      const products = await repository.getFeaturedProducts();
+      return {
+        text: products.length
+          ? "Estas son las ofertas activas con mejor salida en el catálogo."
+          : "Aún no hay ofertas activas configuradas en el catálogo.",
+        products: products.map((product) =>
+          mapAssistantProduct(product, baseData.settings.currencySymbol),
+        ),
+        quickActions: buildQuickActions([
+          { label: "Abrir ofertas", href: "/?featured=1", accent: true },
+          { label: "Comprar por WhatsApp", href: whatsappHref },
+        ]),
+        suggestedPrompts: [
+          "Muéstrame productos de bebidas",
+          "Busca por código",
+          "¿Cómo envío mi pedido?",
+        ],
+      };
+    }
+
+    if (matchedCategory && !wantsSupport) {
+      const products = await repository.getCategoryProducts(matchedCategory.id);
+      return {
+        text: products.length
+          ? `En ${matchedCategory.name} encontré estas opciones para empezar rápido.`
+          : `La categoría ${matchedCategory.name} existe, pero ahora no tiene productos visibles.`,
+        contextCategorySlug: matchedCategory.slug,
+        products: products.map((product) =>
+          mapAssistantProduct(product, baseData.settings.currencySymbol),
+        ),
+        quickActions: buildQuickActions([
+          {
+            label: `Ver ${matchedCategory.name}`,
+            href: `/?category=${encodeURIComponent(matchedCategory.slug)}`,
+            accent: true,
+          },
+          { label: "Ver ofertas", href: "/?featured=1" },
+        ]),
+        suggestedPrompts: [
+          `Busca ${matchedCategory.name} por código`,
+          "¿Qué ofertas hay?",
+          "¿Cómo envío mi pedido?",
+        ],
+      };
+    }
+
+    if (contextCategory && wantsContinuation && !wantsSupport) {
+      const products = await repository.getCategoryProducts(contextCategory.id);
+      return {
+        text: products.length
+          ? `Sigo en ${contextCategory.name}. Estas son más opciones dentro de esa línea.`
+          : `Ahora mismo no veo más productos visibles en ${contextCategory.name}.`,
+        contextCategorySlug: contextCategory.slug,
+        products: products.map((product) =>
+          mapAssistantProduct(product, baseData.settings.currencySymbol),
+        ),
+        quickActions: buildQuickActions([
+          {
+            label: `Ver ${contextCategory.name}`,
+            href: `/?category=${encodeURIComponent(contextCategory.slug)}`,
+            accent: true,
+          },
+          { label: "Ver ofertas", href: "/?featured=1" },
+        ]),
+        suggestedPrompts: [
+          "Busca por código",
+          "¿Cómo cotizo mi pedido?",
+          "Muéstrame ofertas",
+        ],
+      };
+    }
+
+    if (wantsCategories) {
+      const topCategories = baseData.categories.slice(0, 6);
+      return {
+        text: topCategories.length
+          ? `Estas son algunas categorías activas del catálogo: ${topCategories.map((item) => item.name).join(", ")}.`
+          : "Todavía no hay categorías activas configuradas.",
+        quickActions: topCategories.map((category, index) => ({
+          label: category.name,
+          href: `/?category=${encodeURIComponent(category.slug)}`,
+          accent: index === 0,
+        })),
+        suggestedPrompts: [
+          "Muéstrame ofertas",
+          "Busca por código",
+          "¿Cómo compro por WhatsApp?",
+        ],
+      };
+    }
+
+    if (wantsSupport) {
+      return {
+        text:
+          `Puedes armar el carrito, revisar si ya aplica el precio mayorista y luego pulsar “Registrar cotización ERP” o “Enviar pedido” por WhatsApp. ` +
+          `Horario configurado: ${baseData.settings.supportHours}. ` +
+          "Si necesitas confirmar entrega o pago, conviene cerrar el pedido por WhatsApp.",
+        quickActions: buildQuickActions([
+          { label: "Ir al catálogo", href: "/?focus=search", accent: true },
+          { label: "Cotizar pedido", href: "/?drawer=cart" },
+          { label: "WhatsApp", href: whatsappHref },
+          { label: "Ver ofertas", href: "/?featured=1" },
+        ]),
+        suggestedPrompts: [
+          "Busca un producto por código",
+          "Muéstrame productos destacados",
+          "¿Qué categorías tienes?",
+        ],
+      };
+    }
+
+    const code = extractProductCode(trimmedMessage) ?? input.productContextCode ?? null;
+    const searchTerms = extractSearchTerms(trimmedMessage);
+    const contextProduct = code ? await repository.findProductByCode(code) : null;
+
+    if (contextProduct && wantsSimilar) {
+      const related = await repository.getRelatedProducts(contextProduct);
+      return {
+        text: related.length
+          ? `Tomando ${contextProduct.name} como referencia, estas son opciones parecidas dentro de la misma línea.`
+          : `No encontré productos similares visibles para ${contextProduct.name} en este momento.`,
+        contextProductCode: contextProduct.code,
+        contextCategorySlug: contextProduct.categoryId
+          ? baseData.categories.find((category) => category.id === contextProduct.categoryId)?.slug ?? null
+          : null,
+        products: related.map((product) =>
+          mapAssistantProduct(product, baseData.settings.currencySymbol),
+        ),
+        quickActions: buildQuickActions([
+          {
+            label: "Ver producto base",
+            href: `/producto/${encodeURIComponent(contextProduct.slug)}`,
+            accent: true,
+          },
+          { label: "Ver ofertas", href: "/?featured=1" },
+        ]),
+        suggestedPrompts: [
+          "¿Y por mayor cuánto cuesta?",
+          "¿Cómo envío mi pedido?",
+          "Busca por código",
+        ],
+      };
+    }
+
+    if (contextProduct) {
+      if (!contextProduct.isVisible || contextProduct.stockUnits <= 0) {
+        return {
+          text:
+            `${contextProduct.name} (${contextProduct.code}) existe en el ERP, pero ahora no está visible en la tienda porque no tiene stock disponible.` +
+            " Si quieres, puedo ayudarte a buscar una alternativa visible o puedes confirmarlo por WhatsApp.",
+          contextProductCode: contextProduct.code,
+          quickActions: buildQuickActions([
+            { label: "Buscar alternativas", href: `/?q=${encodeURIComponent(contextProduct.code)}`, accent: true },
+            { label: "WhatsApp", href: whatsappHref },
+            { label: "Ver ofertas", href: "/?featured=1" },
+          ]),
+          suggestedPrompts: [
+            "Busca algo similar",
+            "Muéstrame ofertas",
+            "¿Cómo cotizo mi pedido?",
+          ],
+        };
+      }
+
+      const stockWarning =
+        wantsStock && contextProduct.stockUnits <= 12
+          ? contextProduct.stockUnits <= 0
+            ? " Ojo: el catálogo sincronizado lo marca sin stock."
+            : " Ojo: el stock está bajo, conviene confirmar antes de cerrar el pedido."
+          : "";
+      return {
+        text: `${formatProductAnswer(contextProduct, baseData.settings.currencySymbol)}${stockWarning}`,
+        contextProductCode: contextProduct.code,
+        contextCategorySlug: contextProduct.categoryId
+          ? baseData.categories.find((category) => category.id === contextProduct.categoryId)?.slug ?? null
+          : null,
+        products: [mapAssistantProduct(contextProduct, baseData.settings.currencySymbol)],
+        quickActions: buildQuickActions([
+          {
+            label: "Ver producto",
+            href: `/producto/${encodeURIComponent(contextProduct.slug)}`,
+            accent: true,
+          },
+          { label: "Ir al catálogo", href: `/?q=${encodeURIComponent(contextProduct.code)}` },
+        ]),
+        suggestedPrompts: [
+          "¿Y por mayor cuánto cuesta?",
+          "¿Hay algo similar?",
+          "¿Cómo envío mi pedido?",
+        ],
+      };
+    }
+
+    if (searchTerms) {
+      const products = await repository.searchVisibleProducts(searchTerms);
+
+      if (products.length === 1) {
+        const product = products[0];
+        return {
+          text: formatProductAnswer(product, baseData.settings.currencySymbol),
+          contextProductCode: product.code,
+          contextCategorySlug: product.categoryId
+            ? baseData.categories.find((category) => category.id === product.categoryId)?.slug ?? null
+            : null,
+          products: [mapAssistantProduct(product, baseData.settings.currencySymbol)],
+          quickActions: buildQuickActions([
+            {
+              label: "Ver producto",
+              href: `/producto/${encodeURIComponent(product.slug)}`,
+              accent: true,
+            },
+            { label: "Buscar más", href: `/?q=${encodeURIComponent(searchTerms)}` },
+          ]),
+          suggestedPrompts: [
+            "¿Y el precio mayorista?",
+            "¿Tienes algo parecido?",
+            "¿Cómo lo compro?",
+          ],
+        };
+      }
+
+      if (products.length > 1) {
+        return {
+          text:
+            `Encontré varias opciones para “${trimmedMessage}” usando el catálogo sincronizado. ` +
+            "Ordené primero las coincidencias con stock y precio mayorista configurado.",
+          products: products.map((product) =>
+            mapAssistantProduct(product, baseData.settings.currencySymbol),
+          ),
+          quickActions: buildQuickActions([
+            {
+              label: "Ver resultados",
+              href: `/?q=${encodeURIComponent(searchTerms)}`,
+              accent: true,
+            },
+            { label: "Ver ofertas", href: "/?featured=1" },
+          ]),
+          suggestedPrompts: [
+            "Muéstrame solo ofertas",
+            "Busca por código exacto",
+            "¿Cómo envío mi pedido?",
+          ],
+        };
+      }
+    }
+
+    return {
+      text:
+        `No encontré una coincidencia clara para “${trimmedMessage}”. ` +
+        "Prueba con un código, un nombre corto, una categoría o pídele ofertas activas.",
+      quickActions: buildQuickActions([
+        { label: "Buscar catálogo", href: "/?focus=search", accent: true },
+        { label: "Ver ofertas", href: "/?featured=1" },
+        { label: "WhatsApp", href: whatsappHref },
+      ]),
+      suggestedPrompts: buildDefaultPrompts(),
+    };
+  };
+}
+
+const realRepository = createRealRepository();
+const answerWithRealRepository = createShopAssistantService(realRepository);
+
+export async function answerShopAssistant(input: {
+  message: string;
+  productContextCode?: string | null;
+  contextCategorySlug?: string | null;
+  recentMessages?: Array<{ role: "assistant" | "user"; text: string }>;
+}): Promise<ShopAssistantReply> {
+  return answerWithRealRepository(input);
+}
