@@ -66,7 +66,7 @@ export function HeaderSearch({ autoFocus = false }: HeaderSearchProps) {
             }
           }}
           onFocus={() => setOpen(true)}
-          placeholder="Busca productos, marcas y códigos"
+          placeholder="Buscar producto o código"
           type="search"
           value={query}
         />

@@ -92,7 +92,7 @@ function CartHeader({
       <div className="cart-header-actions">
         <button className="button button-ghost cart-header-quote" onClick={onToggleQuoteForm} type="button">
           <FileText size={16} />
-          {quoteFormOpen ? "Cerrar cotización" : "Cotizar"}
+          {quoteFormOpen ? "Cerrar" : "Cotizar"}
         </button>
         <button className="icon-button" onClick={onClose} type="button">
           ×

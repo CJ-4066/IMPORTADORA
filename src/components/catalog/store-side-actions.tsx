@@ -12,6 +12,7 @@ type StoreSideActionsProps = {
 
 export function StoreSideActions({ settings }: StoreSideActionsProps) {
   const pathname = usePathname();
+  const isProductPage = pathname.startsWith("/producto/");
 
   const handleSearch = () => {
     const headerInput = document.getElementById(
@@ -36,7 +37,10 @@ export function StoreSideActions({ settings }: StoreSideActionsProps) {
   };
 
   return (
-    <div className="store-side-actions" aria-label="Accesos rápidos de tienda">
+    <div
+      className={`store-side-actions${isProductPage ? " store-side-actions-product" : ""}`}
+      aria-label="Accesos rápidos de tienda"
+    >
       <StoreAssistant businessName={settings.businessName} />
 
       <a

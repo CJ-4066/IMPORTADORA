@@ -23,8 +23,9 @@ export async function getCatalogPageData(input: {
   const collection = input.collection?.trim().toLowerCase() ?? "";
   const bestSellerCodes =
     collection === "mas-vendidos" ? await getBestSellerCodes(PUBLIC_PAGE_SIZE * 8) : [];
+  const shouldRankBestSellers = collection === "mas-vendidos" && bestSellerCodes.length > 0;
   const where = buildCatalogWhere(input, bestSellerCodes);
-  const [allProducts, categoryRows, brandRows, visibleCount, featuredCount, settings] =
+  const [queriedProducts, totalResults, categoryRows, brandRows, visibleCount, featuredCount, settings] =
     await Promise.all([
       prisma.product.findMany({
         where,
@@ -35,7 +36,10 @@ export async function getCatalogPageData(input: {
         },
         orderBy:
           collection === "mas-vendidos" ? [{ updatedAt: "desc" }] : [{ isFeatured: "desc" }, { updatedAt: "desc" }],
+        skip: shouldRankBestSellers ? undefined : (page - 1) * PUBLIC_PAGE_SIZE,
+        take: shouldRankBestSellers ? undefined : PUBLIC_PAGE_SIZE,
       }),
+      prisma.product.count({ where }),
       prisma.category.findMany({
         where: {
           products: {
@@ -64,11 +68,10 @@ export async function getCatalogPageData(input: {
       getStoreSettings(),
     ]);
   const orderedProducts =
-    collection === "mas-vendidos" && bestSellerCodes.length
-      ? rankProductsByCode(allProducts, bestSellerCodes)
-      : allProducts;
-  const totalResults = orderedProducts.length;
-  const products = orderedProducts.slice((page - 1) * PUBLIC_PAGE_SIZE, page * PUBLIC_PAGE_SIZE);
+    shouldRankBestSellers ? rankProductsByCode(queriedProducts, bestSellerCodes) : queriedProducts;
+  const products = shouldRankBestSellers
+    ? orderedProducts.slice((page - 1) * PUBLIC_PAGE_SIZE, page * PUBLIC_PAGE_SIZE)
+    : orderedProducts;
 
   return {
     products: products.map(mapProduct),

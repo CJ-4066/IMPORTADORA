@@ -106,7 +106,6 @@ export default async function AdminProductsPage({ searchParams }: AdminProductsP
           </button>
           <button
             className="button button-ghost"
-            formAction={bulkProductAction}
             name="bulkAction"
             type="submit"
             value="delete"
