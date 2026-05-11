@@ -42,10 +42,6 @@ export function HeroCarousel({ slides, intervalSeconds }: HeroCarouselProps) {
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img alt={slide.title ?? `Slide ${index + 1}`} src={slide.imageUrl} />
-          <div className="hero-carousel-overlay">
-            {slide.title ? <strong>{slide.title}</strong> : null}
-            {slide.text ? <p>{slide.text}</p> : null}
-          </div>
         </article>
       ))}
 

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { ArrowUpRight, Clock3, ImageIcon, ShoppingCart } from "lucide-react";
+import { ArrowUpRight, Clock3, ImageIcon, MessageCircle, ShoppingCart } from "lucide-react";
 import { STORE_CART_OPEN_EVENT } from "@/components/catalog/cart-events";
 import { isCartStoreHydrated, rehydrateCartStore, useCartStore } from "@/components/catalog/cart-store";
 import type { CatalogProduct, StoreSettingsView } from "@/lib/store";
@@ -15,14 +15,19 @@ import {
 type ProductCardProps = {
   product: CatalogProduct;
   settings: StoreSettingsView;
+  badgeLabel?: string;
 };
 
-export function ProductCard({ product, settings }: ProductCardProps) {
+export function ProductCard({ product, settings, badgeLabel }: ProductCardProps) {
   const addItem = useCartStore((state) => state.addItem);
   const primaryMedia = product.primaryMedia;
   const [imageFailed, setImageFailed] = useState(false);
   const shouldShowMedia = primaryMedia && !(primaryMedia.type === "IMAGE" && imageFailed);
   const discountPercent = getProductDiscountPercent(product);
+  const whatsappNumber = settings.whatsappNumber.replace(/\D/g, "");
+  const whatsappHref = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(
+    `Hola, quiero consultar por el producto ${product.name} (${product.code}).`,
+  )}`;
   const lastSyncedLabel = product.lastSyncedAt
     ? new Intl.DateTimeFormat("es-PE", { day: "2-digit", month: "short" }).format(
         new Date(product.lastSyncedAt),
@@ -50,7 +55,10 @@ export function ProductCard({ product, settings }: ProductCardProps) {
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   alt={primaryMedia.altText ?? product.name}
+                  decoding="async"
+                  loading="lazy"
                   onError={() => setImageFailed(true)}
+                  referrerPolicy="no-referrer"
                   src={primaryMedia.url}
                 />
               ) : (
@@ -70,6 +78,7 @@ export function ProductCard({ product, settings }: ProductCardProps) {
         <div className="product-media-meta">
           <span className="product-code">{product.code}</span>
           <ProductStockChip product={product} />
+          {badgeLabel ? <span className="pill pill-strong">{badgeLabel}</span> : null}
           {product.isFeatured ? (
             <span className="pill pill-accent">
               Oferta{discountPercent ? ` -${discountPercent}%` : ""}
@@ -111,7 +120,7 @@ export function ProductCard({ product, settings }: ProductCardProps) {
           <ProductPriceRows currencySymbol={settings.currencySymbol} product={product} />
         </div>
 
-        <div className="product-actions product-actions-single">
+        <div className="product-actions product-actions-dual">
           <button
             className="button button-primary"
             disabled={product.stockUnits <= 0}
@@ -121,6 +130,10 @@ export function ProductCard({ product, settings }: ProductCardProps) {
             <ShoppingCart size={16} />
             {product.stockUnits <= 0 ? "Sin stock" : "Añadir al carrito"}
           </button>
+          <a className="button button-secondary" href={whatsappHref} rel="noreferrer" target="_blank">
+            <MessageCircle size={16} />
+            Consultar
+          </a>
         </div>
       </div>
     </article>

@@ -18,9 +18,10 @@ function buildCatalogPageHref(input: {
   featuredOnly: boolean;
   page: number;
   q: string;
+  sort: string;
 }) {
-  const { brand = "all", category, collection = "", featuredOnly, page, q } = input;
-  return `/?q=${encodeURIComponent(q)}&category=${encodeURIComponent(category)}&brand=${encodeURIComponent(brand)}&page=${page}${featuredOnly ? "&featured=1" : ""}${collection ? `&collection=${encodeURIComponent(collection)}` : ""}`;
+  const { brand = "all", category, collection = "", featuredOnly, page, q, sort } = input;
+  return `/?q=${encodeURIComponent(q)}&category=${encodeURIComponent(category)}&brand=${encodeURIComponent(brand)}&sort=${encodeURIComponent(sort)}&page=${page}${featuredOnly ? "&featured=1" : ""}${collection ? `&collection=${encodeURIComponent(collection)}` : ""}`;
 }
 
 
@@ -31,6 +32,7 @@ function CatalogPagination({
   featuredOnly,
   page,
   q,
+  sort,
   totalPages,
 }: {
   brand: string;
@@ -39,6 +41,7 @@ function CatalogPagination({
   featuredOnly: boolean;
   page: number;
   q: string;
+  sort: string;
   totalPages: number;
 }) {
   return (
@@ -46,7 +49,7 @@ function CatalogPagination({
       {page > 1 ? (
         <Link
           className="button button-secondary"
-          href={buildCatalogPageHref({ brand, category, collection, featuredOnly, page: page - 1, q })}
+          href={buildCatalogPageHref({ brand, category, collection, featuredOnly, page: page - 1, q, sort })}
         >
           Página anterior
         </Link>
@@ -56,7 +59,7 @@ function CatalogPagination({
       {page < totalPages ? (
         <Link
           className="button button-secondary"
-          href={buildCatalogPageHref({ brand, category, collection, featuredOnly, page: page + 1, q })}
+          href={buildCatalogPageHref({ brand, category, collection, featuredOnly, page: page + 1, q, sort })}
         >
           Siguiente página
         </Link>
@@ -73,6 +76,7 @@ export default async function Home({ searchParams }: HomeProps) {
   const category = typeof params?.category === "string" ? params.category : "all";
   const brand = typeof params?.brand === "string" ? params.brand : "all";
   const collection = typeof params?.collection === "string" ? params.collection : "";
+  const sort = typeof params?.sort === "string" ? params.sort : "featured";
   const page = Number(typeof params?.page === "string" ? params.page : "1");
   const normalizedCollection = collection.toLowerCase();
   const collectionQueryMap: Record<string, string> = {
@@ -95,6 +99,7 @@ export default async function Home({ searchParams }: HomeProps) {
       collection: normalizedCollection,
       page: Number.isNaN(page) ? 1 : page,
       featuredOnly,
+      sort,
     }),
     getQuoteDefaultsForSession(),
   ]);
@@ -125,7 +130,7 @@ export default async function Home({ searchParams }: HomeProps) {
         </div>
       </section>
 
-      <section className="catalog-experience-shell">
+      <section className="catalog-experience-shell" id="catalogo">
         <CatalogExperience
           initialCartOpen={initialCartOpen}
           products={data.products}
@@ -143,6 +148,7 @@ export default async function Home({ searchParams }: HomeProps) {
         featuredOnly={featuredOnly}
         page={data.page}
         q={resolvedQuery}
+        sort={data.selectedSort}
         totalPages={data.totalPages}
       />
     </main>

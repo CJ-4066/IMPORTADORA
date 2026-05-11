@@ -18,6 +18,7 @@ export async function getCatalogPageData(input: {
   page?: number;
   featuredOnly?: boolean;
   collection?: string;
+  sort?: string;
 }) {
   const page = Math.max(1, input.page ?? 1);
   const collection = input.collection?.trim().toLowerCase() ?? "";
@@ -35,7 +36,7 @@ export async function getCatalogPageData(input: {
           },
         },
         orderBy:
-          collection === "mas-vendidos" ? [{ updatedAt: "desc" }] : [{ isFeatured: "desc" }, { updatedAt: "desc" }],
+          collection === "mas-vendidos" ? [{ updatedAt: "desc" }] : getCatalogOrderBy(input.sort),
         skip: shouldRankBestSellers ? undefined : (page - 1) * PUBLIC_PAGE_SIZE,
         take: shouldRankBestSellers ? undefined : PUBLIC_PAGE_SIZE,
       }),
@@ -80,6 +81,7 @@ export async function getCatalogPageData(input: {
     page,
     featuredOnly: Boolean(input.featuredOnly),
     selectedBrand: input.brand?.trim() || "all",
+    selectedSort: input.sort?.trim() || "featured",
     categories: categoryRows.map(mapCategory),
     brands: brandRows
       .map((item) => item.brand?.trim())
@@ -91,6 +93,20 @@ export async function getCatalogPageData(input: {
     },
     settings,
   };
+}
+
+function getCatalogOrderBy(sort?: string) {
+  switch (sort) {
+    case "price-asc":
+      return [{ unitPrice: "asc" as const }, { updatedAt: "desc" as const }];
+    case "price-desc":
+      return [{ unitPrice: "desc" as const }, { updatedAt: "desc" as const }];
+    case "newest":
+      return [{ updatedAt: "desc" as const }];
+    case "featured":
+    default:
+      return [{ isFeatured: "desc" as const }, { updatedAt: "desc" as const }];
+  }
 }
 
 const getBestSellerCodes = cache(async (limit: number) => {
