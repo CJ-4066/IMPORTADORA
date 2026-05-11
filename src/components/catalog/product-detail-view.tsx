@@ -6,6 +6,7 @@ import { ArrowLeft, ImageIcon, Minus, Plus, ShoppingCart, Tags } from "lucide-re
 import { STORE_CART_OPEN_EVENT } from "@/components/catalog/cart-events";
 import { CartStoreBootstrap } from "@/components/catalog/cart-store-bootstrap";
 import { isCartStoreHydrated, rehydrateCartStore, useCartStore } from "@/components/catalog/cart-store";
+import { getSafeMediaUrl } from "@/lib/media-url";
 import type { CatalogProduct, ProductMediaView, StoreSettingsView } from "@/lib/store";
 import { formatCurrency } from "@/lib/utils";
 import {
@@ -50,6 +51,7 @@ export function ProductDetailView({ product, settings }: ProductDetailViewProps)
   const [imageFailed, setImageFailed] = useState<Record<string, boolean>>({});
 
   const activeMedia = gallery[activeIndex] ?? null;
+  const activeMediaUrl = getSafeMediaUrl(activeMedia?.url);
   const maxQuantity = product.stockUnits;
   const safeQuantity = Math.min(Math.max(quantity, 1), Math.max(maxQuantity, 1));
   const wholesaleApplies =
@@ -99,24 +101,26 @@ export function ProductDetailView({ product, settings }: ProductDetailViewProps)
           </div>
 
           <div className="product-detail-stage">
-            {activeMedia && !(activeMedia.type === "IMAGE" && imageFailed[activeMedia.id]) ? (
+            {activeMedia && activeMediaUrl && !(activeMedia.type === "IMAGE" && imageFailed[activeMedia.id]) ? (
               activeMedia.type === "IMAGE" ? (
                 <div className="product-detail-stage-media">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     alt={activeMedia.altText ?? product.name}
+                    decoding="async"
                     onError={() =>
                       setImageFailed((current) => ({
                         ...current,
                         [activeMedia.id]: true,
                       }))
                     }
-                    src={activeMedia.url}
+                    referrerPolicy="no-referrer"
+                    src={activeMediaUrl}
                   />
                 </div>
               ) : (
                 <div className="product-detail-stage-media">
-                  <video controls playsInline preload="metadata" src={activeMedia.url} />
+                  <video controls playsInline preload="metadata" src={activeMediaUrl} />
                 </div>
               )
             ) : (
@@ -139,7 +143,13 @@ export function ProductDetailView({ product, settings }: ProductDetailViewProps)
                 >
                   {media.type === "IMAGE" && !imageFailed[media.id] ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img alt={media.altText ?? `${product.name} ${index + 1}`} src={media.url} />
+                    <img
+                      alt={media.altText ?? `${product.name} ${index + 1}`}
+                      decoding="async"
+                      loading="lazy"
+                      referrerPolicy="no-referrer"
+                      src={getSafeMediaUrl(media.url) ?? media.url}
+                    />
                   ) : (
                     <span>{media.type === "VIDEO" ? "Video" : "Vista"}</span>
                   )}

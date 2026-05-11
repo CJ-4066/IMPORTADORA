@@ -5,6 +5,7 @@ import { useState } from "react";
 import { ArrowUpRight, Clock3, ImageIcon, MessageCircle, ShoppingCart } from "lucide-react";
 import { STORE_CART_OPEN_EVENT } from "@/components/catalog/cart-events";
 import { isCartStoreHydrated, rehydrateCartStore, useCartStore } from "@/components/catalog/cart-store";
+import { getSafeMediaUrl } from "@/lib/media-url";
 import type { CatalogProduct, StoreSettingsView } from "@/lib/store";
 import {
   getProductDiscountPercent,
@@ -21,8 +22,9 @@ type ProductCardProps = {
 export function ProductCard({ product, settings, badgeLabel }: ProductCardProps) {
   const addItem = useCartStore((state) => state.addItem);
   const primaryMedia = product.primaryMedia;
+  const primaryMediaUrl = getSafeMediaUrl(primaryMedia?.url);
   const [imageFailed, setImageFailed] = useState(false);
-  const shouldShowMedia = primaryMedia && !(primaryMedia.type === "IMAGE" && imageFailed);
+  const shouldShowMedia = primaryMedia && primaryMediaUrl && !(primaryMedia.type === "IMAGE" && imageFailed);
   const discountPercent = getProductDiscountPercent(product);
   const whatsappNumber = settings.whatsappNumber.replace(/\D/g, "");
   const whatsappHref = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(
@@ -59,10 +61,10 @@ export function ProductCard({ product, settings, badgeLabel }: ProductCardProps)
                   loading="lazy"
                   onError={() => setImageFailed(true)}
                   referrerPolicy="no-referrer"
-                  src={primaryMedia.url}
+                  src={primaryMediaUrl}
                 />
               ) : (
-                <video muted playsInline preload="metadata" src={primaryMedia.url} />
+                <video muted playsInline preload="metadata" src={primaryMediaUrl} />
               )}
             </div>
           </Link>

@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { STORE_CART_OPEN_EVENT } from "@/components/catalog/cart-events";
 import { rehydrateCartStore } from "@/components/catalog/cart-store";
+import { getSafeMediaUrl } from "@/lib/media-url";
 import { getLinePricing } from "@/lib/pricing";
 import type { StoreSettingsView } from "@/lib/store";
 import { cleanWhatsappNumber, formatCurrency } from "@/lib/utils";
@@ -119,9 +120,15 @@ function CartList({
         <article className="cart-item" key={item.key}>
           <div className="cart-item-main">
             <div className="cart-item-thumb">
-              {item.imageUrl ? (
+              {getSafeMediaUrl(item.imageUrl) ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img alt={item.imageAlt ?? item.name} src={item.imageUrl} />
+                <img
+                  alt={item.imageAlt ?? item.name}
+                  decoding="async"
+                  loading="lazy"
+                  referrerPolicy="no-referrer"
+                  src={getSafeMediaUrl(item.imageUrl) ?? undefined}
+                />
               ) : (
                 <span>{item.name.slice(0, 2).toUpperCase()}</span>
               )}

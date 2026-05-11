@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { getSafeMediaUrl } from "@/lib/media-url";
 import type { HeroSlideView } from "@/lib/store";
 
 type HeroCarouselProps = {
@@ -41,7 +42,13 @@ export function HeroCarousel({ slides, intervalSeconds }: HeroCarouselProps) {
           key={`${slide.imageUrl}-${index}`}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img alt={slide.title ?? `Slide ${index + 1}`} src={slide.imageUrl} />
+          <img
+            alt={slide.title ?? `Slide ${index + 1}`}
+            decoding="async"
+            loading={index === 0 ? "eager" : "lazy"}
+            referrerPolicy="no-referrer"
+            src={getSafeMediaUrl(slide.imageUrl) ?? slide.imageUrl}
+          />
         </article>
       ))}
 

@@ -196,7 +196,6 @@ export function CatalogExperience({
             href="/?collection=mas-vendidos"
             products={topProducts}
             settings={settings}
-            subtitle="Lo más útil para revisar rápido y agregar a una cotización."
             title="Productos más vendidos"
           />
 
