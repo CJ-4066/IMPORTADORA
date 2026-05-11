@@ -23,6 +23,9 @@ import type {
 export const PUBLIC_PAGE_SIZE = 24;
 export const ADMIN_PAGE_SIZE = 25;
 
+const BRAND_BLUE = "#0b86d1";
+const LEGACY_PRIMARY_BLUE = "#147cc4";
+
 const DEFAULT_STORE_SETTINGS: StoreSettingsView = {
   businessName: "Importaciones Super",
   heroTitle: "Catálogo mayorista con pedido directo por WhatsApp",
@@ -36,8 +39,8 @@ const DEFAULT_STORE_SETTINGS: StoreSettingsView = {
   currencySymbol: "S/",
   highlightMessage: "Precios por unidad y mayorista sincronizados con el ERP.",
   supportHours: "Lun a sáb 8:00 am - 7:00 pm",
-  primaryColor: "#147cc4",
-  accentColor: "#63cfff",
+  primaryColor: BRAND_BLUE,
+  accentColor: BRAND_BLUE,
 };
 
 type ProductWithMedia = Product & {
@@ -156,6 +159,11 @@ function parseHeroSlides(value: Prisma.JsonValue | null | undefined): HeroSlideV
 function mapStoreSettings(
   settings: Awaited<ReturnType<typeof readStoreSettingsRecord>>,
 ): StoreSettingsView {
+  const primaryColor =
+    settings?.primaryColor?.toLowerCase() === LEGACY_PRIMARY_BLUE
+      ? BRAND_BLUE
+      : settings?.primaryColor ?? DEFAULT_STORE_SETTINGS.primaryColor;
+
   return {
     businessName: settings?.businessName ?? DEFAULT_STORE_SETTINGS.businessName,
     heroTitle: settings?.heroTitle ?? DEFAULT_STORE_SETTINGS.heroTitle,
@@ -169,8 +177,8 @@ function mapStoreSettings(
     currencySymbol: settings?.currencySymbol ?? DEFAULT_STORE_SETTINGS.currencySymbol,
     highlightMessage: settings?.highlightMessage ?? DEFAULT_STORE_SETTINGS.highlightMessage,
     supportHours: settings?.supportHours ?? DEFAULT_STORE_SETTINGS.supportHours,
-    primaryColor: settings?.primaryColor ?? DEFAULT_STORE_SETTINGS.primaryColor,
-    accentColor: settings?.accentColor ?? DEFAULT_STORE_SETTINGS.accentColor,
+    primaryColor,
+    accentColor: primaryColor,
   };
 }
 

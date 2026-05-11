@@ -269,12 +269,8 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
             <input defaultValue={settings.supportHours} name="supportHours" required />
           </label>
           <label className="field">
-            <span>Color principal</span>
+            <span>Color de marca</span>
             <input defaultValue={settings.primaryColor} name="primaryColor" required type="color" />
-          </label>
-          <label className="field">
-            <span>Color acento</span>
-            <input defaultValue={settings.accentColor} name="accentColor" required type="color" />
           </label>
         </div>
 

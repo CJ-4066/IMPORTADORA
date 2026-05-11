@@ -170,6 +170,7 @@ export function parseCategoryForm(formData: FormData) {
 }
 
 export function parseSettingsForm(formData: FormData) {
+  const primaryColor = formData.get("primaryColor");
   const heroSlideImageUrls = formData.getAll("heroSlideImageUrl").map(String);
   const heroSlideTitles = formData.getAll("heroSlideTitle").map(String);
   const heroSlideTexts = formData.getAll("heroSlideText").map(String);
@@ -193,7 +194,7 @@ export function parseSettingsForm(formData: FormData) {
     currencySymbol: formData.get("currencySymbol"),
     highlightMessage: formData.get("highlightMessage"),
     supportHours: formData.get("supportHours"),
-    primaryColor: formData.get("primaryColor"),
-    accentColor: formData.get("accentColor"),
+    primaryColor,
+    accentColor: primaryColor,
   });
 }
