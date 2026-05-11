@@ -683,7 +683,7 @@ export function createShopAssistantService(repository: ShopAssistantRepository) 
     }
 
     if (contextProduct) {
-      if (!contextProduct.isVisible || contextProduct.stockUnits <= 0) {
+      if (contextProduct.isVisible === false || contextProduct.stockUnits <= 0) {
         return {
           text:
             `${contextProduct.name} (${contextProduct.code}) existe en el ERP, pero ahora no está visible en la tienda porque no tiene stock disponible.` +

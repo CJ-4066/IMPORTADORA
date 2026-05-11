@@ -29,7 +29,7 @@ type CartState = {
   items: CartItem[];
   hydrated: boolean;
   setHydrated: (value: boolean) => void;
-  addItem: (product: CatalogProduct, mode: SaleMode) => void;
+  addItem: (product: CatalogProduct, mode: SaleMode, quantity?: number) => void;
   setQuantity: (key: string, quantity: number) => void;
   removeItem: (key: string) => void;
   clear: () => void;
@@ -53,10 +53,11 @@ export const useCartStore = create<CartState>()(
       items: [],
       hydrated: false,
       setHydrated: (value) => set({ hydrated: value }),
-      addItem: (product, mode) =>
+      addItem: (product, mode, quantity = 1) =>
         set((state) => {
           const key = `${product.id}:${mode}`;
           const maxQuantity = getMaxQuantity(product, mode);
+          const safeQuantity = Math.max(1, Math.floor(quantity));
 
           if (maxQuantity <= 0) {
             return state;
@@ -72,7 +73,7 @@ export const useCartStore = create<CartState>()(
                       ...item,
                       imageAlt: product.primaryMedia?.altText ?? product.name,
                       imageUrl: product.primaryMedia?.url ?? product.imageUrl,
-                      quantity: Math.min(item.quantity + 1, maxQuantity),
+                      quantity: Math.min(item.quantity + safeQuantity, maxQuantity),
                     }
                   : item,
               ),
@@ -97,7 +98,7 @@ export const useCartStore = create<CartState>()(
                 imageAlt: product.primaryMedia?.altText ?? product.name,
                 imageUrl: product.primaryMedia?.url ?? product.imageUrl,
                 mode,
-                quantity: Math.min(1, maxQuantity),
+                quantity: Math.min(safeQuantity, maxQuantity),
               },
             ],
           };

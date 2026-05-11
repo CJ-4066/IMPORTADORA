@@ -1,4 +1,10 @@
-import type { ErpSyncStatus, ErpSyncTrigger, TrendDirection, TrendPeriod } from "@prisma/client";
+import type {
+  ErpSyncStatus,
+  ErpSyncTrigger,
+  QuoteStatus,
+  TrendDirection,
+  TrendPeriod,
+} from "@prisma/client";
 
 export type CatalogProduct = {
   id: string;
@@ -85,6 +91,115 @@ export type ShopperAccountView = {
   email: string;
   phone: string | null;
   createdAt: string;
+};
+
+export type ShopperQuoteItemView = {
+  code: string;
+  name: string;
+  quantity: number;
+  total: number;
+};
+
+export type ShopperQuoteView = {
+  id: string;
+  quoteNumber: string | null;
+  status: QuoteStatus;
+  total: number;
+  currencySymbol: string;
+  createdAt: string;
+  itemCount: number;
+  items: ShopperQuoteItemView[];
+};
+
+export type ShopperQuoteDetailItemView = ShopperQuoteItemView & {
+  tierLabel: string;
+  unitPrice: number;
+  product: CatalogProduct | null;
+};
+
+export type ShopperQuoteDetailView = Omit<ShopperQuoteView, "items"> & {
+  customerName: string;
+  customerPhone: string;
+  customerEmail: string | null;
+  customerAddress: string | null;
+  customerDocumentNumber: string | null;
+  customerDocumentType: string | null;
+  errorMessage: string | null;
+  items: ShopperQuoteDetailItemView[];
+  note: string | null;
+  statusSteps: AdminQuoteStatusStepView[];
+  updatedAt: string;
+  whatsappHref: string | null;
+};
+
+export type AdminQuoteItemView = ShopperQuoteItemView & {
+  code: string;
+};
+
+export type AdminQuoteDetailItemView = AdminQuoteItemView & {
+  externalId: string | null;
+  productId: string | null;
+  tierLabel: string;
+  unitPrice: number;
+};
+
+export type AdminQuoteStatusStepView = {
+  status: "success" | "warning" | "error";
+  text: string;
+};
+
+export type AdminQuotePdfNotificationView = {
+  message: string;
+  ok: boolean;
+  sent: boolean;
+} | null;
+
+export type AdminQuoteView = {
+  id: string;
+  quoteNumber: string | null;
+  status: QuoteStatus;
+  total: number;
+  currencySymbol: string;
+  customerName: string;
+  customerPhone: string;
+  customerEmail: string | null;
+  erpCustomerMode: string | null;
+  createdAt: string;
+  itemCount: number;
+  items: AdminQuoteItemView[];
+  user: {
+    name: string;
+    email: string;
+  } | null;
+};
+
+export type AdminQuoteDetailView = Omit<AdminQuoteView, "items" | "itemCount"> & {
+  customerAddress: string | null;
+  customerDocumentNumber: string | null;
+  customerDocumentType: string | null;
+  erpCustomerId: number | null;
+  erpExternalId: string | null;
+  errorMessage: string | null;
+  itemCount: number;
+  items: AdminQuoteDetailItemView[];
+  note: string | null;
+  pdfNotification: AdminQuotePdfNotificationView;
+  statusSteps: AdminQuoteStatusStepView[];
+  updatedAt: string;
+  whatsappHref: string | null;
+};
+
+export type AdminQuotesData = {
+  quotes: AdminQuoteView[];
+  page: number;
+  totalPages: number;
+  totalResults: number;
+  stats: {
+    all: number;
+    pending: number;
+    registered: number;
+    error: number;
+  };
 };
 
 export type DashboardTrendProduct = {

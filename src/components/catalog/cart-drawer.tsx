@@ -213,7 +213,7 @@ function CartFooter({
       ) : null}
 
       {quoteState === "loading" ? (
-        <p className="muted">Enviando cotización al ERP y validando el envío por WhatsApp...</p>
+        <p className="muted">Enviando solicitud y validando disponibilidad...</p>
       ) : null}
 
       {quoteMessage ? (
@@ -264,12 +264,12 @@ function QuoteForm({
     <section className="cart-quote-form">
       <div className="cart-quote-head">
         <div className="stack-xs">
-          <p className="eyebrow">Datos para ERP</p>
-          <h3>Registrar cotización válida</h3>
+          <p className="eyebrow">Datos de compra</p>
+          <h3>Enviar solicitud de cotización</h3>
           <p className="muted">
             {hasAccountDefaults
               ? "Cargamos tus datos de cuenta para acelerar la cotización. Puedes corregirlos antes de enviar."
-              : "Completa cliente, documento, contacto y observaciones antes de mandar la cotización al ERP."}
+              : "Completa tus datos de contacto, documento y observaciones antes de enviar la solicitud."}
           </p>
         </div>
         <button className="icon-button" onClick={onClose} type="button">
@@ -359,7 +359,7 @@ function QuoteForm({
 
       <button className="button button-primary" disabled={quoteState === "loading"} onClick={onSubmit} type="button">
         <FileText size={18} />
-        {quoteState === "loading" ? "Registrando..." : "Registrar cotización ERP"}
+        {quoteState === "loading" ? "Enviando..." : "Enviar solicitud"}
       </button>
     </section>
   );
@@ -467,11 +467,9 @@ export function CartDrawer({
             name: quoteDraft.name,
             phone: quoteDraft.phone,
           },
-          items: orderLines.map(({ item, pricing }) => ({
+          items: orderLines.map(({ item }) => ({
             code: item.code,
-            name: item.name,
             quantity: item.quantity,
-            unitPrice: pricing.unitPrice,
           })),
           note: quoteDraft.note,
         }),
@@ -488,7 +486,7 @@ export function CartDrawer({
       }
 
       setQuoteState("success");
-      setQuoteMessage(payload.message ?? "Cotización enviada al ERP.");
+      setQuoteMessage(payload.message ?? "Solicitud enviada correctamente.");
       setQuoteMessageTone("success");
       setQuoteStatusSteps(payload.statusSteps ?? []);
       setQuoteWhatsappHref(payload.whatsappHref ?? null);
@@ -496,14 +494,14 @@ export function CartDrawer({
     } catch (error) {
       setQuoteState("error");
       setQuoteMessage(
-        error instanceof Error ? error.message : "No se pudo registrar la cotización en el ERP.",
+        error instanceof Error ? error.message : "No se pudo enviar la solicitud.",
       );
       setQuoteMessageTone("error");
       setQuoteStatusSteps([
         {
           status: "error",
           text:
-            error instanceof Error ? error.message : "No se pudo registrar la cotización en el ERP.",
+            error instanceof Error ? error.message : "No se pudo enviar la solicitud.",
         },
       ]);
     }

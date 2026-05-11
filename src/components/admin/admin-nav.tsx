@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   ChartNoAxesCombined,
+  FileText,
   FolderTree,
   PackagePlus,
   PackageSearch,
@@ -14,6 +15,7 @@ import { cn } from "@/lib/utils";
 const links = [
   { href: "/admin", label: "Dashboard", icon: ChartNoAxesCombined },
   { href: "/admin/products", label: "Productos", icon: PackageSearch },
+  { href: "/admin/quotes", label: "Cotizaciones", icon: FileText },
   { href: "/admin/categories", label: "Categorías", icon: FolderTree },
   { href: "/admin/products/new", label: "Nuevo producto", icon: PackagePlus },
   { href: "/admin/settings", label: "Configuración", icon: Settings2 },

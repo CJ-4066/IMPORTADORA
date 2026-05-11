@@ -1,4 +1,4 @@
-import type { Prisma } from "@prisma/client";
+import type { Prisma, QuoteStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import {
   ADMIN_PAGE_SIZE,
@@ -12,11 +12,66 @@ import {
 } from "@/lib/store-shared";
 import type {
   AdminCategory,
+  AdminQuoteDetailView,
+  AdminQuotePdfNotificationView,
+  AdminQuotesData,
+  AdminQuoteStatusStepView,
   DashboardPeriod,
   DashboardTrendProduct,
   ErpSyncLogView,
   ShopperAccountView,
+  ShopperQuoteDetailView,
+  ShopperQuoteView,
 } from "@/lib/store-types";
+
+const ADMIN_QUOTES_PAGE_SIZE = 20;
+
+function mapQuoteStatusSteps(value: Prisma.JsonValue | null): AdminQuoteStatusStepView[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.flatMap((item) => {
+    if (!item || typeof item !== "object" || Array.isArray(item)) {
+      return [];
+    }
+
+    const record = item as Record<string, Prisma.JsonValue>;
+    const text = typeof record.text === "string" ? record.text.trim() : "";
+    const rawStatus = typeof record.status === "string" ? record.status : "warning";
+
+    if (!text) {
+      return [];
+    }
+
+    return [
+      {
+        status:
+          rawStatus === "success" || rawStatus === "error" || rawStatus === "warning"
+            ? rawStatus
+            : "warning",
+        text,
+      },
+    ];
+  });
+}
+
+function mapQuotePdfNotification(value: Prisma.JsonValue | null): AdminQuotePdfNotificationView {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  const record = value as Record<string, Prisma.JsonValue>;
+
+  return {
+    message:
+      typeof record.message === "string" && record.message.trim()
+        ? record.message.trim()
+        : "Sin detalle de notificación.",
+    ok: record.ok === true,
+    sent: record.sent === true,
+  };
+}
 
 function getDashboardPeriodRange(period: DashboardPeriod, offset = 0) {
   const now = new Date();
@@ -342,5 +397,262 @@ export async function getShopperAccount(userId: string): Promise<ShopperAccountV
     email: user.email,
     phone: user.phone,
     createdAt: user.createdAt.toISOString(),
+  };
+}
+
+export async function getShopperQuoteHistory(
+  userId: string,
+  limit = 6,
+): Promise<ShopperQuoteView[]> {
+  const quotes = await prisma.quote.findMany({
+    where: { userId },
+    orderBy: { createdAt: "desc" },
+    take: limit,
+    include: {
+      items: {
+        orderBy: { createdAt: "asc" },
+        select: {
+          code: true,
+          name: true,
+          quantity: true,
+          total: true,
+        },
+      },
+    },
+  });
+
+  return quotes.map((quote) => ({
+    id: quote.id,
+    quoteNumber: quote.quoteNumber,
+    status: quote.status,
+    total: Number(quote.total),
+    currencySymbol: quote.currencySymbol,
+    createdAt: quote.createdAt.toISOString(),
+    itemCount: quote.items.reduce((sum, item) => sum + item.quantity, 0),
+    items: quote.items.slice(0, 3).map((item) => ({
+      code: item.code,
+      name: item.name,
+      quantity: item.quantity,
+      total: Number(item.total),
+    })),
+  }));
+}
+
+export async function getShopperQuoteById(
+  userId: string,
+  quoteId: string,
+): Promise<ShopperQuoteDetailView | null> {
+  const quote = await prisma.quote.findFirst({
+    where: {
+      id: quoteId,
+      userId,
+    },
+    include: {
+      items: {
+        orderBy: { createdAt: "asc" },
+        include: {
+          product: {
+            include: {
+              media: {
+                orderBy: { sortOrder: "asc" },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!quote) {
+    return null;
+  }
+
+  return {
+    id: quote.id,
+    quoteNumber: quote.quoteNumber,
+    status: quote.status,
+    total: Number(quote.total),
+    currencySymbol: quote.currencySymbol,
+    createdAt: quote.createdAt.toISOString(),
+    updatedAt: quote.updatedAt.toISOString(),
+    customerName: quote.customerName,
+    customerPhone: quote.customerPhone,
+    customerEmail: quote.customerEmail,
+    customerAddress: quote.customerAddress,
+    customerDocumentNumber: quote.customerDocumentNumber,
+    customerDocumentType: quote.customerDocumentType,
+    errorMessage: quote.errorMessage,
+    itemCount: quote.items.reduce((sum, item) => sum + item.quantity, 0),
+    items: quote.items.map((item) => ({
+      code: item.code,
+      name: item.name,
+      product:
+        item.product && item.product.isVisible && item.product.stockUnits > 0
+          ? mapProduct(item.product)
+          : null,
+      quantity: item.quantity,
+      tierLabel: item.tierLabel,
+      total: Number(item.total),
+      unitPrice: Number(item.unitPrice),
+    })),
+    note: quote.note,
+    statusSteps: mapQuoteStatusSteps(quote.statusSteps),
+    whatsappHref: quote.whatsappHref,
+  };
+}
+
+export async function getAdminQuotes(input: {
+  page?: number;
+  status?: QuoteStatus | "all";
+} = {}): Promise<AdminQuotesData> {
+  const page = Math.max(1, input.page ?? 1);
+  const where: Prisma.QuoteWhereInput =
+    input.status && input.status !== "all" ? { status: input.status } : {};
+
+  const [
+    quotes,
+    totalResults,
+    totalQuotes,
+    pendingQuotes,
+    registeredQuotes,
+    errorQuotes,
+  ] = await prisma.$transaction([
+    prisma.quote.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      take: ADMIN_QUOTES_PAGE_SIZE,
+      skip: (page - 1) * ADMIN_QUOTES_PAGE_SIZE,
+      include: {
+        user: {
+          select: {
+            email: true,
+            name: true,
+          },
+        },
+        items: {
+          orderBy: { createdAt: "asc" },
+          select: {
+            code: true,
+            name: true,
+            quantity: true,
+            total: true,
+          },
+        },
+      },
+    }),
+    prisma.quote.count({ where }),
+    prisma.quote.count(),
+    prisma.quote.count({ where: { status: "PENDING" } }),
+    prisma.quote.count({ where: { status: "ERP_REGISTERED" } }),
+    prisma.quote.count({ where: { status: "ERROR" } }),
+  ]);
+
+  return {
+    quotes: quotes.map((quote) => ({
+      id: quote.id,
+      quoteNumber: quote.quoteNumber,
+      status: quote.status,
+      total: Number(quote.total),
+      currencySymbol: quote.currencySymbol,
+      customerName: quote.customerName,
+      customerPhone: quote.customerPhone,
+      customerEmail: quote.customerEmail,
+      erpCustomerMode: quote.erpCustomerMode,
+      createdAt: quote.createdAt.toISOString(),
+      itemCount: quote.items.reduce((sum, item) => sum + item.quantity, 0),
+      items: quote.items.slice(0, 4).map((item) => ({
+        code: item.code,
+        name: item.name,
+        quantity: item.quantity,
+        total: Number(item.total),
+      })),
+      user: quote.user
+        ? {
+            email: quote.user.email,
+            name: quote.user.name,
+          }
+        : null,
+    })),
+    page,
+    totalPages: Math.max(1, Math.ceil(totalResults / ADMIN_QUOTES_PAGE_SIZE)),
+    totalResults,
+    stats: {
+      all: totalQuotes,
+      pending: pendingQuotes,
+      registered: registeredQuotes,
+      error: errorQuotes,
+    },
+  };
+}
+
+export async function getAdminQuoteById(id: string): Promise<AdminQuoteDetailView | null> {
+  const quote = await prisma.quote.findUnique({
+    where: { id },
+    include: {
+      user: {
+        select: {
+          email: true,
+          name: true,
+        },
+      },
+      items: {
+        orderBy: { createdAt: "asc" },
+        select: {
+          code: true,
+          externalId: true,
+          name: true,
+          productId: true,
+          quantity: true,
+          tierLabel: true,
+          total: true,
+          unitPrice: true,
+        },
+      },
+    },
+  });
+
+  if (!quote) {
+    return null;
+  }
+
+  return {
+    id: quote.id,
+    quoteNumber: quote.quoteNumber,
+    status: quote.status,
+    total: Number(quote.total),
+    currencySymbol: quote.currencySymbol,
+    customerName: quote.customerName,
+    customerPhone: quote.customerPhone,
+    customerEmail: quote.customerEmail,
+    customerAddress: quote.customerAddress,
+    customerDocumentNumber: quote.customerDocumentNumber,
+    customerDocumentType: quote.customerDocumentType,
+    erpCustomerId: quote.erpCustomerId,
+    erpCustomerMode: quote.erpCustomerMode,
+    erpExternalId: quote.erpExternalId,
+    errorMessage: quote.errorMessage,
+    createdAt: quote.createdAt.toISOString(),
+    updatedAt: quote.updatedAt.toISOString(),
+    itemCount: quote.items.reduce((sum, item) => sum + item.quantity, 0),
+    items: quote.items.map((item) => ({
+      code: item.code,
+      externalId: item.externalId,
+      name: item.name,
+      productId: item.productId,
+      quantity: item.quantity,
+      tierLabel: item.tierLabel,
+      total: Number(item.total),
+      unitPrice: Number(item.unitPrice),
+    })),
+    note: quote.note,
+    pdfNotification: mapQuotePdfNotification(quote.pdfNotification),
+    statusSteps: mapQuoteStatusSteps(quote.statusSteps),
+    user: quote.user
+      ? {
+          email: quote.user.email,
+          name: quote.user.name,
+        }
+      : null,
+    whatsappHref: quote.whatsappHref,
   };
 }

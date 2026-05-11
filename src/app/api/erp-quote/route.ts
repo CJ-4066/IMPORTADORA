@@ -1,7 +1,13 @@
 import { NextResponse } from "next/server";
+import type { Prisma } from "@prisma/client";
 import { FacturadorClient } from "@/lib/facturador/client";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import {
+  normalizeQuoteLineInputs,
+  prepareQuoteLines,
+  QuoteLineValidationError,
+} from "@/lib/quote-pricing";
 import { getStoreSettings } from "@/lib/store";
 import { cleanWhatsappNumber, formatCurrency } from "@/lib/utils";
 import {
@@ -12,9 +18,7 @@ import {
 
 type QuoteRequestItem = {
   code: string;
-  name: string;
   quantity: number;
-  unitPrice: number;
 };
 
 type QuoteCustomerPayload = {
@@ -27,6 +31,7 @@ type QuoteCustomerPayload = {
 };
 
 export async function POST(request: Request) {
+  let localQuoteId: string | null = null;
   const session = await getSession();
   const shopper = session
     ? await prisma.user.findUnique({
@@ -35,21 +40,24 @@ export async function POST(request: Request) {
       })
     : null;
   const payload = (await request.json()) as {
-    items?: QuoteRequestItem[];
+    items?: unknown;
     note?: string;
     customer?: QuoteCustomerPayload;
   };
 
-  const items = (payload.items ?? []).filter(
-    (item) =>
-      item &&
-      typeof item.code === "string" &&
-      typeof item.name === "string" &&
-      typeof item.quantity === "number" &&
-      typeof item.unitPrice === "number",
-  );
+  let requestedItems: QuoteRequestItem[];
 
-  if (!items.length) {
+  try {
+    requestedItems = normalizeQuoteLineInputs(payload.items);
+  } catch (error) {
+    if (error instanceof QuoteLineValidationError) {
+      return NextResponse.json({ message: error.message }, { status: 400 });
+    }
+
+    throw error;
+  }
+
+  if (!requestedItems.length) {
     return NextResponse.json({ message: "No hay items para cotizar." }, { status: 400 });
   }
 
@@ -82,8 +90,71 @@ export async function POST(request: Request) {
   }
 
   try {
-    const client = new FacturadorClient();
+    const catalogProducts = await prisma.product.findMany({
+      where: {
+        code: {
+          in: requestedItems.map((item) => item.code),
+        },
+      },
+      select: {
+        boxPrice: true,
+        code: true,
+        externalCode: true,
+        externalId: true,
+        id: true,
+        isVisible: true,
+        name: true,
+        stockUnits: true,
+        unitLabel: true,
+        unitPrice: true,
+        unitsPerBox: true,
+        wholesaleMinQty: true,
+        wholesalePrice: true,
+      },
+    });
+    const items = prepareQuoteLines({
+      requestedItems,
+      products: catalogProducts.map((product) => ({
+        ...product,
+        boxPrice: product.boxPrice === null ? null : Number(product.boxPrice),
+        unitPrice: Number(product.unitPrice),
+        wholesalePrice:
+          product.wholesalePrice === null ? null : Number(product.wholesalePrice),
+      })),
+    });
     const settings = await getStoreSettings();
+    const note = payload.note ?? "Cotización generada desde la tienda virtual.";
+    const total = items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
+    const localQuote = await prisma.quote.create({
+      data: {
+        currencySymbol: settings.currencySymbol,
+        customerAddress,
+        customerDocumentNumber: documentNumber,
+        customerDocumentType: documentType,
+        customerEmail,
+        customerName,
+        customerPhone,
+        note,
+        status: "PENDING",
+        total,
+        userId: session?.userId ?? null,
+        items: {
+          create: items.map((item) => ({
+            code: item.code,
+            externalId: item.externalId,
+            name: item.name,
+            productId: item.productId,
+            quantity: item.quantity,
+            tierLabel: item.tierLabel,
+            total: item.total,
+            unitPrice: item.unitPrice,
+          })),
+        },
+      },
+    });
+    localQuoteId = localQuote.id;
+
+    const client = new FacturadorClient();
     const result = await client.createQuotation({
       customer: {
         address: customerAddress,
@@ -94,7 +165,7 @@ export async function POST(request: Request) {
         phone: customerPhone,
       },
       items,
-      note: payload.note ?? "Cotización generada desde la tienda virtual.",
+      note,
     });
     const quoteNumber = getQuoteNumber(result.response);
     const quoteExternalId = getQuoteExternalId(result.response);
@@ -104,7 +175,6 @@ export async function POST(request: Request) {
     });
     const pdfUrl = getQuotationPdfUrl(quotationRecord, result.response);
     const pdfFilename = getQuotationPdfFilename(quotationRecord, quoteNumber);
-    const total = items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
     const whatsappHref = buildCustomerWhatsappHref({
       businessName: settings.businessName,
       currencySymbol: settings.currencySymbol,
@@ -153,9 +223,23 @@ export async function POST(request: Request) {
         text: warning,
       })),
     ];
+    await prisma.quote.update({
+      where: { id: localQuote.id },
+      data: {
+        erpCustomerId: result.customerId,
+        erpCustomerMode: result.customerMode,
+        erpExternalId: quoteExternalId,
+        pdfNotification: toJson(pdfNotification),
+        quoteNumber,
+        status: "ERP_REGISTERED",
+        statusSteps: toJson(statusSteps),
+        whatsappHref,
+      },
+    });
 
     return NextResponse.json({
       customerMode: result.customerMode,
+      localQuoteId: localQuote.id,
       message: [messageBase, customerModeLabel, pdfNotification.message, ...warnings].filter(Boolean).join(" "),
       pdfNotification,
       quoteNumber,
@@ -165,6 +249,25 @@ export async function POST(request: Request) {
       warnings,
     });
   } catch (error) {
+    if (error instanceof QuoteLineValidationError) {
+      return NextResponse.json({ message: error.message }, { status: 400 });
+    }
+
+    if (localQuoteId) {
+      await prisma.quote
+        .update({
+          where: { id: localQuoteId },
+          data: {
+            errorMessage:
+              error instanceof Error
+                ? error.message
+                : "No se pudo registrar la cotización en el ERP.",
+            status: "ERROR",
+          },
+        })
+        .catch(() => null);
+    }
+
     return NextResponse.json(
       {
         message:
@@ -229,6 +332,10 @@ function getQuotationPdfFilename(record: unknown, quoteNumber: string | null) {
   }
 
   return quoteNumber ? `${quoteNumber}.pdf` : "cotizacion.pdf";
+}
+
+function toJson(value: unknown): Prisma.InputJsonValue {
+  return JSON.parse(JSON.stringify(value ?? null)) as Prisma.InputJsonValue;
 }
 
 async function sendInternalPdfNotification(input: {
@@ -345,7 +452,7 @@ function buildCustomerWhatsappHref(input: {
   phone: string;
   quoteNumber: string | null;
   total: number;
-  items: QuoteRequestItem[];
+  items: PreparedCustomerWhatsappItem[];
 }) {
   const phone = normalizeCustomerWhatsappNumber(input.phone);
 
@@ -369,3 +476,8 @@ function buildCustomerWhatsappHref(input: {
 
   return `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
 }
+
+type PreparedCustomerWhatsappItem = QuoteRequestItem & {
+  name: string;
+  unitPrice: number;
+};
