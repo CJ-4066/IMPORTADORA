@@ -125,7 +125,7 @@ export default async function Home({ searchParams }: HomeProps) {
         </div>
       </section>
 
-      <section className="catalog-section">
+      <section className="catalog-experience-shell">
         <CatalogExperience
           initialCartOpen={initialCartOpen}
           products={data.products}
