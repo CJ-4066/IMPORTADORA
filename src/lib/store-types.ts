@@ -85,6 +85,20 @@ export type StoreSettingsView = {
   accentColor: string;
 };
 
+export type CatalogSalesInsight = {
+  label: string;
+  value: string;
+};
+
+export type CatalogSalesSummary = {
+  generatedAt: string | null;
+  hasDatedSales: boolean;
+  hasRealSales: boolean;
+  hasUnitSales: boolean;
+  insights: CatalogSalesInsight[];
+  source: "erp" | "fallback";
+};
+
 export type ShopperAccountView = {
   id: string;
   name: string;

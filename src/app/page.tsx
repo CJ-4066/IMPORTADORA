@@ -24,6 +24,28 @@ function buildCatalogPageHref(input: {
   return `/?q=${encodeURIComponent(q)}&category=${encodeURIComponent(category)}&brand=${encodeURIComponent(brand)}&sort=${encodeURIComponent(sort)}&page=${page}${featuredOnly ? "&featured=1" : ""}${collection ? `&collection=${encodeURIComponent(collection)}` : ""}`;
 }
 
+function getCollectionTitle(collection: string) {
+  const titles: Record<string, string> = {
+    alexas: "Alexas",
+    consolas: "Consolas de videojuego",
+    drones: "Drones",
+    "mas-vendidos": "Productos más vendidos",
+    ofertas: "Ofertas",
+    preventa: "Preventa",
+    proyectores: "Proyectores",
+  };
+
+  return titles[collection];
+}
+
+function formatSlugTitle(value: string) {
+  return value
+    .split("-")
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
 
 function CatalogPagination({
   brand,
@@ -82,9 +104,7 @@ export default async function Home({ searchParams }: HomeProps) {
   const collectionQueryMap: Record<string, string> = {
     preventa: "preventa",
     proyectores: "proyector",
-    drones: "drone",
     alexas: "alexa",
-    consolas: "consola videojuego",
   };
   const resolvedQuery = q || collectionQueryMap[normalizedCollection] || "";
   const featuredOnly =
@@ -107,10 +127,33 @@ export default async function Home({ searchParams }: HomeProps) {
     "--brand-primary": data.settings.primaryColor,
     "--brand-accent": data.settings.accentColor,
   } as CSSProperties & Record<"--brand-primary" | "--brand-accent", string>;
+  const isSectionedView =
+    !resolvedQuery &&
+    category === "all" &&
+    brand === "all" &&
+    !normalizedCollection &&
+    !featuredOnly &&
+    data.page === 1;
+  const selectedCategory = data.categories.find(
+    (item) => item.slug === category || item.name === category,
+  );
+  const categoryTitle =
+    category !== "all" ? selectedCategory?.name ?? formatSlugTitle(category) : undefined;
+  const catalogTitle =
+    categoryTitle ??
+    getCollectionTitle(normalizedCollection) ??
+    (brand !== "all" ? `Marca: ${brand}` : undefined) ??
+    (resolvedQuery ? `Resultados para "${resolvedQuery}"` : undefined) ??
+    "Productos";
 
   return (
     <main className="site-shell" style={themeVars}>
-      <PublicStoreHeader focusSearch={focusSearch} />
+      <PublicStoreHeader
+        brands={data.brands}
+        categories={data.categories}
+        focusSearch={focusSearch}
+        settings={data.settings}
+      />
 
       <section className="hero">
         <div className="hero-grid hero-grid-centered">
@@ -132,9 +175,13 @@ export default async function Home({ searchParams }: HomeProps) {
 
       <section className="catalog-experience-shell" id="catalogo">
         <CatalogExperience
+          bestSellerProducts={data.bestSellerProducts}
+          catalogTitle={catalogTitle}
           initialCartOpen={initialCartOpen}
+          isSectionedView={isSectionedView}
           products={data.products}
           quoteDefaults={quoteDefaults}
+          salesSummary={data.salesSummary}
           settings={data.settings}
         />
       </section>

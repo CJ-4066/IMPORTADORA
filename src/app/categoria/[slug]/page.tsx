@@ -49,7 +49,11 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
 
   return (
     <main className="site-shell" style={themeVars}>
-      <PublicStoreHeader />
+      <PublicStoreHeader
+        brands={data.brands}
+        categories={data.categories}
+        settings={data.settings}
+      />
 
       <section className="catalog-section">
         <div className="stack-md">

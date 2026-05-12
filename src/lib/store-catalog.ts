@@ -1,5 +1,5 @@
-import { cache } from "react";
-import { FacturadorClient } from "@/lib/facturador/client";
+import { getErpBestSellerSnapshot } from "@/lib/erp-sales";
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import {
   PUBLIC_PAGE_SIZE,
@@ -9,7 +9,19 @@ import {
   mapProduct,
   mapSuggestionResults,
 } from "@/lib/store-shared";
-import type { BrandOption, CatalogSuggestion } from "@/lib/store-types";
+import type { BrandOption, CatalogSalesSummary, CatalogSuggestion } from "@/lib/store-types";
+
+const EMPTY_SALES_SUMMARY: CatalogSalesSummary = {
+  generatedAt: null,
+  hasDatedSales: false,
+  hasRealSales: false,
+  hasUnitSales: false,
+  insights: [
+    { label: "15 días", value: "Sin ventas ERP" },
+    { label: "Rotación", value: "Sin unidades" },
+  ],
+  source: "fallback",
+};
 
 export async function getCatalogPageData(input: {
   query?: string;
@@ -22,11 +34,17 @@ export async function getCatalogPageData(input: {
 }) {
   const page = Math.max(1, input.page ?? 1);
   const collection = input.collection?.trim().toLowerCase() ?? "";
-  const bestSellerCodes =
-    collection === "mas-vendidos" ? await getBestSellerCodes(PUBLIC_PAGE_SIZE * 8) : [];
+  const needsBestSellerSnapshot = shouldLoadBestSellerSnapshot(input, page, collection);
+  const bestSellerSnapshot = needsBestSellerSnapshot
+    ? await getErpBestSellerSnapshot(PUBLIC_PAGE_SIZE * 8)
+    : {
+        codes: [],
+        summary: EMPTY_SALES_SUMMARY,
+      };
+  const bestSellerCodes = bestSellerSnapshot.codes;
   const shouldRankBestSellers = collection === "mas-vendidos" && bestSellerCodes.length > 0;
-  const where = buildCatalogWhere(input, bestSellerCodes);
-  const [queriedProducts, totalResults, categoryRows, brandRows, visibleCount, featuredCount, settings] =
+  const where = buildCatalogWhere(input, shouldRankBestSellers ? bestSellerCodes : []);
+  const [queriedProducts, bestSellerRows, totalResults, categoryRows, brandRows, visibleCount, featuredCount, settings] =
     await Promise.all([
       prisma.product.findMany({
         where,
@@ -40,6 +58,16 @@ export async function getCatalogPageData(input: {
         skip: shouldRankBestSellers ? undefined : (page - 1) * PUBLIC_PAGE_SIZE,
         take: shouldRankBestSellers ? undefined : PUBLIC_PAGE_SIZE,
       }),
+      bestSellerCodes.length
+        ? prisma.product.findMany({
+            where: buildBestSellerProductsWhere(bestSellerCodes),
+            include: {
+              media: {
+                orderBy: { sortOrder: "asc" },
+              },
+            },
+          })
+        : [],
       prisma.product.count({ where }),
       prisma.category.findMany({
         where: {
@@ -73,9 +101,16 @@ export async function getCatalogPageData(input: {
   const products = shouldRankBestSellers
     ? orderedProducts.slice((page - 1) * PUBLIC_PAGE_SIZE, page * PUBLIC_PAGE_SIZE)
     : orderedProducts;
+  const bestSellerProducts = bestSellerCodes.length
+    ? rankProductsByCode(bestSellerRows, bestSellerCodes)
+        .slice(0, 12)
+        .map(mapProduct)
+    : [];
 
   return {
+    bestSellerProducts,
     products: products.map(mapProduct),
+    salesSummary: bestSellerSnapshot.summary,
     totalResults,
     totalPages: Math.max(1, Math.ceil(totalResults / PUBLIC_PAGE_SIZE)),
     page,
@@ -95,6 +130,30 @@ export async function getCatalogPageData(input: {
   };
 }
 
+function shouldLoadBestSellerSnapshot(
+  input: {
+    query?: string;
+    category?: string;
+    brand?: string;
+    featuredOnly?: boolean;
+  },
+  page: number,
+  collection: string,
+) {
+  if (collection === "mas-vendidos") {
+    return true;
+  }
+
+  return (
+    page === 1 &&
+    !input.query?.trim() &&
+    (input.category?.trim() || "all") === "all" &&
+    (input.brand?.trim() || "all") === "all" &&
+    !collection &&
+    !input.featuredOnly
+  );
+}
+
 function getCatalogOrderBy(sort?: string) {
   switch (sort) {
     case "price-asc":
@@ -109,63 +168,80 @@ function getCatalogOrderBy(sort?: string) {
   }
 }
 
-const getBestSellerCodes = cache(async (limit: number) => {
-  try {
-    const client = new FacturadorClient();
-    const sales = await client.getSalesProducts();
-    const codes: string[] = [];
-    const seen = new Set<string>();
-
-    for (const product of sales) {
-      for (const candidate of [
-        product.internal_id,
-        product.item_code,
-        product.barcode,
-        product.code,
-      ]) {
-        if (typeof candidate !== "string") {
-          continue;
-        }
-
-        const normalized = candidate.trim();
-
-        if (!normalized || seen.has(normalized)) {
-          continue;
-        }
-
-        seen.add(normalized);
-        codes.push(normalized);
-
-        if (codes.length >= limit) {
-          return codes;
-        }
-      }
-    }
-
-    return codes;
-  } catch {
-    return [] as string[];
-  }
-});
-
 function buildCatalogWhere(
   input: {
     query?: string;
     category?: string;
     brand?: string;
+    collection?: string;
     featuredOnly?: boolean;
   },
   bestSellerCodes: string[],
 ) {
   const where = buildWhere(input.query, input.category, input.brand, true, input.featuredOnly);
+  const collectionWhere = getCollectionWhere(input.collection);
+  const conditions: Prisma.ProductWhereInput[] = [where];
 
-  if (!bestSellerCodes.length) {
-    return where;
+  if (collectionWhere) {
+    conditions.push(collectionWhere);
   }
 
+  if (bestSellerCodes.length) {
+    conditions.push({
+      OR: [
+        { code: { in: bestSellerCodes } },
+        { externalCode: { in: bestSellerCodes } },
+        { externalId: { in: bestSellerCodes } },
+      ],
+    });
+  }
+
+  return { AND: conditions };
+}
+
+function getCollectionWhere(collection?: string): Prisma.ProductWhereInput | null {
+  switch (collection) {
+    case "drones":
+      return {
+        OR: [
+          { name: { contains: "dron", mode: "insensitive" } },
+          { code: { contains: "dron", mode: "insensitive" } },
+          { name: { contains: "dji mini", mode: "insensitive" } },
+          { name: { contains: "dji avata", mode: "insensitive" } },
+          { name: { contains: "dji neo", mode: "insensitive" } },
+        ],
+      };
+    case "consolas":
+      return {
+        AND: [
+          {
+            OR: [
+              { name: { contains: "consola", mode: "insensitive" } },
+              { name: { contains: "videojuego", mode: "insensitive" } },
+              { name: { contains: "video juego", mode: "insensitive" } },
+              { name: { contains: "gamestick", mode: "insensitive" } },
+              { name: { contains: "game stick", mode: "insensitive" } },
+              { name: { contains: "game player", mode: "insensitive" } },
+              { name: { contains: "r36s", mode: "insensitive" } },
+            ],
+          },
+          {
+            NOT: [
+              { name: { contains: "consolador", mode: "insensitive" } },
+            ],
+          },
+        ],
+      };
+    default:
+      return null;
+  }
+}
+
+function buildBestSellerProductsWhere(bestSellerCodes: string[]) {
   return {
     AND: [
-      where,
+      { isVisible: true },
+      { stockUnits: { gt: 0 } },
       {
         OR: [
           { code: { in: bestSellerCodes } },

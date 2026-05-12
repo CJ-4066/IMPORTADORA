@@ -24,7 +24,9 @@ import type { LucideIcon } from "lucide-react";
 import type { SessionUser } from "@/lib/auth";
 import { getSession } from "@/lib/auth";
 import { getBrandOptions, getCategoryOptions, getStoreSettings } from "@/lib/store";
+import type { BrandOption, CategoryOption, StoreSettingsView } from "@/lib/store";
 import { shopperLogoutAction } from "@/app/acceso/actions";
+import { CatalogPrefetchLink } from "@/components/catalog/catalog-prefetch-link";
 import { HeaderCartButton } from "@/components/catalog/header-cart-button";
 import { HeaderSearch } from "@/components/catalog/header-search";
 
@@ -172,16 +174,28 @@ function CategoryShortcutMenu({
   brands,
   categories,
 }: {
-  brands: Awaited<ReturnType<typeof getBrandOptions>>;
-  categories: Awaited<ReturnType<typeof getCategoryOptions>>;
+  brands: BrandOption[];
+  categories: CategoryOption[];
 }) {
   return (
     <div className="public-store-topline">
       <details className="public-store-shortcut-menu">
-        <summary className="public-store-shortcut is-lead">
-          <Menu size={15} />
-          Todas las categorías
-          <ChevronDown size={14} />
+        <summary
+          aria-label={`Abrir ${categories.length} categorías del catálogo`}
+          className="public-store-shortcut is-lead"
+        >
+          <span className="public-store-lead-icon">
+            <Menu size={17} />
+          </span>
+          <span className="public-store-lead-copy">
+            <span>Todas las categorías</span>
+            <small>
+              {categories.length ? `${categories.length} categorías` : "Explorar catálogo"}
+            </small>
+          </span>
+          <span className="public-store-lead-chevron">
+            <ChevronDown size={15} />
+          </span>
         </summary>
         <div className="public-store-shortcut-dropdown">
           <div className="public-store-shortcut-dropdown-section">
@@ -194,14 +208,14 @@ function CategoryShortcutMenu({
                   const Icon = getCategoryIcon(category.name);
 
                   return (
-                    <Link
+                    <CatalogPrefetchLink
                       className="public-store-shortcut-dropdown-link is-category"
                       href={`/?category=${encodeURIComponent(category.slug)}`}
                       key={category.id}
                     >
                       <Icon size={16} />
                       <span>{formatCatalogLabel(category.name)}</span>
-                    </Link>
+                    </CatalogPrefetchLink>
                   );
                 })}
             </div>
@@ -211,13 +225,13 @@ function CategoryShortcutMenu({
               <strong>Marcas</strong>
               <div className="public-store-shortcut-dropdown-grid is-brands">
                 {brands.slice(0, 18).map((brand) => (
-                  <Link
+                  <CatalogPrefetchLink
                     className="public-store-shortcut-dropdown-link"
                     href={`/?brand=${encodeURIComponent(brand.name)}`}
                     key={brand.name}
                   >
                     {formatCatalogLabel(brand.name)}
-                  </Link>
+                  </CatalogPrefetchLink>
                 ))}
               </div>
             </div>
@@ -226,28 +240,44 @@ function CategoryShortcutMenu({
       </details>
       <div className="public-store-shortcuts" aria-label="Atajos de catálogo">
         {SHORTCUTS.slice(1).map((shortcut) => (
-          <Link className="public-store-shortcut" href={shortcut.href} key={shortcut.label}>
+          <CatalogPrefetchLink
+            className="public-store-shortcut"
+            href={shortcut.href}
+            key={shortcut.label}
+          >
             {shortcut.icon ? <shortcut.icon size={14} /> : null}
             {shortcut.label}
-          </Link>
+          </CatalogPrefetchLink>
         ))}
       </div>
     </div>
   );
 }
 
-export async function PublicStoreHeader({ focusSearch = false }: { focusSearch?: boolean }) {
+type PublicStoreHeaderProps = {
+  brands?: BrandOption[];
+  categories?: CategoryOption[];
+  focusSearch?: boolean;
+  settings?: StoreSettingsView;
+};
+
+export async function PublicStoreHeader({
+  brands,
+  categories,
+  focusSearch = false,
+  settings,
+}: PublicStoreHeaderProps) {
   const session = await getSession();
-  const [settings, categories, brands] = await Promise.all([
-    getStoreSettings(),
-    getCategoryOptions(),
-    getBrandOptions(),
+  const [resolvedSettings, resolvedCategories, resolvedBrands] = await Promise.all([
+    settings ? Promise.resolve(settings) : getStoreSettings(),
+    categories ? Promise.resolve(categories) : getCategoryOptions(),
+    brands ? Promise.resolve(brands) : getBrandOptions(),
   ]);
 
   return (
     <header className="public-store-header">
       <div className="public-store-bar">
-        <StoreBrand businessName={settings.businessName} />
+        <StoreBrand businessName={resolvedSettings.businessName} />
         <HeaderSearch autoFocus={focusSearch} />
 
         <div className="public-store-actions">
@@ -256,7 +286,7 @@ export async function PublicStoreHeader({ focusSearch = false }: { focusSearch?:
         </div>
       </div>
 
-      <CategoryShortcutMenu brands={brands} categories={categories} />
+      <CategoryShortcutMenu brands={resolvedBrands} categories={resolvedCategories} />
     </header>
   );
 }
