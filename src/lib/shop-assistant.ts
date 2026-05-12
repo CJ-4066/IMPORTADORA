@@ -8,6 +8,7 @@ import type {
 } from "@/lib/shop-assistant-types";
 
 const MAX_PRODUCTS = 4;
+const MAX_SEARCH_CANDIDATES = 80;
 const STOPWORDS = new Set([
   "a",
   "al",
@@ -34,15 +35,19 @@ const STOPWORDS = new Set([
   "las",
   "los",
   "me",
+  "mi",
   "muestrame",
   "muéstrame",
   "necesito",
   "para",
   "por",
+  "presupuesto",
   "precio",
   "producto",
   "productos",
   "quiero",
+  "sol",
+  "soles",
   "tendra",
   "tendran",
   "tendrás",
@@ -56,6 +61,13 @@ const STOPWORDS = new Set([
   "unos",
   "ver",
 ]);
+
+const SEARCH_SYNONYMS: Record<string, string[]> = {
+  audifono: ["audifono", "audifonos", "auricular", "auriculares", "bluetooth"],
+  audifonos: ["audifono", "audifonos", "auricular", "auriculares", "bluetooth"],
+  auricular: ["auricular", "auriculares", "audifono", "audifonos", "bluetooth"],
+  auriculares: ["auricular", "auriculares", "audifono", "audifonos", "bluetooth"],
+};
 
 export type AssistantProductRecord = {
   id: string;
@@ -186,13 +198,40 @@ function buildCodeCandidates(code: string) {
 }
 
 function extractSearchTerms(message: string) {
-  const normalized = normalizeAssistantText(message);
+  const normalized = normalizeAssistantText(removeBudgetText(message));
   const tokens = normalized
     .split(" ")
     .map((token) => token.trim())
     .filter((token) => token.length >= 2 && !STOPWORDS.has(token));
 
-  return tokens.join(" ").trim();
+  const expandedTokens = tokens.flatMap((token) => SEARCH_SYNONYMS[token] ?? [token]);
+
+  return Array.from(new Set(expandedTokens)).join(" ").trim();
+}
+
+function removeBudgetText(message: string) {
+  return message
+    .replace(/\b(?:s\/|s\.\/|pen)\s*\d+(?:[.,]\d{1,2})?\b/gi, " ")
+    .replace(/\b\d+(?:[.,]\d{1,2})?\s*(?:soles?|s\/|s\.\/|pen)\b/gi, " ")
+    .replace(
+      /\b(?:presupuesto|hasta|maximo|máximo|maxima|máxima|aprox|aproximado|alrededor|cerca de)\s*(?:de|es|unos|unas)?\s*(?:s\/|s\.\/|pen)?\s*\d+(?:[.,]\d{1,2})?\b/gi,
+      " ",
+    );
+}
+
+function extractBudget(message: string) {
+  const candidates = [
+    ...message.matchAll(/\b(?:s\/|s\.\/|pen)\s*(\d+(?:[.,]\d{1,2})?)\b/gi),
+    ...message.matchAll(/\b(\d+(?:[.,]\d{1,2})?)\s*(?:soles?|s\/|s\.\/|pen)\b/gi),
+    ...message.matchAll(
+      /\b(?:presupuesto|hasta|maximo|máximo|maxima|máxima|aprox|aproximado|alrededor|cerca de)\s*(?:de|es|unos|unas)?\s*(?:s\/|s\.\/|pen)?\s*(\d+(?:[.,]\d{1,2})?)\b/gi,
+    ),
+  ];
+  const values = candidates
+    .map((match) => Number(match[1].replace(",", ".")))
+    .filter((value) => Number.isFinite(value) && value > 0);
+
+  return values[0] ?? null;
 }
 
 function scoreAssistantProduct(product: AssistantProductRecord, query: string) {
@@ -213,6 +252,36 @@ function scoreAssistantProduct(product: AssistantProductRecord, query: string) {
   if (product.wholesalePrice !== null) score += 5;
 
   return score;
+}
+
+function getProductUnitPrice(product: AssistantProductRecord) {
+  return Number(product.unitPrice);
+}
+
+function sortProductsForBudget(
+  products: AssistantProductRecord[],
+  query: string,
+  budget: number,
+) {
+  return products.slice().sort((left, right) => {
+    const leftPrice = getProductUnitPrice(left);
+    const rightPrice = getProductUnitPrice(right);
+    const leftDistance = Math.abs(leftPrice - budget);
+    const rightDistance = Math.abs(rightPrice - budget);
+
+    if (leftDistance !== rightDistance) {
+      return leftDistance - rightDistance;
+    }
+
+    const leftOverBudget = leftPrice > budget ? 1 : 0;
+    const rightOverBudget = rightPrice > budget ? 1 : 0;
+
+    if (leftOverBudget !== rightOverBudget) {
+      return leftOverBudget - rightOverBudget;
+    }
+
+    return scoreAssistantProduct(right, query) - scoreAssistantProduct(left, query);
+  });
 }
 
 function buildQuickActions(actions: ShopAssistantQuickAction[]) {
@@ -350,7 +419,7 @@ function createRealRepository(): ShopAssistantRepository {
               ],
         },
         orderBy: [{ isFeatured: "desc" }, { updatedAt: "desc" }],
-        take: MAX_PRODUCTS * 3,
+        take: MAX_SEARCH_CANDIDATES,
         select: {
           id: true,
           slug: true,
@@ -372,9 +441,9 @@ function createRealRepository(): ShopAssistantRepository {
         },
       });
 
-      return products
-        .sort((left, right) => scoreAssistantProduct(right, query) - scoreAssistantProduct(left, query))
-        .slice(0, MAX_PRODUCTS);
+      return products.sort(
+        (left, right) => scoreAssistantProduct(right, query) - scoreAssistantProduct(left, query),
+      );
     },
 
     async getFeaturedProducts() {
@@ -651,6 +720,7 @@ export function createShopAssistantService(repository: ShopAssistantRepository) 
 
     const code = extractProductCode(trimmedMessage) ?? input.productContextCode ?? null;
     const searchTerms = extractSearchTerms(trimmedMessage);
+    const budget = extractBudget(trimmedMessage);
     const contextProduct = code ? await repository.findProductByCode(code) : null;
 
     if (contextProduct && wantsSimilar) {
@@ -733,11 +803,17 @@ export function createShopAssistantService(repository: ShopAssistantRepository) 
 
     if (searchTerms) {
       const products = await repository.searchVisibleProducts(searchTerms);
+      const sortedProducts = budget
+        ? sortProductsForBudget(products, searchTerms, budget)
+        : products.slice(0, MAX_PRODUCTS);
+      const visibleProducts = sortedProducts.slice(0, MAX_PRODUCTS);
 
-      if (products.length === 1) {
-        const product = products[0];
+      if (visibleProducts.length === 1) {
+        const product = visibleProducts[0];
         return {
-          text: formatProductAnswer(product, baseData.settings.currencySymbol),
+          text: budget
+            ? `La opción más cercana a ${formatCurrency(budget, baseData.settings.currencySymbol)} es: ${formatProductAnswer(product, baseData.settings.currencySymbol)}`
+            : formatProductAnswer(product, baseData.settings.currencySymbol),
           contextProductCode: product.code,
           contextCategorySlug: product.categoryId
             ? baseData.categories.find((category) => category.id === product.categoryId)?.slug ?? null
@@ -759,12 +835,18 @@ export function createShopAssistantService(repository: ShopAssistantRepository) 
         };
       }
 
-      if (products.length > 1) {
+      if (visibleProducts.length > 1) {
+        const closestProduct = visibleProducts[0];
+        const closestPrice = formatCurrency(
+          getProductUnitPrice(closestProduct),
+          baseData.settings.currencySymbol,
+        );
+
         return {
-          text:
-            `Encontré varias opciones para “${trimmedMessage}” usando el catálogo sincronizado. ` +
-            "Ordené primero las coincidencias con stock y precio mayorista configurado.",
-          products: products.map((product) =>
+          text: budget
+            ? `Encontré varias opciones para “${searchTerms}”. La más cercana a ${formatCurrency(budget, baseData.settings.currencySymbol)} es ${closestProduct.name} (${closestProduct.code}) a ${closestPrice}. También te dejo alternativas cercanas.`
+            : `Encontré varias opciones para “${trimmedMessage}” usando el catálogo sincronizado. Ordené primero las coincidencias con stock y precio mayorista configurado.`,
+          products: visibleProducts.map((product) =>
             mapAssistantProduct(product, baseData.settings.currencySymbol),
           ),
           quickActions: buildQuickActions([

@@ -18,6 +18,7 @@ const settings: AssistantSettingsRecord = {
 const categories: AssistantCategoryRecord[] = [
   { id: "cat-bebidas", name: "Bebidas", slug: "bebidas" },
   { id: "cat-limpieza", name: "Limpieza", slug: "limpieza" },
+  { id: "cat-audio", name: "Auriculares", slug: "auriculares" },
 ];
 
 const products: AssistantProductRecord[] = [
@@ -69,6 +70,38 @@ const products: AssistantProductRecord[] = [
     unitsPerBox: null,
     stockUnits: 8,
   },
+  {
+    id: "p4",
+    slug: "audifono-bluetooth-basico-aud-025",
+    code: "AUD-025",
+    name: "Audifono Bluetooth Basico",
+    description: "Audio compacto para uso diario.",
+    brand: "Sound Max",
+    category: "Auriculares",
+    categoryId: "cat-audio",
+    unitPrice: 24.9,
+    wholesalePrice: 22,
+    wholesaleMinQty: 6,
+    boxPrice: null,
+    unitsPerBox: null,
+    stockUnits: 20,
+  },
+  {
+    id: "p5",
+    slug: "auricular-bluetooth-pro-aud-040",
+    code: "AUD-040",
+    name: "Auricular Bluetooth Pro",
+    description: "Audio inalambrico con estuche.",
+    brand: "Sound Max",
+    category: "Auriculares",
+    categoryId: "cat-audio",
+    unitPrice: 39.9,
+    wholesalePrice: 35,
+    wholesaleMinQty: 6,
+    boxPrice: null,
+    unitsPerBox: null,
+    stockUnits: 15,
+  },
 ];
 
 function containsNormalized(haystack: string, needle: string) {
@@ -84,12 +117,17 @@ function createMockRepository(): ShopAssistantRepository {
       return products.find((product) => product.code.toLowerCase() === code.toLowerCase()) ?? null;
     },
     async searchVisibleProducts(query) {
-      const lowered = query.toLowerCase();
+      const tokens = query
+        .toLowerCase()
+        .split(" ")
+        .filter((token) => token.length >= 2);
       return products.filter((product) =>
-        [product.code, product.name, product.description ?? "", product.brand ?? "", product.category ?? ""]
-          .join(" ")
-          .toLowerCase()
-          .includes(lowered),
+        tokens.some((token) =>
+          [product.code, product.name, product.description ?? "", product.brand ?? "", product.category ?? ""]
+            .join(" ")
+            .toLowerCase()
+            .includes(token),
+        ),
       );
     },
     async getFeaturedProducts() {
@@ -153,6 +191,16 @@ test("devuelve productos similares cuando el usuario lo pide", async () => {
 
   assert.ok(containsNormalized(reply.text, "opciones parecidas"));
   assert.equal(reply.products?.[0].code, "GAS-200");
+});
+
+test("ordena recomendaciones por presupuesto cercano", async () => {
+  const reply = await answerShopAssistant({
+    message: "quiero audifonos y mi presupuesto es 25 soles",
+  });
+
+  assert.equal(reply.products?.[0].code, "AUD-025");
+  assert.ok(containsNormalized(reply.text, "más cercana"));
+  assert.ok(containsNormalized(reply.text, "S/ 25"));
 });
 
 test("responde soporte y flujo de compra", async () => {
