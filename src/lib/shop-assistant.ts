@@ -16,6 +16,8 @@ const STOPWORDS = new Set([
   "alguna",
   "alguno",
   "algun",
+  "barato",
+  "baratos",
   "busca",
   "busco",
   "como",
@@ -35,6 +37,7 @@ const STOPWORDS = new Set([
   "las",
   "los",
   "me",
+  "mejor",
   "mi",
   "muestrame",
   "muéstrame",
@@ -46,6 +49,8 @@ const STOPWORDS = new Set([
   "producto",
   "productos",
   "quiero",
+  "unidad",
+  "unidades",
   "sol",
   "soles",
   "tendra",
@@ -87,6 +92,8 @@ export type AssistantProductRecord = {
   unitsPerBox: number | null;
   stockUnits: number;
   isVisible?: boolean;
+  recommendedQuantity?: number;
+  recommendationReason?: string;
 };
 
 export type AssistantCategoryRecord = {
@@ -151,8 +158,12 @@ function mapAssistantProduct(
     brand: product.brand,
     category: product.category,
     unitPrice: formatCurrency(unitPrice, currencySymbol),
+    unitPriceValue: unitPrice,
     wholesalePrice: wholesalePrice ? formatCurrency(wholesalePrice, currencySymbol) : null,
+    wholesalePriceValue: wholesalePrice,
     wholesaleMinQty: product.wholesaleMinQty,
+    recommendedQuantity: product.recommendedQuantity,
+    recommendationReason: product.recommendationReason,
     unitsPerBox: product.unitsPerBox,
     availabilityLabel: getAvailabilityLabel(product.stockUnits),
     stockUnits: product.stockUnits,
@@ -167,7 +178,7 @@ function extractProductCode(message: string) {
     .trim();
 
   const compoundMatch = normalized.match(/\b([A-Z]{2,})\s*-?\s*(\d{2,})\b/);
-  if (compoundMatch) {
+  if (compoundMatch && !STOPWORDS.has(compoundMatch[1].toLowerCase())) {
     return `${compoundMatch[1]}-${compoundMatch[2]}`;
   }
 
@@ -234,6 +245,20 @@ function extractBudget(message: string) {
   return values[0] ?? null;
 }
 
+function extractQuantity(message: string) {
+  const normalized = normalizeAssistantText(message);
+  const matches = [
+    ...normalized.matchAll(/\b(\d{1,4})\s*(?:unidades|unidad|unds|und|piezas|pieza)\b/g),
+    ...normalized.matchAll(/\bquiero\s*(\d{1,4})\b/g),
+    ...normalized.matchAll(/\bpara\s*(\d{1,4})\b/g),
+  ];
+  const values = matches
+    .map((match) => Number(match[1]))
+    .filter((value) => Number.isInteger(value) && value > 0);
+
+  return values[0] ?? null;
+}
+
 function scoreAssistantProduct(product: AssistantProductRecord, query: string) {
   const normalizedQuery = normalizeAssistantText(query);
   const normalizedCode = normalizeAssistantText(product.code);
@@ -281,6 +306,135 @@ function sortProductsForBudget(
     }
 
     return scoreAssistantProduct(right, query) - scoreAssistantProduct(left, query);
+  });
+}
+
+function isAdultAssistantProduct(product: AssistantProductRecord) {
+  const text = normalizeAssistantText(
+    `${product.name} ${product.category ?? ""} ${product.brand ?? ""}`,
+  );
+
+  return (
+    text.includes("juguetes sexuales") ||
+    text.includes("consolador") ||
+    text.includes("pretty love") ||
+    text.includes("vibrator") ||
+    text.includes("we love")
+  );
+}
+
+function isAdultIntent(value: string) {
+  const text = normalizeAssistantText(value);
+
+  return (
+    text.includes("juguetes sexuales") ||
+    text.includes("consolador") ||
+    text.includes("vibrador") ||
+    text.includes("sex toy") ||
+    text.includes("sextoys")
+  );
+}
+
+function filterSensitiveProducts(
+  products: AssistantProductRecord[],
+  allowSensitive: boolean,
+) {
+  return allowSensitive ? products : products.filter((product) => !isAdultAssistantProduct(product));
+}
+
+function withRecommendation(
+  product: AssistantProductRecord,
+  recommendationReason: string,
+  recommendedQuantity?: number | null,
+): AssistantProductRecord {
+  return {
+    ...product,
+    recommendedQuantity: recommendedQuantity ?? undefined,
+    recommendationReason,
+  };
+}
+
+function getEffectivePrice(product: AssistantProductRecord, quantity: number | null) {
+  const unitPrice = getProductUnitPrice(product);
+  const wholesalePrice =
+    product.wholesalePrice !== null ? Number(product.wholesalePrice) : null;
+
+  if (quantity && wholesalePrice && quantity >= product.wholesaleMinQty) {
+    return wholesalePrice;
+  }
+
+  return unitPrice;
+}
+
+function getSalesReason(
+  product: AssistantProductRecord,
+  input: {
+    budget: number | null;
+    quantity: number | null;
+  },
+  currencySymbol: string,
+) {
+  const stockLabel =
+    product.stockUnits >= 30
+      ? "buen stock"
+      : product.stockUnits <= 12
+        ? "stock bajo, conviene confirmar"
+        : "stock disponible";
+  const effectivePrice = getEffectivePrice(product, input.quantity);
+  const priceLabel = formatCurrency(effectivePrice, currencySymbol);
+
+  if (
+    input.quantity &&
+    product.wholesalePrice !== null &&
+    input.quantity >= product.wholesaleMinQty
+  ) {
+    return `Conviene para ${input.quantity} unidades: activa mayorista a ${priceLabel} y tiene ${stockLabel}.`;
+  }
+
+  if (input.budget) {
+    return `Es la opción más cercana a ${formatCurrency(input.budget, currencySymbol)} y tiene ${stockLabel}.`;
+  }
+
+  if (product.wholesalePrice !== null) {
+    return `Buena opción por precio mayorista desde ${product.wholesaleMinQty} unidades y ${stockLabel}.`;
+  }
+
+  return `Buena opción por ${stockLabel}.`;
+}
+
+function applySalesRecommendations(
+  products: AssistantProductRecord[],
+  input: {
+    budget: number | null;
+    quantity: number | null;
+  },
+  currencySymbol: string,
+) {
+  return products.map((product, index) =>
+    withRecommendation(
+      product,
+      index === 0
+        ? getSalesReason(product, input, currencySymbol)
+        : product.wholesalePrice !== null
+          ? `También conviene por mayorista desde ${product.wholesaleMinQty}.`
+          : "También puedes considerarlo como alternativa.",
+      input.quantity,
+    ),
+  );
+}
+
+function sortProductsForQuantity(products: AssistantProductRecord[], quantity: number) {
+  return products.slice().sort((left, right) => {
+    const leftWholesaleApplies =
+      left.wholesalePrice !== null && quantity >= left.wholesaleMinQty ? 1 : 0;
+    const rightWholesaleApplies =
+      right.wholesalePrice !== null && quantity >= right.wholesaleMinQty ? 1 : 0;
+
+    if (leftWholesaleApplies !== rightWholesaleApplies) {
+      return rightWholesaleApplies - leftWholesaleApplies;
+    }
+
+    return getEffectivePrice(left, quantity) - getEffectivePrice(right, quantity);
   });
 }
 
@@ -599,6 +753,9 @@ export function createShopAssistantService(repository: ShopAssistantRepository) 
         normalized,
       );
     const wantsSimilar = /(similar|parecid|alternativ|relacionad)/.test(normalized);
+    const wantsCheaper = /(barat|econom|menor precio|menos precio|mas barato|más barato)/.test(
+      normalized,
+    );
     const wantsStock = /(stock|disponible|disponibilidad|queda|quedan|tienes|hay)/.test(
       normalized,
     );
@@ -721,19 +878,78 @@ export function createShopAssistantService(repository: ShopAssistantRepository) 
     const code = extractProductCode(trimmedMessage) ?? input.productContextCode ?? null;
     const searchTerms = extractSearchTerms(trimmedMessage);
     const budget = extractBudget(trimmedMessage);
+    const quantity = extractQuantity(trimmedMessage);
+    const allowSensitiveProducts = isAdultIntent(`${trimmedMessage} ${recentConversation}`);
     const contextProduct = code ? await repository.findProductByCode(code) : null;
 
+    if (contextProduct && quantity && !wantsSupport) {
+      if (contextProduct.isVisible === false || contextProduct.stockUnits <= 0) {
+        return {
+          text: `${contextProduct.name} existe, pero no está disponible ahora. Te busco una alternativa visible.`,
+          contextProductCode: contextProduct.code,
+          quickActions: buildQuickActions([
+            { label: "Buscar similares", href: `/?q=${encodeURIComponent(contextProduct.category ?? contextProduct.name)}`, accent: true },
+            { label: "WhatsApp", href: whatsappHref },
+          ]),
+          suggestedPrompts: ["Muéstrame algo similar", "Más barato", "¿Cómo cotizo?"],
+        };
+      }
+
+      const effectivePrice = getEffectivePrice(contextProduct, quantity);
+      const total = effectivePrice * quantity;
+      const wholesaleNote =
+        contextProduct.wholesalePrice !== null && quantity >= contextProduct.wholesaleMinQty
+          ? `Ya aplica mayorista: ${formatCurrency(effectivePrice, baseData.settings.currencySymbol)} c/u.`
+          : contextProduct.wholesalePrice !== null
+            ? `Para mayorista necesitas ${contextProduct.wholesaleMinQty} unidades.`
+            : "Este producto mantiene precio unitario.";
+
+      return {
+        text: `La mejor opción es ${contextProduct.name}. ${wholesaleNote} Total estimado por ${quantity}: ${formatCurrency(total, baseData.settings.currencySymbol)}.`,
+        contextProductCode: contextProduct.code,
+        contextCategorySlug: contextProduct.categoryId
+          ? baseData.categories.find((category) => category.id === contextProduct.categoryId)?.slug ?? null
+          : null,
+        products: [
+          mapAssistantProduct(
+            withRecommendation(
+              contextProduct,
+              getSalesReason(
+                contextProduct,
+                { budget, quantity },
+                baseData.settings.currencySymbol,
+              ),
+              quantity,
+            ),
+            baseData.settings.currencySymbol,
+          ),
+        ],
+        quickActions: buildQuickActions([
+          { label: "Abrir carrito", href: "/?drawer=cart", accent: true },
+          { label: "Ver producto", href: `/producto/${encodeURIComponent(contextProduct.slug)}` },
+        ]),
+        suggestedPrompts: ["Muéstrame algo más barato", "Mejor uno con bluetooth", "¿Cómo compro?"],
+      };
+    }
+
     if (contextProduct && wantsSimilar) {
-      const related = await repository.getRelatedProducts(contextProduct);
+      const related = filterSensitiveProducts(
+        await repository.getRelatedProducts(contextProduct),
+        allowSensitiveProducts,
+      );
       return {
         text: related.length
-          ? `Tomando ${contextProduct.name} como referencia, estas son opciones parecidas dentro de la misma línea.`
+          ? `La mejor alternativa cercana a ${contextProduct.name} es ${related[0].name}.`
           : `No encontré productos similares visibles para ${contextProduct.name} en este momento.`,
         contextProductCode: contextProduct.code,
         contextCategorySlug: contextProduct.categoryId
           ? baseData.categories.find((category) => category.id === contextProduct.categoryId)?.slug ?? null
           : null,
-        products: related.map((product) =>
+        products: applySalesRecommendations(
+          related,
+          { budget, quantity },
+          baseData.settings.currencySymbol,
+        ).map((product) =>
           mapAssistantProduct(product, baseData.settings.currencySymbol),
         ),
         quickActions: buildQuickActions([
@@ -749,6 +965,44 @@ export function createShopAssistantService(repository: ShopAssistantRepository) 
           "¿Cómo envío mi pedido?",
           "Busca por código",
         ],
+      };
+    }
+
+    if (contextProduct && wantsCheaper && !wantsSupport) {
+      const alternativeQuery =
+        extractSearchTerms(contextProduct.description ?? contextProduct.name) ||
+        extractSearchTerms(contextProduct.name) ||
+        contextProduct.category ||
+        contextProduct.name;
+      const related = filterSensitiveProducts(
+        await repository.searchVisibleProducts(alternativeQuery),
+        allowSensitiveProducts,
+      )
+        .filter((product) => product.id !== contextProduct.id)
+        .filter((product) => getProductUnitPrice(product) < getProductUnitPrice(contextProduct))
+        .sort((left, right) => getProductUnitPrice(left) - getProductUnitPrice(right))
+        .slice(0, MAX_PRODUCTS);
+
+      return {
+        text: related.length
+          ? `La mejor opción más barata es ${related[0].name} a ${formatCurrency(getProductUnitPrice(related[0]), baseData.settings.currencySymbol)}. También puedes considerar estas alternativas.`
+          : `No encontré una opción más barata visible que ${contextProduct.name} en la misma línea.`,
+        contextProductCode: related[0]?.code ?? contextProduct.code,
+        contextCategorySlug: contextProduct.categoryId
+          ? baseData.categories.find((category) => category.id === contextProduct.categoryId)?.slug ?? null
+          : null,
+        products: applySalesRecommendations(
+          related,
+          { budget, quantity },
+          baseData.settings.currencySymbol,
+        ).map((product) =>
+          mapAssistantProduct(product, baseData.settings.currencySymbol),
+        ),
+        quickActions: buildQuickActions([
+          { label: "Ver resultados", href: `/?q=${encodeURIComponent(contextProduct.category ?? contextProduct.name)}`, accent: true },
+          { label: "Abrir carrito", href: "/?drawer=cart" },
+        ]),
+        suggestedPrompts: ["Mejor uno con bluetooth", "Quiero 12 unidades", "¿Cómo cotizo?"],
       };
     }
 
@@ -802,11 +1056,21 @@ export function createShopAssistantService(repository: ShopAssistantRepository) 
     }
 
     if (searchTerms) {
-      const products = await repository.searchVisibleProducts(searchTerms);
-      const sortedProducts = budget
-        ? sortProductsForBudget(products, searchTerms, budget)
-        : products.slice(0, MAX_PRODUCTS);
+      const products = filterSensitiveProducts(
+        await repository.searchVisibleProducts(searchTerms),
+        allowSensitiveProducts,
+      );
+      const sortedProducts = quantity
+        ? sortProductsForQuantity(products, quantity)
+        : budget
+          ? sortProductsForBudget(products, searchTerms, budget)
+          : products.slice(0, MAX_PRODUCTS);
       const visibleProducts = sortedProducts.slice(0, MAX_PRODUCTS);
+      const recommendedProducts = applySalesRecommendations(
+        visibleProducts,
+        { budget, quantity },
+        baseData.settings.currencySymbol,
+      );
 
       if (visibleProducts.length === 1) {
         const product = visibleProducts[0];
@@ -838,15 +1102,21 @@ export function createShopAssistantService(repository: ShopAssistantRepository) 
       if (visibleProducts.length > 1) {
         const closestProduct = visibleProducts[0];
         const closestPrice = formatCurrency(
-          getProductUnitPrice(closestProduct),
+          getEffectivePrice(closestProduct, quantity),
           baseData.settings.currencySymbol,
         );
 
         return {
-          text: budget
-            ? `Encontré varias opciones para “${searchTerms}”. La más cercana a ${formatCurrency(budget, baseData.settings.currencySymbol)} es ${closestProduct.name} (${closestProduct.code}) a ${closestPrice}. También te dejo alternativas cercanas.`
-            : `Encontré varias opciones para “${trimmedMessage}” usando el catálogo sincronizado. Ordené primero las coincidencias con stock y precio mayorista configurado.`,
-          products: visibleProducts.map((product) =>
+          text: quantity
+            ? `La mejor opción para ${quantity} unidades es ${closestProduct.name} a ${closestPrice} c/u. ${closestProduct.wholesalePrice !== null && quantity >= closestProduct.wholesaleMinQty ? "Ya aplica precio mayorista." : "También te dejo alternativas."}`
+            : budget
+              ? `La mejor opción es ${closestProduct.name} a ${closestPrice}: es la más cercana a ${formatCurrency(budget, baseData.settings.currencySymbol)}. También puedes considerar estas alternativas.`
+              : `La mejor opción es ${closestProduct.name}. También puedes considerar estas alternativas con stock.`,
+          contextProductCode: closestProduct.code,
+          contextCategorySlug: closestProduct.categoryId
+            ? baseData.categories.find((category) => category.id === closestProduct.categoryId)?.slug ?? null
+            : null,
+          products: recommendedProducts.map((product) =>
             mapAssistantProduct(product, baseData.settings.currencySymbol),
           ),
           quickActions: buildQuickActions([
@@ -858,9 +1128,9 @@ export function createShopAssistantService(repository: ShopAssistantRepository) 
             { label: "Ver ofertas", href: "/?featured=1" },
           ]),
           suggestedPrompts: [
-            "Muéstrame solo ofertas",
+            "Muéstrame algo más barato",
+            "Quiero 12 unidades",
             "Busca por código exacto",
-            "¿Cómo envío mi pedido?",
           ],
         };
       }

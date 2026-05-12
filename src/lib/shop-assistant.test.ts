@@ -189,8 +189,20 @@ test("devuelve productos similares cuando el usuario lo pide", async () => {
     productContextCode: "AGA-100",
   });
 
-  assert.ok(containsNormalized(reply.text, "opciones parecidas"));
+  assert.ok(containsNormalized(reply.text, "mejor alternativa"));
   assert.equal(reply.products?.[0].code, "GAS-200");
+});
+
+test("usa memoria para calcular cantidad y precio mayorista", async () => {
+  const reply = await answerShopAssistant({
+    message: "quiero 12 unidades",
+    productContextCode: "AGA-100",
+  });
+
+  assert.equal(reply.products?.[0].code, "AGA-100");
+  assert.equal(reply.products?.[0].recommendedQuantity, 12);
+  assert.ok(containsNormalized(reply.text, "aplica mayorista"));
+  assert.ok(containsNormalized(reply.text, "12"));
 });
 
 test("ordena recomendaciones por presupuesto cercano", async () => {

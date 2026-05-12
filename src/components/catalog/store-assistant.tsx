@@ -2,7 +2,20 @@
 
 import Link from "next/link";
 import { startTransition, useEffect, useMemo, useRef, useState } from "react";
-import { LoaderCircle, MessageSquareText, Send, Sparkles, X } from "lucide-react";
+import {
+  LoaderCircle,
+  MessageSquareText,
+  Send,
+  ShoppingCart,
+  Sparkles,
+  X,
+} from "lucide-react";
+import { STORE_CART_OPEN_EVENT } from "@/components/catalog/cart-events";
+import {
+  isCartStoreHydrated,
+  rehydrateCartStore,
+  useCartStore,
+} from "@/components/catalog/cart-store";
 import type {
   ShopAssistantProductCard,
   ShopAssistantQuickAction,
@@ -56,6 +69,51 @@ function getMessageId() {
 }
 
 function AssistantProductCard({ product }: AssistantProductCardProps) {
+  const addItem = useCartStore((state) => state.addItem);
+  const [added, setAdded] = useState(false);
+  const quantity = Math.max(1, Math.min(product.recommendedQuantity ?? 1, product.stockUnits));
+
+  const handleAddToCart = async () => {
+    if (!isCartStoreHydrated()) {
+      await rehydrateCartStore();
+    }
+
+    addItem(
+      {
+        id: product.id,
+        code: product.code,
+        slug: product.slug,
+        name: product.name,
+        description: null,
+        brand: product.brand,
+        category: product.category,
+        categoryId: null,
+        imageUrl: null,
+        media: [],
+        primaryMedia: null,
+        unitLabel: "unidad",
+        unitPrice: product.unitPriceValue,
+        wholesalePrice: product.wholesalePriceValue,
+        wholesaleMinQty: product.wholesaleMinQty,
+        boxPrice: null,
+        unitsPerBox: product.unitsPerBox,
+        stockUnits: product.stockUnits,
+        isVisible: true,
+        isFeatured: false,
+        syncEnabled: true,
+        lastSyncedAt: null,
+        updatedAt: new Date().toISOString(),
+      },
+      "unit",
+      quantity,
+    );
+
+    setAdded(true);
+    window.requestAnimationFrame(() => {
+      window.dispatchEvent(new CustomEvent(STORE_CART_OPEN_EVENT));
+    });
+  };
+
   return (
     <div className="store-assistant-product-card">
       <div className="store-assistant-product-top">
@@ -79,9 +137,28 @@ function AssistantProductCard({ product }: AssistantProductCardProps) {
         ) : null}
       </div>
 
-      <Link className="button button-secondary" href={`/producto/${product.slug}`}>
-        Ver producto
-      </Link>
+      {product.recommendationReason ? (
+        <p className="store-assistant-product-reason">{product.recommendationReason}</p>
+      ) : null}
+
+      <div className="store-assistant-product-actions">
+        <button
+          className="button button-primary"
+          disabled={product.stockUnits <= 0}
+          onClick={() => void handleAddToCart()}
+          type="button"
+        >
+          <ShoppingCart size={15} />
+          {added
+            ? "Agregado"
+            : quantity > 1
+              ? `Agregar ${quantity}`
+              : "Agregar"}
+        </button>
+        <Link className="button button-secondary" href={`/producto/${product.slug}`}>
+          Ver
+        </Link>
+      </div>
     </div>
   );
 }

@@ -882,6 +882,29 @@ body {
   line-height: 1.35;
 }
 
+.store-assistant-product-reason {
+  margin: 0;
+  padding: 0.55rem 0.65rem;
+  border-radius: 12px;
+  color: rgba(var(--brand-deep-rgb), 0.92);
+  background: rgba(var(--brand-rgb), 0.08);
+  font-size: 0.8rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.store-assistant-product-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 0.65fr);
+  gap: 0.45rem;
+}
+
+.store-assistant-product-actions .button {
+  min-height: 2.35rem;
+  padding-inline: 0.65rem;
+  font-size: 0.8rem;
+}
+
 .store-assistant-actions,
 .store-assistant-prompts {
   display: flex;
