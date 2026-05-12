@@ -665,9 +665,9 @@ body {
 }
 
 .store-side-actions-product {
-  position: static;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  margin: 0.75rem 0 0;
+  right: 1rem;
+  bottom: 6.25rem;
+  margin: 0;
 }
 
 .store-side-action {
@@ -5003,6 +5003,10 @@ body {
 }
 
 @media (max-width: 760px) {
+  .site-shell {
+    padding-top: 0.55rem;
+  }
+
   .catalog-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -5044,6 +5048,15 @@ body {
     transform: none;
   }
 
+  .store-side-actions.store-side-actions-product {
+    position: fixed;
+    right: 0.75rem;
+    bottom: 5.85rem;
+    grid-template-columns: 1fr;
+    width: min(5rem, calc(100vw - 1.5rem));
+    margin: 0;
+  }
+
   .store-side-action {
     flex-direction: row;
     min-width: 0;
@@ -5054,6 +5067,12 @@ body {
 
   .store-side-action span {
     font-size: 0.72rem;
+  }
+
+  .store-side-actions-product .store-side-action {
+    flex-direction: column;
+    min-height: 4rem;
+    padding: 0.55rem 0.45rem;
   }
 
   .account-popover-menu {
@@ -5228,19 +5247,38 @@ body {
   }
 
   .product-media {
-    padding: 0.85rem;
+    padding: 0.72rem;
   }
 
   .product-media-preview {
-    margin: -0.85rem -0.85rem 0.7rem;
-    aspect-ratio: 4 / 3.8;
-    min-height: 12.5rem;
-    padding: 1rem;
+    margin: -0.72rem -0.72rem 0.62rem;
+    aspect-ratio: 1 / 1.08;
+    min-height: clamp(12rem, 46vw, 15.5rem);
+    padding: 0.65rem;
   }
 
   .product-copy h3 {
-    font-size: 1.08rem;
-    line-height: 1.05;
+    font-size: 0.98rem;
+    line-height: 1.18;
+  }
+
+  .product-body {
+    gap: 0.72rem;
+  }
+
+  .product-category-mini {
+    max-width: 100%;
+    white-space: normal;
+  }
+
+  .product-media-meta {
+    gap: 0.35rem;
+  }
+
+  .product-stock-chip,
+  .product-code,
+  .pill {
+    font-size: 0.64rem;
   }
 
   .price-box {
@@ -5331,11 +5369,11 @@ body {
   .site-shell,
   .auth-shell,
   .admin-shell {
-    width: min(100% - 0.75rem, 100%);
+    width: min(100% - 0.55rem, 100%);
   }
 
   .site-shell {
-    padding-bottom: 6.8rem;
+    padding-bottom: 7.4rem;
   }
 
   .public-store-header {
@@ -5344,7 +5382,32 @@ body {
   }
 
   .public-store-bar {
+    gap: 0.5rem;
+    padding: 0.55rem 0.35rem;
     border-radius: 0;
+  }
+
+  .public-store-wordmark {
+    gap: 0.06rem;
+  }
+
+  .public-store-wordmark strong {
+    font-size: 0.95rem;
+  }
+
+  .public-store-wordmark span {
+    font-size: 0.68rem;
+  }
+
+  .public-store-search-field input {
+    min-height: 2.72rem;
+    padding-right: 3.25rem;
+    font-size: 0.86rem;
+  }
+
+  .public-store-search-submit {
+    width: 2rem;
+    height: 2rem;
   }
 
   .public-store-wordmark strong,
@@ -5354,6 +5417,18 @@ body {
 
   .public-store-actions {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.45rem;
+  }
+
+  .public-store-quick-link {
+    min-height: 2.65rem;
+    min-width: 0;
+    padding: 0.55rem 0.65rem;
+    border-radius: 0.85rem;
+  }
+
+  .public-store-quick-link span {
+    font-size: 0.72rem;
   }
 
   .catalog-grid {
@@ -5379,15 +5454,25 @@ body {
   }
 
   .public-store-topline {
+    flex-direction: column;
+    gap: 0.4rem;
+    padding: 0.38rem;
     border-radius: 0;
     overflow: visible;
   }
 
+  .public-store-shortcut-menu {
+    width: 100%;
+  }
+
   .public-store-shortcut.is-lead {
+    width: 100%;
     min-width: 15rem;
+    min-height: 2.55rem;
   }
 
   .public-store-shortcuts {
+    width: 100%;
     flex: 1 1 100%;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     justify-content: stretch;
@@ -5396,7 +5481,8 @@ body {
 
   .public-store-shortcut {
     min-height: 2.55rem;
-    padding-inline: 0.72rem;
+    padding-inline: 0.58rem;
+    font-size: 0.72rem;
     white-space: normal;
   }
 
@@ -5404,6 +5490,8 @@ body {
     left: 50%;
     min-width: min(100vw - 0.75rem, 32rem);
     max-width: min(100vw - 0.75rem, 32rem);
+    max-height: calc(100dvh - 1rem);
+    overflow-y: auto;
     transform: translateX(-50%);
   }
 
@@ -5420,20 +5508,22 @@ body {
   .product-detail-gallery-card,
   .product-detail-price-box,
   .product-detail-buybox {
-    padding: 0.9rem;
+    padding: 0.82rem;
   }
 
   .product-detail-copy-card h1 {
-    font-size: clamp(1.7rem, 9vw, 2.3rem);
+    font-size: clamp(1.45rem, 8vw, 2rem);
+    line-height: 1.04;
+    letter-spacing: 0;
   }
 
   .product-detail-stage {
-    aspect-ratio: 4 / 4.35;
-    max-height: 520px;
+    aspect-ratio: 1 / 1.05;
+    max-height: 430px;
   }
 
   .product-detail-stage-media {
-    padding: 0.7rem;
+    padding: 0.55rem;
   }
 
   .metric-card,
