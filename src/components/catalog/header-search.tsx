@@ -16,9 +16,32 @@ export function HeaderSearch({ autoFocus = false }: HeaderSearchProps) {
   const [open, setOpen] = useState(false);
   const [suggestions, setSuggestions] = useState<CatalogSuggestion[]>([]);
 
-  function focusSearchInput() {
-    inputRef.current?.focus();
+  function focusSearchInput(shouldScroll = false) {
+    const input = inputRef.current;
+
+    if (!input) {
+      return;
+    }
+
+    if (shouldScroll) {
+      input.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+
+    input.focus({ preventScroll: true });
+    setOpen(true);
   }
+
+  useEffect(() => {
+    const handleFocusSearch = () => {
+      focusSearchInput(true);
+    };
+
+    window.addEventListener("catalog:focus-search", handleFocusSearch);
+
+    return () => {
+      window.removeEventListener("catalog:focus-search", handleFocusSearch);
+    };
+  }, []);
 
   useEffect(() => {
     const trimmed = query.trim();
@@ -55,8 +78,8 @@ export function HeaderSearch({ autoFocus = false }: HeaderSearchProps) {
     <form action="/" className="public-store-search-form" method="get" role="search">
       <label
         className="public-store-search-field"
-        onPointerDownCapture={focusSearchInput}
-        onTouchStartCapture={focusSearchInput}
+        onPointerDownCapture={() => focusSearchInput()}
+        onTouchStartCapture={() => focusSearchInput()}
       >
         <Search size={18} />
         <input

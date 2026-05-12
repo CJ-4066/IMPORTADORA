@@ -16,25 +16,11 @@ export function StoreSideActions({ settings }: StoreSideActionsProps) {
   const isProductPage = pathname.startsWith("/producto/");
 
   const handleSearch = () => {
-    const headerInput = document.getElementById(
-      "store-header-search-input",
-    ) as HTMLInputElement | null;
-
-    if (headerInput) {
-      headerInput.scrollIntoView({ behavior: "smooth", block: "center" });
-      window.setTimeout(() => {
-        headerInput.focus();
-        headerInput.select();
-      }, 260);
-      return;
-    }
+    window.dispatchEvent(new CustomEvent("catalog:focus-search"));
 
     if (pathname !== "/") {
       window.location.href = "/?focus=search";
-      return;
     }
-
-    window.location.href = "/?focus=search";
   };
 
   return (
