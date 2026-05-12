@@ -1,4 +1,5 @@
 import { slugify } from "@/lib/utils";
+import { inferStoreCategoryName } from "@/lib/product-category-classifier";
 import type {
   FacturadorBrand,
   FacturadorCategory,
@@ -89,7 +90,9 @@ export function mapFacturadorProduct(
     };
   }
 
-  const categoryName = resolveName(product, lookups.categories, "category");
+  const categoryName =
+    resolveName(product, lookups.categories, "category") ??
+    inferStoreCategoryName({ code, name });
   const brandName = resolveName(product, lookups.brands, "brand");
   const imageUrl = getFirstString(product, ["image_url", "image", "photo_url", "photo"]);
   const stockUnits = getFirstNumber(product, ["stock", "stock_units", "quantity"]) ?? 0;

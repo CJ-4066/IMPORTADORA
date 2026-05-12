@@ -2,7 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { MessageCircleMore, Search } from "lucide-react";
-import { StoreAssistant } from "@/components/catalog/store-assistant";
+import { StoreAssistantLauncher } from "@/components/catalog/store-assistant-launcher";
 import type { StoreSettingsView } from "@/lib/store";
 import { cleanWhatsappNumber } from "@/lib/utils";
 
@@ -41,7 +41,7 @@ export function StoreSideActions({ settings }: StoreSideActionsProps) {
       className={`store-side-actions${isProductPage ? " store-side-actions-product" : ""}`}
       aria-label="Accesos rápidos de tienda"
     >
-      <StoreAssistant businessName={settings.businessName} />
+      <StoreAssistantLauncher businessName={settings.businessName} />
 
       <a
         className="store-side-action store-side-action-whatsapp"

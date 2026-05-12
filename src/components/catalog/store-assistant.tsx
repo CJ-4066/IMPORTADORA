@@ -1,15 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { startTransition, useEffect, useMemo, useRef, useState } from "react";
-import {
-  LoaderCircle,
-  MessageSquareText,
-  Send,
-  ShoppingCart,
-  Sparkles,
-  X,
-} from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { LoaderCircle, Send, ShoppingCart, Sparkles, X } from "lucide-react";
 import { STORE_CART_OPEN_EVENT } from "@/components/catalog/cart-events";
 import {
   isCartStoreHydrated,
@@ -23,8 +16,10 @@ import type {
   ShopAssistantRequest,
 } from "@/lib/shop-assistant-types";
 
-type StoreAssistantProps = {
+export type StoreAssistantPanelProps = {
   businessName: string;
+  open: boolean;
+  onClose: () => void;
 };
 
 type AssistantMessage = {
@@ -271,8 +266,11 @@ function AssistantFooter({
   );
 }
 
-export function StoreAssistant({ businessName }: StoreAssistantProps) {
-  const [open, setOpen] = useState(false);
+export function StoreAssistantPanel({
+  businessName,
+  onClose,
+  open,
+}: StoreAssistantPanelProps) {
   const [loading, setLoading] = useState(false);
   const [draft, setDraft] = useState("");
   const [messages, setMessages] = useState<AssistantMessage[]>(() => [
@@ -380,70 +378,59 @@ export function StoreAssistant({ businessName }: StoreAssistantProps) {
     }
   };
 
+  if (!open) {
+    return null;
+  }
+
   return (
     <>
       <button
-        className="store-side-action store-side-action-assistant"
-        onClick={() => {
-          startTransition(() => setOpen(true));
-        }}
+        aria-label="Cerrar asistente"
+        className="store-assistant-backdrop"
+        onClick={onClose}
         type="button"
-      >
-        <MessageSquareText size={20} />
-        <span>Asistente</span>
-      </button>
+      />
 
-      {open ? (
-        <>
-          <button
-            aria-label="Cerrar asistente"
-            className="store-assistant-backdrop"
-            onClick={() => setOpen(false)}
-            type="button"
-          />
+      <section className="store-assistant-panel" role="dialog" aria-label="Asistente de compra">
+        <header className="store-assistant-head">
+          <div className="store-assistant-head-copy">
+            <span className="store-assistant-badge">
+              <Sparkles size={14} />
+              Catálogo real
+            </span>
+            <strong>Asistente de compra</strong>
+            <p>Consulta código, precio, categoría, ofertas o compra.</p>
+          </div>
 
-          <section className="store-assistant-panel" role="dialog" aria-label="Asistente de compra">
-            <header className="store-assistant-head">
-              <div className="store-assistant-head-copy">
-                <span className="store-assistant-badge">
-                  <Sparkles size={14} />
-                  Catálogo real
-                </span>
-                <strong>Asistente de compra</strong>
-                <p>Consulta código, precio, categoría, ofertas o compra.</p>
-              </div>
+          <button className="icon-button" onClick={onClose} type="button">
+            <X size={18} />
+          </button>
+        </header>
 
-              <button className="icon-button" onClick={() => setOpen(false)} type="button">
-                <X size={18} />
-              </button>
-            </header>
+        <div className="store-assistant-body" ref={bodyRef}>
+          {messages.map((message) => (
+            <AssistantMessageCard key={message.id} message={message} />
+          ))}
 
-            <div className="store-assistant-body" ref={bodyRef}>
-              {messages.map((message) => (
-                <AssistantMessageCard key={message.id} message={message} />
-              ))}
-
-              {loading ? (
-                <div className="store-assistant-loading">
-                  <LoaderCircle className="store-assistant-spinner" size={18} />
-                  <span>Consultando catálogo...</span>
-                </div>
-              ) : null}
+          {loading ? (
+            <div className="store-assistant-loading">
+              <LoaderCircle className="store-assistant-spinner" size={18} />
+              <span>Consultando catálogo...</span>
             </div>
+          ) : null}
+        </div>
 
-            <AssistantFooter
-              canSend={canSend}
-              draft={draft}
-              inputRef={inputRef}
-              onDraftChange={setDraft}
-              onSend={(text) => {
-                void sendMessage(text);
-              }}
-              suggestedPrompts={suggestedPrompts}
-            />
-          </section>
-        </>
-      ) : null}
+        <AssistantFooter
+          canSend={canSend}
+          draft={draft}
+          inputRef={inputRef}
+          onDraftChange={setDraft}
+          onSend={(text) => {
+            void sendMessage(text);
+          }}
+          suggestedPrompts={suggestedPrompts}
+        />
+      </section>
     </>
   );
 }
