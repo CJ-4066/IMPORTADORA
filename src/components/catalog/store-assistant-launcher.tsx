@@ -35,6 +35,7 @@ export function StoreAssistantLauncher({ businessName }: StoreAssistantLauncherP
   return (
     <>
       <button
+        aria-label="Abrir asistente virtual"
         className="store-side-action store-side-action-assistant"
         onClick={openAssistant}
         onFocus={preloadPanel}

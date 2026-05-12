@@ -36,6 +36,7 @@ type ProductSectionProps = {
   featured?: boolean;
   badgeLabel?: string;
   limit?: number;
+  compact?: boolean;
 };
 
 const FEATURED_SECTION_LIMIT = 6;
@@ -261,6 +262,7 @@ function ProductSection({
   featured = false,
   badgeLabel,
   limit,
+  compact = false,
 }: ProductSectionProps) {
   const sliderRef = useRef<HTMLDivElement>(null);
   const sectionLimit = limit ?? (featured ? FEATURED_SECTION_LIMIT : GRID_SECTION_LIMIT);
@@ -278,19 +280,21 @@ function ProductSection({
       return;
     }
 
+    const step = compact ? slider.clientWidth : slider.clientWidth * 0.78;
+
     slider.scrollBy({
       behavior: "smooth",
       left:
         direction === "next"
-          ? slider.clientWidth * 0.78
-          : slider.clientWidth * -0.78,
+          ? step
+          : -step,
     });
   };
-
   return (
     <section
       className={`catalog-section ${
         featured ? "catalog-section-featured" : ""
+      } ${compact ? "catalog-section-compact" : ""
       }`}
     >
       <div className="catalog-section-header">
@@ -502,6 +506,7 @@ export function CatalogExperience({
             href="/?collection=mas-vendidos"
             products={topProducts}
             settings={settings}
+            compact
           />
 
           <ProductSection
@@ -510,6 +515,7 @@ export function CatalogExperience({
             settings={settings}
             subtitle="Opciones prácticas para clientes, familia o pedidos por campaña."
             title="Ideas para regalar"
+            compact
           />
 
           <ProductSection

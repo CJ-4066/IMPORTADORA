@@ -29,6 +29,7 @@ import { shopperLogoutAction } from "@/app/acceso/actions";
 import { CatalogPrefetchLink } from "@/components/catalog/catalog-prefetch-link";
 import { HeaderCartButton } from "@/components/catalog/header-cart-button";
 import { HeaderSearch } from "@/components/catalog/header-search";
+import { PublicStoreHeaderShell } from "@/components/catalog/public-store-header-shell";
 
 type Shortcut = {
   label: string;
@@ -213,84 +214,96 @@ function getCategoryIcon(name: string) {
   return PackageSearch;
 }
 
-function CategoryShortcutMenu({
+function CategoryShortcutLead({
   brands,
   categories,
+  className = "",
 }: {
   brands: BrandOption[];
   categories: CategoryOption[];
+  className?: string;
 }) {
   return (
-    <div className="public-store-topline">
-      <details className="public-store-shortcut-menu">
-        <summary
-          aria-label={`Abrir ${categories.length} categorías del catálogo`}
-          className="public-store-shortcut is-lead"
-        >
-          <span className="public-store-lead-icon">
-            <Menu size={17} />
-          </span>
-          <span className="public-store-lead-copy">
-            <span>Todas las categorías</span>
-            <small>
-              {categories.length ? `${categories.length} categorías` : "Explorar catálogo"}
-            </small>
-          </span>
-          <span className="public-store-lead-chevron">
-            <ChevronDown size={15} />
-          </span>
-        </summary>
-        <div className="public-store-shortcut-dropdown">
-          <div className="public-store-shortcut-dropdown-section">
-            <strong>Categorías</strong>
-            <div className="public-store-shortcut-dropdown-grid is-categories">
-              {categories
-                .slice()
-                .sort(sortCatalogCategories)
-                .map((category) => {
-                  const Icon = getCategoryIcon(category.name);
+    <details className={`public-store-shortcut-menu ${className}`.trim()}>
+      <summary
+        aria-label={`Abrir ${categories.length} categorías del catálogo`}
+        className="public-store-shortcut is-lead"
+      >
+        <span className="public-store-lead-icon">
+          <Menu size={17} />
+        </span>
+        <span className="public-store-lead-copy">
+          <span>Todas las categorías</span>
+          <small>{categories.length ? `${categories.length} categorías` : "Explorar catálogo"}</small>
+        </span>
+        <span className="public-store-lead-chevron">
+          <ChevronDown size={15} />
+        </span>
+      </summary>
+      <div className="public-store-shortcut-dropdown">
+        <div className="public-store-shortcut-dropdown-section">
+          <strong>Categorías</strong>
+          <div className="public-store-shortcut-dropdown-grid is-categories">
+            {categories
+              .slice()
+              .sort(sortCatalogCategories)
+              .map((category) => {
+                const Icon = getCategoryIcon(category.name);
 
-                  return (
-                    <CatalogPrefetchLink
-                      className="public-store-shortcut-dropdown-link is-category"
-                      href={`/?category=${encodeURIComponent(category.slug)}`}
-                      key={category.id}
-                    >
-                      <Icon size={16} />
-                      <span>{formatCatalogLabel(category.name)}</span>
-                    </CatalogPrefetchLink>
-                  );
-                })}
+                return (
+                  <CatalogPrefetchLink
+                    className="public-store-shortcut-dropdown-link is-category"
+                    href={`/?category=${encodeURIComponent(category.slug)}`}
+                    key={category.id}
+                  >
+                    <Icon size={16} />
+                    <span>{formatCatalogLabel(category.name)}</span>
+                  </CatalogPrefetchLink>
+                );
+              })}
+          </div>
+        </div>
+        {brands.length ? (
+          <div className="public-store-shortcut-dropdown-section">
+            <strong>Marcas</strong>
+            <div className="public-store-shortcut-dropdown-grid is-brands">
+              {brands.slice(0, 18).map((brand) => (
+                <CatalogPrefetchLink
+                  className="public-store-shortcut-dropdown-link"
+                  href={`/?brand=${encodeURIComponent(brand.name)}`}
+                  key={brand.name}
+                >
+                  {formatCatalogLabel(brand.name)}
+                </CatalogPrefetchLink>
+              ))}
             </div>
           </div>
-          {brands.length ? (
-            <div className="public-store-shortcut-dropdown-section">
-              <strong>Marcas</strong>
-              <div className="public-store-shortcut-dropdown-grid is-brands">
-                {brands.slice(0, 18).map((brand) => (
-                  <CatalogPrefetchLink
-                    className="public-store-shortcut-dropdown-link"
-                    href={`/?brand=${encodeURIComponent(brand.name)}`}
-                    key={brand.name}
-                  >
-                    {formatCatalogLabel(brand.name)}
-                  </CatalogPrefetchLink>
-                ))}
-              </div>
-            </div>
-          ) : null}
-        </div>
-      </details>
-      <div className="public-store-shortcuts" aria-label="Atajos de catálogo">
-        {SHORTCUTS.slice(1).map((shortcut) => (
-          <CatalogPrefetchLink
-            className="public-store-shortcut"
-            href={shortcut.href}
-            key={shortcut.label}
-          >
-            {shortcut.icon ? <shortcut.icon size={14} /> : null}
-            {shortcut.label}
-          </CatalogPrefetchLink>
+        ) : null}
+      </div>
+    </details>
+  );
+}
+
+function CategoryShortcutMarquee() {
+  const items = SHORTCUTS.slice(1);
+
+  return (
+    <div className="public-store-shortcuts-marquee" aria-label="Atajos de catálogo">
+      <div className="public-store-shortcuts-marquee-track">
+        {[0, 1].map((group) => (
+          <div className="public-store-shortcuts-marquee-group" aria-hidden={group === 1} key={group}>
+            {items.map((shortcut) => (
+              <CatalogPrefetchLink
+                className="public-store-shortcut"
+                href={shortcut.href}
+                tabIndex={group === 1 ? -1 : undefined}
+                key={`${group}-${shortcut.label}`}
+              >
+                {shortcut.icon ? <shortcut.icon size={14} /> : null}
+                {shortcut.label}
+              </CatalogPrefetchLink>
+            ))}
+          </div>
         ))}
       </div>
     </div>
@@ -318,18 +331,35 @@ export async function PublicStoreHeader({
   ]);
 
   return (
-    <header className="public-store-header">
-      <div className="public-store-bar">
-        <StoreBrand businessName={resolvedSettings.businessName} />
-        <HeaderSearch autoFocus={focusSearch} />
+    <PublicStoreHeaderShell>
+      <header className="public-store-header">
+        <div className="public-store-bar">
+          <div className="public-store-desktop-category-slot">
+            <CategoryShortcutLead brands={resolvedBrands} categories={resolvedCategories} />
+          </div>
+          <div className="public-store-mobile-category-slot">
+            <CategoryShortcutLead brands={resolvedBrands} categories={resolvedCategories} />
+          </div>
+          <StoreBrand businessName={resolvedSettings.businessName} />
+          <HeaderSearch autoFocus={focusSearch} />
 
-        <div className="public-store-actions">
-          <AccountSlot role={session?.role} />
-          <HeaderCartButton />
+          <div className="public-store-actions">
+            <div className="public-store-account-slot">
+              <AccountSlot role={session?.role} />
+            </div>
+            <HeaderCartButton />
+          </div>
         </div>
-      </div>
 
-      <CategoryShortcutMenu brands={resolvedBrands} categories={resolvedCategories} />
-    </header>
+        <div className="public-store-desktop-shortcuts">
+          <div className="public-store-topline">
+            <CategoryShortcutMarquee />
+          </div>
+        </div>
+        <div className="public-store-mobile-marquee">
+          <CategoryShortcutMarquee />
+        </div>
+      </header>
+    </PublicStoreHeaderShell>
   );
 }

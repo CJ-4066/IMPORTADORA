@@ -1,7 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { MessageCircleMore, Search } from "lucide-react";
+import { ArrowLeft, MessageCircleMore, Search } from "lucide-react";
 import { StoreAssistantLauncher } from "@/components/catalog/store-assistant-launcher";
 import type { StoreSettingsView } from "@/lib/store";
 import { cleanWhatsappNumber } from "@/lib/utils";
@@ -41,6 +42,13 @@ export function StoreSideActions({ settings }: StoreSideActionsProps) {
       className={`store-side-actions${isProductPage ? " store-side-actions-product" : ""}`}
       aria-label="Accesos rápidos de tienda"
     >
+      {isProductPage ? (
+        <Link className="store-side-action store-side-action-back" href="/">
+          <ArrowLeft size={20} />
+          <span>Catálogo</span>
+        </Link>
+      ) : null}
+
       <StoreAssistantLauncher businessName={settings.businessName} />
 
       <a
@@ -48,12 +56,18 @@ export function StoreSideActions({ settings }: StoreSideActionsProps) {
         href={`https://wa.me/${cleanWhatsappNumber(settings.whatsappNumber)}`}
         rel="noreferrer"
         target="_blank"
+        aria-label="Abrir WhatsApp"
       >
         <MessageCircleMore size={20} />
         <span>WhatsApp</span>
       </a>
 
-      <button className="store-side-action" onClick={handleSearch} type="button">
+      <button
+        aria-label="Buscar productos"
+        className="store-side-action store-side-action-search"
+        onClick={handleSearch}
+        type="button"
+      >
         <Search size={20} />
         <span>Buscar</span>
       </button>

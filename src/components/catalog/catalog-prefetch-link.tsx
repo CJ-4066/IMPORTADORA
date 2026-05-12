@@ -8,6 +8,7 @@ type CatalogPrefetchLinkProps = {
   children: ReactNode;
   className?: string;
   href: string;
+  tabIndex?: number;
 };
 
 const prefetchedHrefs = new Set<string>();
@@ -16,6 +17,7 @@ export function CatalogPrefetchLink({
   children,
   className,
   href,
+  tabIndex,
 }: CatalogPrefetchLinkProps) {
   const router = useRouter();
 
@@ -35,6 +37,7 @@ export function CatalogPrefetchLink({
       onFocus={prefetch}
       onMouseEnter={prefetch}
       onTouchStart={prefetch}
+      tabIndex={tabIndex}
     >
       {children}
     </Link>
