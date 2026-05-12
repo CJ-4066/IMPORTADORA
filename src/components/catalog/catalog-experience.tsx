@@ -100,6 +100,18 @@ const productMatches = (
 const getProductText = (product: CatalogProduct) =>
   `${product.name} ${product.category ?? ""} ${product.brand ?? ""}`.toLowerCase();
 
+const isAdultCatalogProduct = (product: CatalogProduct) => {
+  const text = getProductText(product);
+
+  return (
+    text.includes("juguetes sexuales") ||
+    text.includes("consolador") ||
+    text.includes("pretty love") ||
+    text.includes("vibrator") ||
+    text.includes("we love")
+  );
+};
+
 const hasUsableProductImage = (product: CatalogProduct) => {
   const mediaUrl = product.primaryMedia?.url ?? product.imageUrl ?? "";
   const normalized = mediaUrl.toLowerCase();
@@ -395,26 +407,32 @@ export function CatalogExperience({
   initialCartOpen = false,
   quoteDefaults = null,
 }: CatalogExperienceProps) {
+  const storefrontProducts = products.filter(
+    (product) => !isAdultCatalogProduct(product),
+  );
+  const storefrontBestSellerProducts = bestSellerProducts.filter(
+    (product) => !isAdultCatalogProduct(product),
+  );
   const featuredProducts = products.filter(
-    (product) => product.isFeatured,
+    (product) => product.isFeatured && !isAdultCatalogProduct(product),
   );
 
   const hasRealBestSellers =
-    Boolean(salesSummary?.hasRealSales) && bestSellerProducts.length > 0;
+    Boolean(salesSummary?.hasRealSales) && storefrontBestSellerProducts.length > 0;
   const topProducts = fillSectionProducts(
     hasRealBestSellers
-      ? bestSellerProducts
+      ? storefrontBestSellerProducts
       : featuredProducts.length
         ? sortProductsByImageQuality(featuredProducts)
-        : sortProductsByImageQuality(products),
-    products,
+        : sortProductsByImageQuality(storefrontProducts),
+    storefrontProducts,
     0,
     FEATURED_SECTION_LIMIT,
   );
 
-  const giftMatches = getGiftProducts(products);
+  const giftMatches = getGiftProducts(storefrontProducts);
 
-  const homeMatches = products.filter((product) =>
+  const homeMatches = storefrontProducts.filter((product) =>
     productMatches(product, [
       "cocina",
       "hogar",
@@ -430,15 +448,15 @@ export function CatalogExperience({
     ]),
   );
 
-  const techMatches = getScoredProducts(products, technologyScoreWords, 34);
+  const techMatches = getScoredProducts(storefrontProducts, technologyScoreWords, 34);
 
-  const accessoryMatches = getScoredProducts(products, accessoryScoreWords, 34);
+  const accessoryMatches = getScoredProducts(storefrontProducts, accessoryScoreWords, 34);
 
   const giftProducts = fillSectionProducts(
     giftMatches.length
       ? giftMatches
-      : sortProductsByImageQuality(fallbackSectionProducts(products, 6)),
-    products,
+      : sortProductsByImageQuality(fallbackSectionProducts(storefrontProducts, 6)),
+    storefrontProducts,
     6,
     GRID_SECTION_LIMIT,
   );
@@ -446,8 +464,8 @@ export function CatalogExperience({
   const homeProducts = fillSectionProducts(
     homeMatches.length
       ? homeMatches
-      : fallbackSectionProducts(products, 12),
-    products,
+      : fallbackSectionProducts(storefrontProducts, 12),
+    storefrontProducts,
     12,
     GRID_SECTION_LIMIT,
   );
@@ -455,8 +473,8 @@ export function CatalogExperience({
   const techProducts = fillSectionProducts(
     techMatches.length
       ? techMatches
-      : sortProductsByImageQuality(fallbackSectionProducts(products, 0)),
-    products,
+      : sortProductsByImageQuality(fallbackSectionProducts(storefrontProducts, 0)),
+    storefrontProducts,
     0,
     GRID_SECTION_LIMIT,
   );
@@ -464,8 +482,8 @@ export function CatalogExperience({
   const accessoryProducts = fillSectionProducts(
     accessoryMatches.length
       ? accessoryMatches
-      : sortProductsByImageQuality(fallbackSectionProducts(products, 18)),
-    products,
+      : sortProductsByImageQuality(fallbackSectionProducts(storefrontProducts, 18)),
+    storefrontProducts,
     18,
     GRID_SECTION_LIMIT,
   );
