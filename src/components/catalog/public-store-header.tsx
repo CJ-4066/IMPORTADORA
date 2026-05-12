@@ -140,8 +140,51 @@ function formatCatalogLabel(value: string) {
     .join(" ");
 }
 
+function normalizeCatalogValue(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+
+function getCategoryPriority(name: string) {
+  const normalized = normalizeCatalogValue(name);
+  const priorities: Array<[RegExp, number]> = [
+    [/auricular|audio/, 10],
+    [/parlante/, 20],
+    [/celular|telefono|movil/, 30],
+    [/smart watch|smartwatch|reloj/, 40],
+    [/dispositivos portatiles|tablet|celular/, 50],
+    [/periferic|mouse|teclado|gamer/, 60],
+    [/bateria|power bank|cargador portatil/, 70],
+    [/almacenamiento|memoria|usb/, 80],
+    [/entretenimiento|multimedia|consola|proyector|tv/, 90],
+    [/camara de seguridad|seguridad/, 100],
+    [/auto|carro|vehiculo/, 110],
+    [/cocina|utencillo|domestico/, 120],
+    [/hogar|iluminacion/, 130],
+    [/cuidado personal/, 140],
+    [/juguete.*escolar|utiles escolares|articulos escolares/, 150],
+    [/equipaje|bolso/, 160],
+    [/novedad/, 900],
+    [/sexual/, 990],
+  ];
+
+  return priorities.find(([pattern]) => pattern.test(normalized))?.[1] ?? 500;
+}
+
+function sortCatalogCategories(left: CategoryOption, right: CategoryOption) {
+  const priorityDelta = getCategoryPriority(left.name) - getCategoryPriority(right.name);
+
+  if (priorityDelta !== 0) {
+    return priorityDelta;
+  }
+
+  return formatCatalogLabel(left.name).localeCompare(formatCatalogLabel(right.name), "es");
+}
+
 function getCategoryIcon(name: string) {
-  const normalized = name.toLowerCase();
+  const normalized = normalizeCatalogValue(name);
 
   if (/celular|telefono|m[oó]vil|smart/.test(normalized)) {
     return Smartphone;
@@ -203,7 +246,7 @@ function CategoryShortcutMenu({
             <div className="public-store-shortcut-dropdown-grid is-categories">
               {categories
                 .slice()
-                .sort((left, right) => formatCatalogLabel(left.name).localeCompare(formatCatalogLabel(right.name), "es"))
+                .sort(sortCatalogCategories)
                 .map((category) => {
                   const Icon = getCategoryIcon(category.name);
 
