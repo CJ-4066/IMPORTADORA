@@ -199,25 +199,27 @@ export default async function Home({ searchParams }: HomeProps) {
         settings={data.settings}
       />
 
-      <section className="hero">
-        <div className="hero-grid hero-grid-centered">
-          <div className="hero-panel">
-            {heroProducts.length >= 2 ? (
-              <HeroProductCarousel intervalSeconds={data.settings.heroAutoplaySeconds} products={heroProducts} />
-            ) : data.settings.heroSlides.length ? (
-              <HeroCarousel
-                intervalSeconds={data.settings.heroAutoplaySeconds}
-                slides={data.settings.heroSlides}
-              />
-            ) : (
-              <>
-                <p>{data.settings.highlightMessage}</p>
-                <span>Atención: {data.settings.supportHours}</span>
-              </>
-            )}
+      {isSectionedView ? (
+        <section className="hero">
+          <div className="hero-grid hero-grid-centered">
+            <div className="hero-panel">
+              {heroProducts.length >= 2 ? (
+                <HeroProductCarousel intervalSeconds={data.settings.heroAutoplaySeconds} products={heroProducts} />
+              ) : data.settings.heroSlides.length ? (
+                <HeroCarousel
+                  intervalSeconds={data.settings.heroAutoplaySeconds}
+                  slides={data.settings.heroSlides}
+                />
+              ) : (
+                <>
+                  <p>{data.settings.highlightMessage}</p>
+                  <span>Atención: {data.settings.supportHours}</span>
+                </>
+              )}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      ) : null}
 
       <section className="catalog-experience-shell" id="catalogo">
         <CatalogExperience

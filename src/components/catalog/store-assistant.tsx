@@ -35,6 +35,7 @@ type AssistantConversationSnapshot = {
   messages: AssistantMessage[];
   contextProductCode: string | null;
   contextCategorySlug: string | null;
+  welcomeDismissed?: boolean;
 };
 
 type AssistantProductCardProps = {
@@ -140,6 +141,7 @@ function readAssistantSnapshot(storageKey: string) {
         typeof parsed.contextProductCode === "string" ? parsed.contextProductCode : null,
       contextCategorySlug:
         typeof parsed.contextCategorySlug === "string" ? parsed.contextCategorySlug : null,
+      welcomeDismissed: parsed.welcomeDismissed === true,
     };
   } catch {
     return null;
@@ -322,6 +324,31 @@ function AssistantMessageCard({ message }: AssistantMessageCardProps) {
   );
 }
 
+function AssistantWelcomeBanner({
+  message,
+  onDismiss,
+}: {
+  message: AssistantMessage;
+  onDismiss: () => void;
+}) {
+  return (
+    <div className="store-assistant-welcome">
+      <div className="store-assistant-welcome-head">
+        <span className="store-assistant-badge">
+          <Sparkles size={14} />
+          Compra guiada
+        </span>
+        <button aria-label="Ocultar mensaje" className="icon-button" onClick={onDismiss} type="button">
+          <X size={16} />
+        </button>
+      </div>
+
+      <p className="store-assistant-welcome-text">{message.text}</p>
+      <AssistantActions message={message} />
+    </div>
+  );
+}
+
 function AssistantFooter({
   canSend,
   draft,
@@ -387,6 +414,7 @@ export function StoreAssistantPanel({
   const [messages, setMessages] = useState<AssistantMessage[]>(() => [
     buildWelcomeMessage(businessName),
   ]);
+  const [welcomeDismissed, setWelcomeDismissed] = useState(false);
   const contextProductCodeRef = useRef<string | null>(null);
   const contextCategorySlugRef = useRef<string | null>(null);
   const didHydrateRef = useRef(false);
@@ -399,10 +427,12 @@ export function StoreAssistantPanel({
     const timer = window.setTimeout(() => {
       if (!snapshot) {
         setMessages([buildWelcomeMessage(businessName)]);
+        setWelcomeDismissed(false);
         contextProductCodeRef.current = null;
         contextCategorySlugRef.current = null;
       } else {
         setMessages(normalizeAssistantMessages(snapshot.messages, businessName));
+        setWelcomeDismissed(snapshot.welcomeDismissed === true);
         contextProductCodeRef.current = snapshot.contextProductCode;
         contextCategorySlugRef.current = snapshot.contextCategorySlug;
       }
@@ -422,8 +452,9 @@ export function StoreAssistantPanel({
       messages,
       contextProductCode: contextProductCodeRef.current,
       contextCategorySlug: contextCategorySlugRef.current,
+      welcomeDismissed,
     });
-  }, [messages, storageKey]);
+  }, [messages, storageKey, welcomeDismissed]);
 
   useEffect(() => {
     if (!open) {
@@ -454,6 +485,8 @@ export function StoreAssistantPanel({
     if (!cleanText || loading) {
       return;
     }
+
+    setWelcomeDismissed(true);
 
     const userMessage: AssistantMessage = {
       id: getMessageId(),
@@ -526,11 +559,21 @@ export function StoreAssistantPanel({
 
   const clearHistory = () => {
     clearAssistantSnapshot(storageKey);
+    setWelcomeDismissed(false);
     contextProductCodeRef.current = null;
     contextCategorySlugRef.current = null;
     setDraft("");
     setMessages([buildWelcomeMessage(businessName)]);
   };
+
+  const welcomeMessage = messages[0];
+  const hasWelcomeIntro = Boolean(welcomeMessage && isLegacyWelcomeMessage(welcomeMessage));
+  const showWelcomeBanner =
+    hasWelcomeIntro &&
+    !welcomeDismissed &&
+    draft.trim().length === 0 &&
+    Boolean(welcomeMessage);
+  const visibleMessages = hasWelcomeIntro ? messages.slice(1) : messages;
 
   if (!open) {
     return null;
@@ -568,7 +611,14 @@ export function StoreAssistantPanel({
         </div>
 
         <div className="store-assistant-body" ref={bodyRef}>
-          {messages.map((message) => (
+          {showWelcomeBanner ? (
+            <AssistantWelcomeBanner
+              message={welcomeMessage}
+              onDismiss={() => setWelcomeDismissed(true)}
+            />
+          ) : null}
+
+          {visibleMessages.map((message) => (
             <AssistantMessageCard key={message.id} message={message} />
           ))}
 
@@ -584,7 +634,12 @@ export function StoreAssistantPanel({
           canSend={canSend}
           draft={draft}
           inputRef={inputRef}
-          onDraftChange={setDraft}
+          onDraftChange={(value) => {
+            setDraft(value);
+            if (value.trim().length > 0) {
+              setWelcomeDismissed(true);
+            }
+          }}
           onSend={(text) => {
             void sendMessage(text);
           }}

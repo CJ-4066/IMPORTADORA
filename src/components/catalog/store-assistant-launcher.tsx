@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { startTransition, useState } from "react";
-import { MessageSquareText } from "lucide-react";
+import { Bot } from "lucide-react";
 import type { StoreAssistantPanelProps } from "@/components/catalog/store-assistant";
 
 const StoreAssistantPanel = dynamic<StoreAssistantPanelProps>(
@@ -43,7 +43,7 @@ export function StoreAssistantLauncher({ businessName }: StoreAssistantLauncherP
         onTouchStart={preloadPanel}
         type="button"
       >
-        <MessageSquareText size={20} />
+        <Bot size={20} />
         <span>Asistente</span>
       </button>
 

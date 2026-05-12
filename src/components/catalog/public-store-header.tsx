@@ -1,23 +1,15 @@
 import Link from "next/link";
 import {
-  Battery,
   Bot,
-  Car,
-  ChevronDown,
   Flame,
   Gamepad2,
-  Headphones,
-  House,
   LayoutDashboard,
-  Lightbulb,
   LogOut,
   Menu,
   MonitorPlay,
-  NotebookPen,
   PackageSearch,
   Plane,
   Sparkles,
-  Smartphone,
   UserRound,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -30,6 +22,7 @@ import { CatalogPrefetchLink } from "@/components/catalog/catalog-prefetch-link"
 import { HeaderCartButton } from "@/components/catalog/header-cart-button";
 import { HeaderSearch } from "@/components/catalog/header-search";
 import { PublicStoreHeaderShell } from "@/components/catalog/public-store-header-shell";
+import { PublicStoreCategoryMenu } from "@/components/catalog/public-store-category-menu";
 
 type Shortcut = {
   label: string;
@@ -126,164 +119,6 @@ function StoreBrand({ businessName }: { businessName: string }) {
   );
 }
 
-function formatCatalogLabel(value: string) {
-  return value
-    .trim()
-    .toLowerCase()
-    .split(/\s+/)
-    .map((word, index) => {
-      if (["de", "del", "para", "y", "e", "a", "con", "en"].includes(word) && index > 0) {
-        return word;
-      }
-
-      return word.charAt(0).toUpperCase() + word.slice(1);
-    })
-    .join(" ");
-}
-
-function normalizeCatalogValue(value: string) {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase();
-}
-
-function getCategoryPriority(name: string) {
-  const normalized = normalizeCatalogValue(name);
-  const priorities: Array<[RegExp, number]> = [
-    [/auricular|audio/, 10],
-    [/parlante/, 20],
-    [/celular|telefono|movil/, 30],
-    [/smart watch|smartwatch|reloj/, 40],
-    [/dispositivos portatiles|tablet|celular/, 50],
-    [/periferic|mouse|teclado|gamer/, 60],
-    [/bateria|power bank|cargador portatil/, 70],
-    [/almacenamiento|memoria|usb/, 80],
-    [/entretenimiento|multimedia|consola|proyector|tv/, 90],
-    [/camara de seguridad|seguridad/, 100],
-    [/auto|carro|vehiculo/, 110],
-    [/cocina|utencillo|domestico/, 120],
-    [/hogar|iluminacion/, 130],
-    [/cuidado personal/, 140],
-    [/juguete.*escolar|utiles escolares|articulos escolares/, 150],
-    [/equipaje|bolso/, 160],
-    [/novedad/, 900],
-    [/sexual/, 990],
-  ];
-
-  return priorities.find(([pattern]) => pattern.test(normalized))?.[1] ?? 500;
-}
-
-function sortCatalogCategories(left: CategoryOption, right: CategoryOption) {
-  const priorityDelta = getCategoryPriority(left.name) - getCategoryPriority(right.name);
-
-  if (priorityDelta !== 0) {
-    return priorityDelta;
-  }
-
-  return formatCatalogLabel(left.name).localeCompare(formatCatalogLabel(right.name), "es");
-}
-
-function getCategoryIcon(name: string) {
-  const normalized = normalizeCatalogValue(name);
-
-  if (/celular|telefono|m[oó]vil|smart/.test(normalized)) {
-    return Smartphone;
-  }
-
-  if (/auto|carro|vehiculo/.test(normalized)) {
-    return Car;
-  }
-
-  if (/hogar|casa|ilumin/.test(normalized)) {
-    return normalized.includes("ilumin") ? Lightbulb : House;
-  }
-
-  if (/auricular|audio/.test(normalized)) {
-    return Headphones;
-  }
-
-  if (/bater/i.test(normalized)) {
-    return Battery;
-  }
-
-  if (/escolar|util|cuaderno|lapic/.test(normalized)) {
-    return NotebookPen;
-  }
-
-  return PackageSearch;
-}
-
-function CategoryShortcutLead({
-  brands,
-  categories,
-  className = "",
-}: {
-  brands: BrandOption[];
-  categories: CategoryOption[];
-  className?: string;
-}) {
-  return (
-    <details className={`public-store-shortcut-menu ${className}`.trim()}>
-      <summary
-        aria-label={`Abrir ${categories.length} categorías del catálogo`}
-        className="public-store-shortcut is-lead"
-      >
-        <span className="public-store-lead-icon">
-          <Menu size={17} />
-        </span>
-        <span className="public-store-lead-copy">
-          <span>Todas las categorías</span>
-          <small>{categories.length ? `${categories.length} categorías` : "Explorar catálogo"}</small>
-        </span>
-        <span className="public-store-lead-chevron">
-          <ChevronDown size={15} />
-        </span>
-      </summary>
-      <div className="public-store-shortcut-dropdown">
-        <div className="public-store-shortcut-dropdown-section">
-          <strong>Categorías</strong>
-          <div className="public-store-shortcut-dropdown-grid is-categories">
-            {categories
-              .slice()
-              .sort(sortCatalogCategories)
-              .map((category) => {
-                const Icon = getCategoryIcon(category.name);
-
-                return (
-                  <CatalogPrefetchLink
-                    className="public-store-shortcut-dropdown-link is-category"
-                    href={`/?category=${encodeURIComponent(category.slug)}`}
-                    key={category.id}
-                  >
-                    <Icon size={16} />
-                    <span>{formatCatalogLabel(category.name)}</span>
-                  </CatalogPrefetchLink>
-                );
-              })}
-          </div>
-        </div>
-        {brands.length ? (
-          <div className="public-store-shortcut-dropdown-section">
-            <strong>Marcas</strong>
-            <div className="public-store-shortcut-dropdown-grid is-brands">
-              {brands.slice(0, 18).map((brand) => (
-                <CatalogPrefetchLink
-                  className="public-store-shortcut-dropdown-link"
-                  href={`/?brand=${encodeURIComponent(brand.name)}`}
-                  key={brand.name}
-                >
-                  {formatCatalogLabel(brand.name)}
-                </CatalogPrefetchLink>
-              ))}
-            </div>
-          </div>
-        ) : null}
-      </div>
-    </details>
-  );
-}
-
 function CategoryShortcutMarquee() {
   const items = SHORTCUTS.slice(1);
 
@@ -335,10 +170,10 @@ export async function PublicStoreHeader({
       <header className="public-store-header">
         <div className="public-store-bar">
           <div className="public-store-desktop-category-slot">
-            <CategoryShortcutLead brands={resolvedBrands} categories={resolvedCategories} />
+            <PublicStoreCategoryMenu brands={resolvedBrands} categories={resolvedCategories} />
           </div>
           <div className="public-store-mobile-category-slot">
-            <CategoryShortcutLead brands={resolvedBrands} categories={resolvedCategories} />
+            <PublicStoreCategoryMenu brands={resolvedBrands} categories={resolvedCategories} />
           </div>
           <StoreBrand businessName={resolvedSettings.businessName} />
           <HeaderSearch autoFocus={focusSearch} />
