@@ -1,8 +1,10 @@
 import type { CSSProperties } from "react";
 import Link from "next/link";
 import { getCatalogPageData } from "@/lib/store";
+import type { CatalogProduct } from "@/lib/store";
 import { CatalogExperience } from "@/components/catalog/catalog-experience";
 import { HeroCarousel } from "@/components/catalog/hero-carousel";
+import { HeroProductCarousel } from "@/components/catalog/hero-product-carousel";
 import { PublicStoreHeader } from "@/components/catalog/public-store-header";
 import { StoreSideActions } from "@/components/catalog/store-side-actions";
 import { getQuoteDefaultsForSession } from "@/lib/quote-profile";
@@ -46,6 +48,47 @@ function formatSlugTitle(value: string) {
     .join(" ");
 }
 
+function hasHeroMedia(product: CatalogProduct) {
+  return Boolean(product.primaryMedia?.url || product.imageUrl);
+}
+
+function scoreHeroProduct(product: CatalogProduct) {
+  let score = 0;
+
+  if (hasHeroMedia(product)) {
+    score += 30;
+  }
+
+  if (product.isFeatured) {
+    score += 15;
+  }
+
+  if (product.stockUnits > 0) {
+    score += 10;
+  }
+
+  score += Math.min(10, Math.round(product.stockUnits / 15));
+  score += product.brand ? 2 : 0;
+
+  return score;
+}
+
+function pickHeroProducts(products: CatalogProduct[]) {
+  const filtered = products.filter(hasHeroMedia);
+
+  return filtered
+    .slice()
+    .sort((left, right) => {
+      const scoreDelta = scoreHeroProduct(right) - scoreHeroProduct(left);
+
+      if (scoreDelta !== 0) {
+        return scoreDelta;
+      }
+
+      return new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime();
+    })
+    .slice(0, 8);
+}
 
 function CatalogPagination({
   brand,
@@ -145,6 +188,7 @@ export default async function Home({ searchParams }: HomeProps) {
     (brand !== "all" ? `Marca: ${brand}` : undefined) ??
     (resolvedQuery ? `Resultados para "${resolvedQuery}"` : undefined) ??
     "Productos";
+  const heroProducts = pickHeroProducts([...data.bestSellerProducts, ...data.products]);
 
   return (
     <main className="site-shell" style={themeVars}>
@@ -158,7 +202,9 @@ export default async function Home({ searchParams }: HomeProps) {
       <section className="hero">
         <div className="hero-grid hero-grid-centered">
           <div className="hero-panel">
-            {data.settings.heroSlides.length ? (
+            {heroProducts.length >= 2 ? (
+              <HeroProductCarousel intervalSeconds={data.settings.heroAutoplaySeconds} products={heroProducts} />
+            ) : data.settings.heroSlides.length ? (
               <HeroCarousel
                 intervalSeconds={data.settings.heroAutoplaySeconds}
                 slides={data.settings.heroSlides}

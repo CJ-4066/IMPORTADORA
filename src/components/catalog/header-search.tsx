@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { LoaderCircle, Search } from "lucide-react";
 import type { CatalogSuggestion } from "@/lib/store";
 
@@ -10,10 +10,15 @@ type HeaderSearchProps = {
 };
 
 export function HeaderSearch({ autoFocus = false }: HeaderSearchProps) {
+  const inputRef = useRef<HTMLInputElement | null>(null);
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
   const [suggestions, setSuggestions] = useState<CatalogSuggestion[]>([]);
+
+  function focusSearchInput() {
+    inputRef.current?.focus();
+  }
 
   useEffect(() => {
     const trimmed = query.trim();
@@ -48,13 +53,18 @@ export function HeaderSearch({ autoFocus = false }: HeaderSearchProps) {
 
   return (
     <form action="/" className="public-store-search-form" method="get" role="search">
-      <label className="public-store-search-field">
+      <label
+        className="public-store-search-field"
+        onPointerDownCapture={focusSearchInput}
+        onTouchStartCapture={focusSearchInput}
+      >
         <Search size={18} />
         <input
           autoComplete="off"
           autoFocus={autoFocus}
           id="store-header-search-input"
           name="q"
+          enterKeyHint="search"
           onBlur={() => window.setTimeout(() => setOpen(false), 120)}
           onChange={(event) => {
             const nextValue = event.target.value;
@@ -66,7 +76,9 @@ export function HeaderSearch({ autoFocus = false }: HeaderSearchProps) {
             }
           }}
           onFocus={() => setOpen(true)}
+          inputMode="search"
           placeholder="Buscar producto o código"
+          ref={inputRef}
           type="search"
           value={query}
         />

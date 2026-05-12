@@ -31,6 +31,12 @@ type AssistantMessage = {
   suggestedPrompts?: string[];
 };
 
+type AssistantConversationSnapshot = {
+  messages: AssistantMessage[];
+  contextProductCode: string | null;
+  contextCategorySlug: string | null;
+};
+
 type AssistantProductCardProps = {
   product: ShopAssistantProductCard;
 };
@@ -43,24 +49,128 @@ function buildWelcomeMessage(businessName: string): AssistantMessage {
   return {
     id: "assistant-welcome",
     role: "assistant",
-    text:
-      `Soy el asistente de compra de ${businessName}. ` +
-      "Puedo buscar productos por código, nombre, categoría, ofertas, compra o disponibilidad general.",
+    text: `Te ayudo a encontrar productos de ${businessName} rápido y sin perder tiempo.`,
     quickActions: [
       { label: "Ver ofertas", href: "/?featured=1", accent: true },
-      { label: "Buscar catálogo", href: "/?focus=search" },
+      { label: "Buscar producto", href: "/?focus=search" },
+      { label: "Recomiéndame uno", href: "/?featured=1" },
     ],
     suggestedPrompts: [
-      "Busca el código 101-32",
-      "Muéstrame ofertas",
-      "¿Qué categorías tienes?",
-      "¿Cómo cotizo mi pedido?",
+      "Busco audífonos por 25 soles",
+      "Muéstrame algo para regalar",
+      "Necesito un producto con stock",
+      "Quiero ver ofertas",
     ],
   };
 }
 
 function getMessageId() {
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function getAssistantStorageKey(businessName: string) {
+  const normalized = businessName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+  return `importadora-store-assistant:${normalized || "default"}`;
+}
+
+function isLegacyWelcomeMessage(message: AssistantMessage) {
+  return (
+    message.role === "assistant" &&
+    (
+      message.id === "assistant-welcome" ||
+      message.text.includes("Puedo buscar productos por código") ||
+      message.text.includes("Consulta código, precio, categoría") ||
+      message.quickActions?.some(
+        (action) => action.label === "Buscar catálogo" || action.label === "Ver ofertas",
+      ) === true
+    )
+  );
+}
+
+function normalizeAssistantMessages(
+  messages: AssistantMessage[],
+  businessName: string,
+) {
+  if (!messages.length) {
+    return [buildWelcomeMessage(businessName)];
+  }
+
+  const normalized = [...messages];
+
+  if (isLegacyWelcomeMessage(normalized[0])) {
+    normalized[0] = buildWelcomeMessage(businessName);
+  }
+
+  return normalized;
+}
+
+function readAssistantSnapshot(storageKey: string) {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  try {
+    const raw = window.localStorage.getItem(storageKey);
+
+    if (!raw) {
+      return null;
+    }
+
+    const parsed = JSON.parse(raw) as Partial<AssistantConversationSnapshot>;
+
+    if (!Array.isArray(parsed.messages)) {
+      return null;
+    }
+
+    const messages = parsed.messages.filter(
+      (message): message is AssistantMessage =>
+        Boolean(message) &&
+        typeof message.id === "string" &&
+        (message.role === "assistant" || message.role === "user") &&
+        typeof message.text === "string",
+    );
+
+    if (!messages.length) {
+      return null;
+    }
+
+    return {
+      messages,
+      contextProductCode:
+        typeof parsed.contextProductCode === "string" ? parsed.contextProductCode : null,
+      contextCategorySlug:
+        typeof parsed.contextCategorySlug === "string" ? parsed.contextCategorySlug : null,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function saveAssistantSnapshot(
+  storageKey: string,
+  snapshot: AssistantConversationSnapshot,
+) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(storageKey, JSON.stringify(snapshot));
+  } catch {
+    // Ignore storage failures in private mode or quota-constrained browsers.
+  }
+}
+
+function clearAssistantSnapshot(storageKey: string) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    window.localStorage.removeItem(storageKey);
+  } catch {
+    // Ignore storage failures.
+  }
 }
 
 function AssistantProductCard({ product }: AssistantProductCardProps) {
@@ -271,6 +381,7 @@ export function StoreAssistantPanel({
   onClose,
   open,
 }: StoreAssistantPanelProps) {
+  const storageKey = useMemo(() => getAssistantStorageKey(businessName), [businessName]);
   const [loading, setLoading] = useState(false);
   const [draft, setDraft] = useState("");
   const [messages, setMessages] = useState<AssistantMessage[]>(() => [
@@ -278,8 +389,41 @@ export function StoreAssistantPanel({
   ]);
   const contextProductCodeRef = useRef<string | null>(null);
   const contextCategorySlugRef = useRef<string | null>(null);
+  const didHydrateRef = useRef(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const bodyRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const snapshot = readAssistantSnapshot(storageKey);
+
+    const timer = window.setTimeout(() => {
+      if (!snapshot) {
+        setMessages([buildWelcomeMessage(businessName)]);
+        contextProductCodeRef.current = null;
+        contextCategorySlugRef.current = null;
+      } else {
+        setMessages(normalizeAssistantMessages(snapshot.messages, businessName));
+        contextProductCodeRef.current = snapshot.contextProductCode;
+        contextCategorySlugRef.current = snapshot.contextCategorySlug;
+      }
+
+      didHydrateRef.current = true;
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, [businessName, storageKey]);
+
+  useEffect(() => {
+    if (!didHydrateRef.current) {
+      return;
+    }
+
+    saveAssistantSnapshot(storageKey, {
+      messages,
+      contextProductCode: contextProductCodeRef.current,
+      contextCategorySlug: contextCategorySlugRef.current,
+    });
+  }, [messages, storageKey]);
 
   useEffect(() => {
     if (!open) {
@@ -322,14 +466,16 @@ export function StoreAssistantPanel({
     setLoading(true);
 
     try {
+      const recentMessages = [...messages.slice(-5), userMessage].map((message) => ({
+        role: message.role,
+        text: message.text,
+      }));
+
       const payload: ShopAssistantRequest = {
         message: cleanText,
         productContextCode: contextProductCodeRef.current,
         contextCategorySlug: contextCategorySlugRef.current,
-        recentMessages: messages.slice(-6).map((message) => ({
-          role: message.role,
-          text: message.text,
-        })),
+        recentMessages,
       };
 
       const response = await fetch("/api/shop-assistant", {
@@ -373,9 +519,17 @@ export function StoreAssistantPanel({
           ],
         },
       ]);
-    } finally {
-      setLoading(false);
-    }
+      } finally {
+        setLoading(false);
+      }
+  };
+
+  const clearHistory = () => {
+    clearAssistantSnapshot(storageKey);
+    contextProductCodeRef.current = null;
+    contextCategorySlugRef.current = null;
+    setDraft("");
+    setMessages([buildWelcomeMessage(businessName)]);
   };
 
   if (!open) {
@@ -396,16 +550,22 @@ export function StoreAssistantPanel({
           <div className="store-assistant-head-copy">
             <span className="store-assistant-badge">
               <Sparkles size={14} />
-              Catálogo real
+              Compra guiada
             </span>
             <strong>Asistente de compra</strong>
-            <p>Consulta código, precio, categoría, ofertas o compra.</p>
+            <p>Dime presupuesto, categoría o uso y te muestro opciones.</p>
           </div>
 
           <button className="icon-button" onClick={onClose} type="button">
             <X size={18} />
           </button>
         </header>
+
+        <div className="store-assistant-toolbar">
+          <button className="button button-secondary" onClick={clearHistory} type="button">
+            Limpiar chat
+          </button>
+        </div>
 
         <div className="store-assistant-body" ref={bodyRef}>
           {messages.map((message) => (
