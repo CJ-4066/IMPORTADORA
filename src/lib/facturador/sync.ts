@@ -1,4 +1,5 @@
 import { Prisma, type ErpSyncTrigger } from "@prisma/client";
+import { randomUUID } from "node:crypto";
 import { FacturadorClient } from "@/lib/facturador/client";
 import {
   buildBrandLookup,
@@ -398,6 +399,7 @@ async function upsertProductChunk(
 
   await prisma.$executeRaw(Prisma.sql`
     INSERT INTO "Product" (
+      "id",
       "code",
       "slug",
       "name",
@@ -415,6 +417,8 @@ async function upsertProductChunk(
       "stockUnits",
       "isVisible",
       "isFeatured",
+      "createdAt",
+      "updatedAt",
       "externalSource",
       "externalId",
       "externalCode",
@@ -455,6 +459,7 @@ function buildProductRow(
   },
 ) {
   return Prisma.sql`(
+    ${randomUUID()},
     ${product.code},
     ${product.slug},
     ${product.name},
@@ -472,6 +477,8 @@ function buildProductRow(
     ${product.stockUnits},
     ${product.isVisible},
     ${product.isFeatured},
+    ${product.lastSyncedAt},
+    ${product.lastSyncedAt},
     ${product.externalSource},
     ${product.externalId},
     ${product.externalCode},

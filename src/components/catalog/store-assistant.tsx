@@ -9,6 +9,7 @@ import {
   rehydrateCartStore,
   useCartStore,
 } from "@/components/catalog/cart-store";
+import { getPublicProductName } from "@/lib/product-name";
 import type {
   ShopAssistantProductCard,
   ShopAssistantQuickAction,
@@ -50,7 +51,7 @@ function buildWelcomeMessage(businessName: string): AssistantMessage {
   return {
     id: "assistant-welcome",
     role: "assistant",
-    text: `Te ayudo a encontrar productos de ${businessName} rápido y sin perder tiempo.`,
+    text: `Dime presupuesto, ocasión o uso y te propongo opciones de ${businessName}.`,
     quickActions: [
       { label: "Ver ofertas", href: "/?featured=1", accent: true },
       { label: "Buscar producto", href: "/?focus=search" },
@@ -177,6 +178,7 @@ function clearAssistantSnapshot(storageKey: string) {
 
 function AssistantProductCard({ product }: AssistantProductCardProps) {
   const addItem = useCartStore((state) => state.addItem);
+  const displayName = getPublicProductName(product.name);
   const [added, setAdded] = useState(false);
   const quantity = Math.max(1, Math.min(product.recommendedQuantity ?? 1, product.stockUnits));
 
@@ -190,7 +192,7 @@ function AssistantProductCard({ product }: AssistantProductCardProps) {
         id: product.id,
         code: product.code,
         slug: product.slug,
-        name: product.name,
+        name: displayName,
         description: null,
         brand: product.brand,
         category: product.category,
@@ -230,7 +232,7 @@ function AssistantProductCard({ product }: AssistantProductCardProps) {
         </span>
       </div>
 
-      <strong>{product.name}</strong>
+      <strong>{displayName}</strong>
       <span className="store-assistant-product-meta">
         {product.brand ?? product.category ?? "Catálogo"}
       </span>

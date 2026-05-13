@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { getSafeMediaUrl } from "@/lib/media-url";
 import type { HeroSlideView } from "@/lib/store";
+import { useHorizontalCarousel } from "@/components/catalog/use-horizontal-carousel";
 
 type HeroCarouselProps = {
   slides: HeroSlideView[];
@@ -11,34 +11,14 @@ type HeroCarouselProps = {
 };
 
 export function HeroCarousel({ slides, intervalSeconds }: HeroCarouselProps) {
-  const [activeIndex, setActiveIndex] = useState(0);
-  const safeIndex = slides.length ? activeIndex % slides.length : 0;
-
-  useEffect(() => {
-    if (slides.length <= 1) {
-      return;
-    }
-
-    const timer = window.setInterval(() => {
-      setActiveIndex((current) => (current + 1) % slides.length);
-    }, intervalSeconds * 1000);
-
-    return () => window.clearInterval(timer);
-  }, [intervalSeconds, slides.length]);
-
-  const goToPrevious = () => {
-    setActiveIndex((current) => (current - 1 + slides.length) % slides.length);
-  };
-
-  const goToNext = () => {
-    setActiveIndex((current) => (current + 1) % slides.length);
-  };
+  const { activeIndex, goToNext, goToPrevious, handleScroll, scrollToIndex, viewportRef } =
+    useHorizontalCarousel({ itemCount: slides.length, intervalSeconds });
 
   return (
-    <div className="hero-carousel">
+    <div className="hero-carousel" onScroll={handleScroll} ref={viewportRef}>
       {slides.map((slide, index) => (
         <article
-          className={`hero-carousel-slide ${index === safeIndex ? "is-active" : ""}`}
+          className={`hero-carousel-slide ${index === activeIndex ? "is-active" : ""}`}
           key={`${slide.imageUrl}-${index}`}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -76,9 +56,9 @@ export function HeroCarousel({ slides, intervalSeconds }: HeroCarouselProps) {
             {slides.map((slide, index) => (
               <button
                 aria-label={`Ir al slide ${index + 1}`}
-                className={index === safeIndex ? "is-active" : ""}
+                className={index === activeIndex ? "is-active" : ""}
                 key={`${slide.imageUrl}-dot-${index}`}
-                onClick={() => setActiveIndex(index)}
+                onClick={() => scrollToIndex(index)}
                 type="button"
               />
             ))}

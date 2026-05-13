@@ -7,11 +7,13 @@ import { STORE_CART_OPEN_EVENT } from "@/components/catalog/cart-events";
 import { CartStoreBootstrap } from "@/components/catalog/cart-store-bootstrap";
 import { isCartStoreHydrated, rehydrateCartStore, useCartStore } from "@/components/catalog/cart-store";
 import { getSafeMediaUrl } from "@/lib/media-url";
+import { getPublicProductName } from "@/lib/product-name";
 import type { CatalogProduct, ProductMediaView, StoreSettingsView } from "@/lib/store";
 import { formatCurrency } from "@/lib/utils";
 import {
   getProductDiscountPercent,
   ProductPriceRows,
+  ProductStockChip,
 } from "@/components/catalog/product-display";
 
 type ProductDetailViewProps = {
@@ -35,6 +37,7 @@ function getFallbackMedia(product: CatalogProduct): ProductMediaView | null {
 
 export function ProductDetailView({ product, settings }: ProductDetailViewProps) {
   const addItem = useCartStore((state) => state.addItem);
+  const displayName = getPublicProductName(product.name);
   const gallery = useMemo(() => {
     const media = product.media.length ? product.media : [];
     const fallback = getFallbackMedia(product);
@@ -106,7 +109,7 @@ export function ProductDetailView({ product, settings }: ProductDetailViewProps)
                 <div className="product-detail-stage-media">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    alt={activeMedia.altText ?? product.name}
+                    alt={activeMedia.altText ?? displayName}
                     decoding="async"
                     onError={() =>
                       setImageFailed((current) => ({
@@ -127,7 +130,7 @@ export function ProductDetailView({ product, settings }: ProductDetailViewProps)
               <div className="product-detail-stage product-detail-stage-fallback">
                 <ImageIcon size={36} />
                 <strong>{product.category ?? "Producto"}</strong>
-                <span>{product.name}</span>
+                <span>{displayName}</span>
               </div>
             )}
           </div>
@@ -144,7 +147,7 @@ export function ProductDetailView({ product, settings }: ProductDetailViewProps)
                   {media.type === "IMAGE" && !imageFailed[media.id] ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
-                      alt={media.altText ?? `${product.name} ${index + 1}`}
+                      alt={media.altText ?? `${displayName} ${index + 1}`}
                       decoding="async"
                       loading="lazy"
                       referrerPolicy="no-referrer"
@@ -161,17 +164,18 @@ export function ProductDetailView({ product, settings }: ProductDetailViewProps)
 
         <article className="panel product-detail-copy-card">
           <div className="stack-sm">
-            <div className="product-detail-code-row">
-              <span className="product-code">{product.code}</span>
-              {product.isFeatured ? (
-                <span className="pill pill-accent">
-                  Oferta{discountPercent ? ` -${discountPercent}%` : ""}
-                </span>
-              ) : null}
+          <div className="product-detail-code-row">
+            <span className="product-code">{product.code}</span>
+            <ProductStockChip product={product} />
+            {product.isFeatured ? (
+              <span className="pill pill-accent">
+                Oferta{discountPercent ? ` -${discountPercent}%` : ""}
+              </span>
+            ) : null}
             </div>
 
             <div className="stack-xs">
-              <h1>{product.name}</h1>
+              <h1>{displayName}</h1>
               <p className="muted">
                 {product.brand ? product.brand : "Producto disponible para pedido"}
               </p>

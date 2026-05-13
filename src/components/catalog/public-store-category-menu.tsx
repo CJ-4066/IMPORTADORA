@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ChevronDown, ChevronLeft, Menu, Battery, Car, Headphones, House, Lightbulb, NotebookPen, PackageSearch, Smartphone } from "lucide-react";
 import type { BrandOption, CategoryOption } from "@/lib/store";
 import { CatalogPrefetchLink } from "@/components/catalog/catalog-prefetch-link";
+import { usePublicStoreHeaderState } from "@/components/catalog/public-store-header-shell";
 
 function formatCatalogLabel(value: string) {
   return value
@@ -100,24 +101,29 @@ type PublicStoreCategoryMenuProps = {
 
 export function PublicStoreCategoryMenu({ brands, categories }: PublicStoreCategoryMenuProps) {
   const [panel, setPanel] = useState<"main" | "categories" | "brands" | "sites">("main");
+  const { collapsed } = usePublicStoreHeaderState();
 
   const closePanel = () => setPanel("main");
 
   return (
-    <details className="public-store-shortcut-menu">
-      <summary aria-label={`Abrir ${categories.length} categorías del catálogo`} className="public-store-shortcut is-lead">
-        <span className="public-store-lead-icon">
-          <Menu size={17} />
-        </span>
-        <span className="public-store-lead-copy">
-          <span>Todas las categorías</span>
-          <small>{categories.length ? `${categories.length} categorías` : "Explorar catálogo"}</small>
-        </span>
-        <span className="public-store-lead-chevron">
-          <ChevronDown size={15} />
-        </span>
-      </summary>
-      <div className="public-store-shortcut-dropdown">
+    <div className="public-store-shortcut-menu-shell">
+      <details className="public-store-shortcut-menu">
+        <summary aria-label={`Abrir ${categories.length} categorías del catálogo`} className="public-store-shortcut is-lead">
+          <span className="public-store-lead-icon">
+            <Menu size={16} />
+          </span>
+          <span className="public-store-lead-mobile-label">
+            Categorías
+          </span>
+          <span className="public-store-lead-copy">
+            <span>Todas las categorías</span>
+            <small>{categories.length ? `${categories.length} categorías` : "Explorar catálogo"}</small>
+          </span>
+          <span className="public-store-lead-chevron">
+            <ChevronDown size={15} />
+          </span>
+        </summary>
+        <div className="public-store-shortcut-dropdown">
         {panel === "main" ? (
           <div className="public-store-shortcut-panel">
             <button className="public-store-shortcut-row" onClick={() => setPanel("categories")} type="button">
@@ -204,7 +210,17 @@ export function PublicStoreCategoryMenu({ brands, categories }: PublicStoreCateg
             </div>
           </div>
         ) : null}
-      </div>
-    </details>
+        </div>
+      </details>
+
+      {collapsed ? (
+        <CatalogPrefetchLink className="public-store-shortcut-home" href="/" aria-label="Volver al inicio">
+          <span className="public-store-home-icon">
+            <House size={16} />
+          </span>
+          <span className="public-store-home-label">Inicio</span>
+        </CatalogPrefetchLink>
+      ) : null}
+    </div>
   );
 }

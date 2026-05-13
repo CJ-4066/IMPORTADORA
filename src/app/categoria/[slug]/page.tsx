@@ -52,7 +52,6 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
       <PublicStoreHeader
         brands={data.brands}
         categories={data.categories}
-        settings={data.settings}
       />
 
       <section className="catalog-section">

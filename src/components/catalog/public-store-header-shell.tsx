@@ -1,36 +1,53 @@
 "use client";
 
-import type { ReactNode } from "react";
-import { useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+
+type PublicStoreHeaderState = {
+  collapsed: boolean;
+};
 
 type PublicStoreHeaderShellProps = {
   children: ReactNode;
 };
 
+const PublicStoreHeaderStateContext = createContext<PublicStoreHeaderState | null>(null);
+
+export function usePublicStoreHeaderState() {
+  const state = useContext(PublicStoreHeaderStateContext);
+
+  if (!state) {
+    throw new Error("usePublicStoreHeaderState must be used within PublicStoreHeaderShell");
+  }
+
+  return state;
+}
+
 export function PublicStoreHeaderShell({ children }: PublicStoreHeaderShellProps) {
   const [collapsed, setCollapsed] = useState(false);
 
   useEffect(() => {
-    const mobileQuery = window.matchMedia("(max-width: 760px)");
-
     const updateCollapsedState = () => {
-      setCollapsed(mobileQuery.matches && window.scrollY > 18);
+      setCollapsed(window.scrollY > 18);
     };
 
     updateCollapsedState();
 
     window.addEventListener("scroll", updateCollapsedState, { passive: true });
-    mobileQuery.addEventListener("change", updateCollapsedState);
+    window.addEventListener("resize", updateCollapsedState);
 
     return () => {
       window.removeEventListener("scroll", updateCollapsedState);
-      mobileQuery.removeEventListener("change", updateCollapsedState);
+      window.removeEventListener("resize", updateCollapsedState);
     };
   }, []);
 
+  const value = useMemo(() => ({ collapsed }), [collapsed]);
+
   return (
-    <div className={`public-store-header-shell${collapsed ? " is-collapsed" : ""}`}>
-      {children}
-    </div>
+    <PublicStoreHeaderStateContext.Provider value={value}>
+      <div className={`public-store-header-shell${collapsed ? " is-collapsed" : ""}`}>
+        {children}
+      </div>
+    </PublicStoreHeaderStateContext.Provider>
   );
 }

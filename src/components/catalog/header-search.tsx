@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { LoaderCircle, Search } from "lucide-react";
+import { getPublicProductName } from "@/lib/product-name";
 import type { CatalogSuggestion } from "@/lib/store";
 
 type HeaderSearchProps = {
@@ -81,7 +82,6 @@ export function HeaderSearch({ autoFocus = false }: HeaderSearchProps) {
         onPointerDownCapture={() => focusSearchInput()}
         onTouchStartCapture={() => focusSearchInput()}
       >
-        <Search size={18} />
         <input
           autoComplete="off"
           autoFocus={autoFocus}
@@ -100,7 +100,8 @@ export function HeaderSearch({ autoFocus = false }: HeaderSearchProps) {
           }}
           onFocus={() => setOpen(true)}
           inputMode="search"
-          placeholder="Buscar producto o código"
+          aria-label="Buscar producto o código"
+          placeholder=""
           ref={inputRef}
           type="search"
           value={query}
@@ -121,7 +122,7 @@ export function HeaderSearch({ autoFocus = false }: HeaderSearchProps) {
                   onClick={() => setOpen(false)}
                 >
                   <div className="search-suggestion-main">
-                    <strong>{item.name}</strong>
+                    <strong>{getPublicProductName(item.name)}</strong>
                     <span>
                       {item.brand ?? item.category ?? "Catálogo"} · {item.code}
                     </span>

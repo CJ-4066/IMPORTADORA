@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { getSafeMediaUrl } from "@/lib/media-url";
+import { getPublicProductName } from "@/lib/product-name";
 import type { CatalogProduct } from "@/lib/store";
+import { useHorizontalCarousel } from "@/components/catalog/use-horizontal-carousel";
 
 type HeroProductCarouselProps = {
   products: CatalogProduct[];
@@ -23,38 +25,18 @@ function chunkProducts(products: CatalogProduct[], size: number) {
 
 export function HeroProductCarousel({ products, intervalSeconds }: HeroProductCarouselProps) {
   const slides = useMemo(() => chunkProducts(products, 2).filter((group) => group.length), [products]);
-  const [activeIndex, setActiveIndex] = useState(0);
-  const safeIndex = slides.length ? activeIndex % slides.length : 0;
-
-  useEffect(() => {
-    if (slides.length <= 1) {
-      return;
-    }
-
-    const timer = window.setInterval(() => {
-      setActiveIndex((current) => (current + 1) % slides.length);
-    }, intervalSeconds * 1000);
-
-    return () => window.clearInterval(timer);
-  }, [intervalSeconds, slides.length]);
-
-  const goToPrevious = () => {
-    setActiveIndex((current) => (current - 1 + slides.length) % slides.length);
-  };
-
-  const goToNext = () => {
-    setActiveIndex((current) => (current + 1) % slides.length);
-  };
+  const { activeIndex, goToNext, goToPrevious, handleScroll, scrollToIndex, viewportRef } =
+    useHorizontalCarousel({ itemCount: slides.length, intervalSeconds });
 
   if (!slides.length) {
     return null;
   }
 
   return (
-    <div className="hero-product-carousel">
+    <div className="hero-product-carousel" onScroll={handleScroll} ref={viewportRef}>
       {slides.map((slide, index) => (
         <article
-          className={`hero-product-carousel-slide ${index === safeIndex ? "is-active" : ""}`}
+          className={`hero-product-carousel-slide ${index === activeIndex ? "is-active" : ""}`}
           key={`hero-product-slide-${index}`}
         >
           {slide.map((product) => {
@@ -66,14 +48,14 @@ export function HeroProductCarousel({ products, intervalSeconds }: HeroProductCa
 
             return (
               <Link
-                aria-label={product.name}
+                aria-label={getPublicProductName(product.name)}
                 className="hero-product-carousel-item"
                 href={`/producto/${product.slug}`}
                 key={product.id}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  alt={product.name}
+                  alt={getPublicProductName(product.name)}
                   decoding="async"
                   loading={index === 0 ? "eager" : "lazy"}
                   referrerPolicy="no-referrer"
@@ -109,9 +91,9 @@ export function HeroProductCarousel({ products, intervalSeconds }: HeroProductCa
             {slides.map((_, index) => (
               <button
                 aria-label={`Ir al slide ${index + 1}`}
-                className={index === safeIndex ? "is-active" : ""}
+                className={index === activeIndex ? "is-active" : ""}
                 key={`hero-product-dot-${index}`}
-                onClick={() => setActiveIndex(index)}
+                onClick={() => scrollToIndex(index)}
                 type="button"
               />
             ))}

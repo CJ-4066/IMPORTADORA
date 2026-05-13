@@ -108,7 +108,9 @@ function containsNormalized(haystack: string, needle: string) {
   return haystack.toLowerCase().includes(needle.toLowerCase());
 }
 
-function createMockRepository(): ShopAssistantRepository {
+function createMockRepository(
+  overrides: Partial<ShopAssistantRepository> = {},
+): ShopAssistantRepository {
   return {
     async getBaseData() {
       return { settings, categories };
@@ -141,6 +143,7 @@ function createMockRepository(): ShopAssistantRepository {
         (candidate) => candidate.id !== product.id && candidate.categoryId === product.categoryId,
       );
     },
+    ...overrides,
   };
 }
 
@@ -152,6 +155,31 @@ test("muestra ofertas activas", async () => {
   assert.equal(reply.products?.length, 2);
   assert.ok(reply.quickActions?.some((action) => action.href === "/?featured=1"));
   assert.ok(containsNormalized(reply.text, "ofertas activas"));
+});
+
+test("recomienda un regalo con presupuesto y contexto de ocasión", async () => {
+  const reply = await answerShopAssistant({
+    message: "recomiendame algo para regalar por cumpleaños con presupuesto 25 soles",
+  });
+
+  assert.equal(reply.products?.[0].code, "AUD-025");
+  assert.ok(containsNormalized(reply.text, "cumpleaños"));
+  assert.ok(containsNormalized(reply.text, "25"));
+});
+
+test("usa fallback cuando no hay ofertas activas marcadas", async () => {
+  const fallbackAssistant = createShopAssistantService(
+    createMockRepository({
+      async getFeaturedProducts() {
+        return [];
+      },
+    }),
+  );
+
+  const reply = await fallbackAssistant({ message: "muéstrame ofertas" });
+
+  assert.ok(reply.products?.length);
+  assert.ok(containsNormalized(reply.text, "no veo ofertas activas marcadas"));
 });
 
 test("resuelve categorías activas", async () => {

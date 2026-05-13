@@ -2,33 +2,30 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { ArrowUpRight, Clock3, ImageIcon, MessageCircle, ShoppingCart } from "lucide-react";
+import { Clock3, ImageIcon, Minus, MessageCircle, Plus, ShoppingCart } from "lucide-react";
 import { STORE_CART_OPEN_EVENT } from "@/components/catalog/cart-events";
 import { isCartStoreHydrated, rehydrateCartStore, useCartStore } from "@/components/catalog/cart-store";
 import { getSafeMediaUrl } from "@/lib/media-url";
+import { getPublicProductName } from "@/lib/product-name";
 import type { CatalogProduct, StoreSettingsView } from "@/lib/store";
-import {
-  getProductDiscountPercent,
-  ProductPriceRows,
-  ProductStockChip,
-} from "@/components/catalog/product-display";
+import { ProductPriceRows } from "@/components/catalog/product-display";
 
 type ProductCardProps = {
   product: CatalogProduct;
   settings: StoreSettingsView;
-  badgeLabel?: string;
 };
 
-export function ProductCard({ product, settings, badgeLabel }: ProductCardProps) {
+export function ProductCard({ product, settings }: ProductCardProps) {
   const addItem = useCartStore((state) => state.addItem);
   const primaryMedia = product.primaryMedia;
   const primaryMediaUrl = getSafeMediaUrl(primaryMedia?.url);
+  const displayName = getPublicProductName(product.name);
   const [imageFailed, setImageFailed] = useState(false);
+  const [quantity, setQuantity] = useState(1);
   const shouldShowMedia = primaryMedia && primaryMediaUrl && !(primaryMedia.type === "IMAGE" && imageFailed);
-  const discountPercent = getProductDiscountPercent(product);
   const whatsappNumber = settings.whatsappNumber.replace(/\D/g, "");
   const whatsappHref = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(
-    `Hola, quiero consultar por el producto ${product.name} (${product.code}).`,
+    `Hola, quiero consultar por el producto ${displayName}.`,
   )}`;
   const lastSyncedLabel = product.lastSyncedAt
     ? new Intl.DateTimeFormat("es-PE", { day: "2-digit", month: "short" }).format(
@@ -41,22 +38,23 @@ export function ProductCard({ product, settings, badgeLabel }: ProductCardProps)
       await rehydrateCartStore();
     }
 
-    addItem(product, "unit");
+    addItem(product, "unit", quantity);
     window.requestAnimationFrame(() => {
       window.dispatchEvent(new CustomEvent(STORE_CART_OPEN_EVENT));
     });
+    setQuantity(1);
   };
 
   return (
     <article className="product-card">
       <div className="product-media">
         {primaryMedia && shouldShowMedia ? (
-          <Link aria-label={`Ver detalle de ${product.name}`} className="product-media-link" href={`/producto/${product.slug}`}>
+          <Link aria-label={`Ver detalle de ${displayName}`} className="product-media-link" href={`/producto/${product.slug}`}>
             <div className="product-media-preview">
               {primaryMedia.type === "IMAGE" ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
-                  alt={primaryMedia.altText ?? product.name}
+                  alt={primaryMedia.altText ?? displayName}
                   decoding="async"
                   loading="lazy"
                   onError={() => setImageFailed(true)}
@@ -69,39 +67,22 @@ export function ProductCard({ product, settings, badgeLabel }: ProductCardProps)
             </div>
           </Link>
         ) : (
-          <Link aria-label={`Ver detalle de ${product.name}`} className="product-media-link" href={`/producto/${product.slug}`}>
+          <Link aria-label={`Ver detalle de ${displayName}`} className="product-media-link" href={`/producto/${product.slug}`}>
             <div className="product-media-preview product-media-placeholder">
               <ImageIcon size={28} />
               <strong>{product.category ?? "Catálogo"}</strong>
-              <span>{product.name}</span>
+              <span>{displayName}</span>
             </div>
           </Link>
         )}
-        <div className="product-media-meta">
-          <span className="product-code">{product.code}</span>
-          <ProductStockChip product={product} />
-          {badgeLabel ? <span className="pill pill-strong">{badgeLabel}</span> : null}
-          {product.isFeatured ? (
-            <span className="pill pill-accent">
-              Oferta{discountPercent ? ` -${discountPercent}%` : ""}
-            </span>
-          ) : null}
-        </div>
       </div>
 
       <div className="product-body">
         <div className="stack-sm product-copy-shell">
-          <div className="product-heading-row">
-            {product.category ? <span className="product-category-mini">{product.category}</span> : <span />}
-            <Link className="product-open-link" href={`/producto/${product.slug}`}>
-              <ArrowUpRight size={15} />
-            </Link>
-          </div>
-
           <div className="stack-xs product-copy">
             <h3>
               <Link className="product-title-link" href={`/producto/${product.slug}`}>
-                {product.name}
+                {displayName}
               </Link>
             </h3>
             <p className="muted">
@@ -120,6 +101,28 @@ export function ProductCard({ product, settings, badgeLabel }: ProductCardProps)
 
         <div className="price-box product-price-box">
           <ProductPriceRows currencySymbol={settings.currencySymbol} product={product} />
+        </div>
+
+        <div className="product-card-qty-row" aria-label="Cantidad">
+          <button
+            aria-label="Disminuir cantidad"
+            className="product-card-qty-button"
+            disabled={product.stockUnits <= 0 || quantity <= 1}
+            onClick={() => setQuantity((value) => Math.max(1, value - 1))}
+            type="button"
+          >
+            <Minus size={14} />
+          </button>
+          <strong className="product-card-qty-value">{quantity}</strong>
+          <button
+            aria-label="Aumentar cantidad"
+            className="product-card-qty-button"
+            disabled={product.stockUnits <= 0 || quantity >= product.stockUnits}
+            onClick={() => setQuantity((value) => Math.min(product.stockUnits, value + 1))}
+            type="button"
+          >
+            <Plus size={14} />
+          </button>
         </div>
 
         <div className="product-actions product-actions-dual">

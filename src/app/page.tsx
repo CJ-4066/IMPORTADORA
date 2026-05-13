@@ -196,7 +196,6 @@ export default async function Home({ searchParams }: HomeProps) {
         brands={data.brands}
         categories={data.categories}
         focusSearch={focusSearch}
-        settings={data.settings}
       />
 
       {isSectionedView ? (

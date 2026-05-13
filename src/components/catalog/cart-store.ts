@@ -4,6 +4,7 @@ import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import type { CatalogProduct } from "@/lib/store";
 import type { SaleMode } from "@/lib/pricing";
+import { getPublicProductName } from "@/lib/product-name";
 
 export type CartItem = Pick<
   CatalogProduct,
@@ -87,7 +88,7 @@ export const useCartStore = create<CartState>()(
                 key,
                 id: product.id,
                 code: product.code,
-                name: product.name,
+                name: getPublicProductName(product.name),
                 unitLabel: product.unitLabel,
                 unitPrice: product.unitPrice,
                 wholesalePrice: product.wholesalePrice,
@@ -95,7 +96,7 @@ export const useCartStore = create<CartState>()(
                 boxPrice: product.boxPrice,
                 unitsPerBox: product.unitsPerBox,
                 stockUnits: product.stockUnits,
-                imageAlt: product.primaryMedia?.altText ?? product.name,
+                imageAlt: product.primaryMedia?.altText ?? getPublicProductName(product.name),
                 imageUrl: product.primaryMedia?.url ?? product.imageUrl,
                 mode,
                 quantity: Math.min(safeQuantity, maxQuantity),

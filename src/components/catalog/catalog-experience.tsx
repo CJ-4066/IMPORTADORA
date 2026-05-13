@@ -34,7 +34,6 @@ type ProductSectionProps = {
   settings: StoreSettingsView;
   href: string;
   featured?: boolean;
-  badgeLabel?: string;
   limit?: number;
   compact?: boolean;
 };
@@ -260,7 +259,6 @@ function ProductSection({
   settings,
   href,
   featured = false,
-  badgeLabel,
   limit,
   compact = false,
 }: ProductSectionProps) {
@@ -309,6 +307,10 @@ function ProductSection({
         </div>
 
         <div className="catalog-section-actions">
+          <Link className="catalog-section-link" href={href}>
+            Ver más
+          </Link>
+
           {featured ? (
             <div
               className="catalog-slider-controls"
@@ -333,10 +335,6 @@ function ProductSection({
               </button>
             </div>
           ) : null}
-
-          <Link className="catalog-section-link" href={href}>
-            Ver más
-          </Link>
         </div>
       </div>
 
@@ -344,11 +342,7 @@ function ProductSection({
         <div className="catalog-featured-slider" ref={sliderRef}>
           {sectionProducts.map((product) => (
             <div className="catalog-featured-slide" key={product.id}>
-              <ProductCard
-                badgeLabel={badgeLabel}
-                product={product}
-                settings={settings}
-              />
+              <ProductCard product={product} settings={settings} />
             </div>
           ))}
         </div>
@@ -500,7 +494,6 @@ export function CatalogExperience({
         <div className="catalog-sections-layout">
           <ProductSection
             featured
-            badgeLabel={hasRealBestSellers ? "Top ventas" : "Destacado"}
             title={hasRealBestSellers ? "Productos más vendidos" : "Productos destacados"}
             subtitle={hasRealBestSellers ? "Ventas ERP por producto y rotación por unidades." : undefined}
             href="/?collection=mas-vendidos"

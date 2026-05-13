@@ -74,6 +74,20 @@ const SEARCH_SYNONYMS: Record<string, string[]> = {
   auriculares: ["auricular", "auriculares", "audifono", "audifonos", "bluetooth"],
 };
 
+const GIFT_SEARCH_SEEDS = [
+  "audifonos",
+  "auriculares",
+  "parlante",
+  "smart watch",
+  "accesorios para celular",
+  "hogar",
+  "cocina",
+  "cuidado personal",
+  "tecnologia",
+  "organizador",
+  "iluminacion",
+];
+
 export type AssistantProductRecord = {
   id: string;
   slug: string;
@@ -444,11 +458,123 @@ function buildQuickActions(actions: ShopAssistantQuickAction[]) {
 
 function buildDefaultPrompts() {
   return [
-    "Busca el código CRE-085",
+    "Algo para regalar por cumpleaños",
     "Muéstrame ofertas",
+    "Busco algo por menos de S/ 50",
     "¿Qué categorías tienes?",
-    "¿Cómo cotizo mi pedido?",
   ];
+}
+
+function isGiftIntent(value: string) {
+  const text = normalizeAssistantText(value);
+
+  return (
+    text.includes("regal") ||
+    text.includes("cumple") ||
+    text.includes("anivers") ||
+    text.includes("detalle") ||
+    text.includes("sorpresa") ||
+    text.includes("navidad") ||
+    text.includes("amigo secreto") ||
+    text.includes("mama") ||
+    text.includes("papa") ||
+    text.includes("madre") ||
+    text.includes("padre")
+  );
+}
+
+function detectGiftOccasion(value: string) {
+  const text = normalizeAssistantText(value);
+
+  if (text.includes("cumple")) return "cumpleaños";
+  if (text.includes("anivers")) return "aniversario";
+  if (text.includes("navidad")) return "navidad";
+  if (text.includes("amigo secreto")) return "amigo secreto";
+  if (text.includes("madre")) return "día de la madre";
+  if (text.includes("padre")) return "día del padre";
+  if (text.includes("mama")) return "mamá";
+  if (text.includes("papa")) return "papá";
+
+  return null;
+}
+
+async function gatherProductsFromQueries(
+  repository: ShopAssistantRepository,
+  queries: string[],
+  allowSensitiveProducts: boolean,
+) {
+  const seen = new Map<string, AssistantProductRecord>();
+
+  for (const query of queries) {
+    const trimmedQuery = query.trim();
+    if (!trimmedQuery) {
+      continue;
+    }
+
+    const products = await repository.searchVisibleProducts(trimmedQuery);
+    for (const product of products) {
+      if (!seen.has(product.id)) {
+        seen.set(product.id, product);
+      }
+    }
+  }
+
+  return filterSensitiveProducts(Array.from(seen.values()), allowSensitiveProducts);
+}
+
+async function getFallbackRecommendationProducts(
+  repository: ShopAssistantRepository,
+  allowSensitiveProducts: boolean,
+) {
+  const products = await gatherProductsFromQueries(
+    repository,
+    GIFT_SEARCH_SEEDS,
+    allowSensitiveProducts,
+  );
+
+  if (products.length) {
+    return products.slice(0, MAX_PRODUCTS);
+  }
+
+  const featured = await repository.getFeaturedProducts();
+  return filterSensitiveProducts(featured, allowSensitiveProducts).slice(0, MAX_PRODUCTS);
+}
+
+function buildGiftSearchQueries(message: string, recentConversation: string) {
+  const normalized = normalizeAssistantText(`${message} ${recentConversation}`);
+  const queries = new Set<string>();
+  const directSearch = extractSearchTerms(message);
+
+  if (directSearch) {
+    queries.add(directSearch);
+  }
+
+  for (const seed of GIFT_SEARCH_SEEDS) {
+    queries.add(seed);
+  }
+
+  if (normalized.includes("para mujer") || normalized.includes("para ella")) {
+    queries.add("cuidado personal");
+    queries.add("accesorios para celular");
+  }
+
+  if (normalized.includes("para hombre") || normalized.includes("para el")) {
+    queries.add("audifonos");
+    queries.add("parlante");
+  }
+
+  if (normalized.includes("tecnolog") || normalized.includes("gadget")) {
+    queries.add("smart watch");
+    queries.add("audifonos");
+    queries.add("parlante");
+  }
+
+  if (normalized.includes("hogar") || normalized.includes("casa")) {
+    queries.add("hogar");
+    queries.add("cocina");
+  }
+
+  return Array.from(queries);
 }
 
 function formatProductAnswer(product: AssistantProductRecord, currencySymbol: string) {
@@ -752,6 +878,7 @@ export function createShopAssistantService(repository: ShopAssistantRepository) 
       /(whatsapp|contacto|horario|hora|pedido|comprar|compra|envio|entrega|delivery|pago|cotizacion|cotizar)/.test(
         normalized,
       );
+    const wantsGift = isGiftIntent(`${trimmedMessage} ${recentConversation}`);
     const wantsSimilar = /(similar|parecid|alternativ|relacionad)/.test(normalized);
     const wantsCheaper = /(barat|econom|menor precio|menos precio|mas barato|más barato)/.test(
       normalized,
@@ -762,13 +889,25 @@ export function createShopAssistantService(repository: ShopAssistantRepository) 
     const wantsContinuation = /(mas|más|otra|otro|otras|otros|ver mas|ver más|muestrame mas|muestrame más)/.test(
       normalized,
     );
+    const code = extractProductCode(trimmedMessage) ?? input.productContextCode ?? null;
+    const searchTerms = extractSearchTerms(trimmedMessage);
+    const budget = extractBudget(trimmedMessage);
+    const quantity = extractQuantity(trimmedMessage);
+    const allowSensitiveProducts = isAdultIntent(`${trimmedMessage} ${recentConversation}`);
+    const contextProduct = code ? await repository.findProductByCode(code) : null;
 
     if (wantsOffers) {
-      const products = await repository.getFeaturedProducts();
+      const featuredProducts = await repository.getFeaturedProducts();
+      const products =
+        featuredProducts.length > 0
+          ? filterSensitiveProducts(featuredProducts, allowSensitiveProducts)
+          : await getFallbackRecommendationProducts(repository, allowSensitiveProducts);
       return {
         text: products.length
-          ? "Estas son las ofertas activas con mejor salida en el catálogo."
-          : "Aún no hay ofertas activas configuradas en el catálogo.",
+          ? featuredProducts.length > 0
+            ? "Estas son las ofertas activas con mejor salida en el catálogo."
+            : "No veo ofertas activas marcadas ahora; te muestro opciones recomendadas por stock y rotación."
+          : "Aún no hay ofertas activas ni recomendaciones visibles en el catálogo.",
         products: products.map((product) =>
           mapAssistantProduct(product, baseData.settings.currencySymbol),
         ),
@@ -777,7 +916,7 @@ export function createShopAssistantService(repository: ShopAssistantRepository) 
           { label: "Comprar por WhatsApp", href: whatsappHref },
         ]),
         suggestedPrompts: [
-          "Muéstrame productos de bebidas",
+          "Algo para regalar por cumpleaños",
           "Busca por código",
           "¿Cómo envío mi pedido?",
         ],
@@ -875,12 +1014,50 @@ export function createShopAssistantService(repository: ShopAssistantRepository) 
       };
     }
 
-    const code = extractProductCode(trimmedMessage) ?? input.productContextCode ?? null;
-    const searchTerms = extractSearchTerms(trimmedMessage);
-    const budget = extractBudget(trimmedMessage);
-    const quantity = extractQuantity(trimmedMessage);
-    const allowSensitiveProducts = isAdultIntent(`${trimmedMessage} ${recentConversation}`);
-    const contextProduct = code ? await repository.findProductByCode(code) : null;
+    if (wantsGift) {
+      const giftQueries = buildGiftSearchQueries(trimmedMessage, recentConversation);
+      const giftProducts = await gatherProductsFromQueries(
+        repository,
+        giftQueries,
+        allowSensitiveProducts,
+      );
+      const sortedGiftProducts = budget
+        ? sortProductsForBudget(giftProducts, giftQueries.join(" "), budget)
+        : quantity
+          ? sortProductsForQuantity(giftProducts, quantity)
+          : giftProducts.slice(0, MAX_PRODUCTS);
+      const visibleGiftProducts = sortedGiftProducts.slice(0, MAX_PRODUCTS);
+      const occasion = detectGiftOccasion(`${trimmedMessage} ${recentConversation}`);
+      const opening =
+        visibleGiftProducts.length > 0
+          ? occasion
+            ? `Para ${occasion} te dejo opciones que suelen funcionar bien como regalo.`
+            : "Te dejo opciones que suelen funcionar bien como regalo."
+          : occasion
+            ? `Para ${occasion} no encontré una coincidencia exacta, pero sí puedo afinarlo si me dices presupuesto o para quién es.`
+            : "No encontré una coincidencia exacta, pero sí puedo afinarlo si me dices presupuesto o para quién es.";
+
+      return {
+        text: budget
+          ? `${opening} La mejor opción cercana a ${formatCurrency(budget, baseData.settings.currencySymbol)} es la primera de la lista.`
+          : opening,
+        products: visibleGiftProducts.map((product) =>
+          mapAssistantProduct(product, baseData.settings.currencySymbol),
+        ),
+        quickActions: buildQuickActions([
+          { label: "Buscar más ideas", href: "/?focus=search", accent: true },
+          { label: "Ver ofertas", href: "/?featured=1" },
+          { label: "WhatsApp", href: whatsappHref },
+        ]),
+        suggestedPrompts: [
+          budget
+            ? `Algo para regalar por ${occasion ?? "cumpleaños"} con menos de ${formatCurrency(budget, baseData.settings.currencySymbol)}`
+            : "Algo para regalar por cumpleaños",
+          "Algo útil para oficina",
+          "Algo para ella",
+        ],
+      };
+    }
 
     if (contextProduct && quantity && !wantsSupport) {
       if (contextProduct.isVisible === false || contextProduct.stockUnits <= 0) {

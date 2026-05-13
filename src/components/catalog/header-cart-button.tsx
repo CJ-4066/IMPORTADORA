@@ -17,6 +17,7 @@ export function HeaderCartButton() {
       type="button"
     >
       <ShoppingCart size={16} />
+      <span>Carrito</span>
       {itemCount > 0 ? <strong className="public-store-cart-badge">{itemCount}</strong> : null}
     </button>
   );
