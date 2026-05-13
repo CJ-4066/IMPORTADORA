@@ -4,7 +4,6 @@ import { useState } from "react";
 import { ChevronDown, ChevronLeft, Menu, Battery, Car, Headphones, House, Lightbulb, NotebookPen, PackageSearch, Smartphone } from "lucide-react";
 import type { BrandOption, CategoryOption } from "@/lib/store";
 import { CatalogPrefetchLink } from "@/components/catalog/catalog-prefetch-link";
-import { usePublicStoreHeaderState } from "@/components/catalog/public-store-header-shell";
 
 function formatCatalogLabel(value: string) {
   return value
@@ -101,7 +100,6 @@ type PublicStoreCategoryMenuProps = {
 
 export function PublicStoreCategoryMenu({ brands, categories }: PublicStoreCategoryMenuProps) {
   const [panel, setPanel] = useState<"main" | "categories" | "brands" | "sites">("main");
-  const { collapsed } = usePublicStoreHeaderState();
 
   const closePanel = () => setPanel("main");
 
@@ -212,15 +210,6 @@ export function PublicStoreCategoryMenu({ brands, categories }: PublicStoreCateg
         ) : null}
         </div>
       </details>
-
-      {collapsed ? (
-        <CatalogPrefetchLink className="public-store-shortcut-home" href="/" aria-label="Volver al inicio">
-          <span className="public-store-home-icon">
-            <House size={16} />
-          </span>
-          <span className="public-store-home-label">Inicio</span>
-        </CatalogPrefetchLink>
-      ) : null}
     </div>
   );
 }

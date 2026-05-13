@@ -189,7 +189,6 @@ body {
   width: 100%;
   overflow-x: auto;
   overflow-y: hidden;
-  scroll-snap-type: x proximity;
   overscroll-behavior-x: contain;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
@@ -217,7 +216,6 @@ body {
 
 .public-store-shortcuts-marquee-group .public-store-shortcut {
   flex: 0 0 auto;
-  scroll-snap-align: start;
 }
 
 @keyframes public-store-mobile-marquee {
@@ -7707,6 +7705,23 @@ body {
   line-height: 1;
   text-transform: none;
   white-space: nowrap;
+}
+
+.public-store-header-shell.is-collapsed .public-store-bar {
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  grid-template-areas: "lead search account cart";
+}
+
+.public-store-header-shell.is-collapsed .public-store-account-slot {
+  display: block;
+}
+
+.public-store-header-shell.is-collapsed .public-store-brand {
+  display: none;
+}
+
+.public-store-header-shell.is-collapsed .public-store-shortcut-home {
+  display: none;
 }
 
 @media (min-width: 921px) {
