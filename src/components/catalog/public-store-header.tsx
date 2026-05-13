@@ -15,6 +15,7 @@ import type { BrandOption, CategoryOption } from "@/lib/store";
 import { CatalogPrefetchLink } from "@/components/catalog/catalog-prefetch-link";
 import { HeaderCartButton } from "@/components/catalog/header-cart-button";
 import { HeaderSearch } from "@/components/catalog/header-search";
+import { ScrollingShortcutsMarquee } from "@/components/catalog/scrolling-shortcuts-marquee";
 import { PublicStoreHeaderShell } from "@/components/catalog/public-store-header-shell";
 import { PublicStoreAccountSlot } from "@/components/catalog/public-store-account-slot";
 import { PublicStoreCategoryMenu } from "@/components/catalog/public-store-category-menu";
@@ -41,25 +42,18 @@ function CategoryShortcutMarquee() {
   const items = SHORTCUTS.slice(1);
 
   return (
-    <div className="public-store-shortcuts-marquee" aria-label="Atajos de catálogo">
-      <div className="public-store-shortcuts-marquee-track">
-        {[0, 1].map((group) => (
-          <div className="public-store-shortcuts-marquee-group" aria-hidden={group === 1} key={group}>
-            {items.map((shortcut) => (
-              <CatalogPrefetchLink
-                className="public-store-shortcut"
-                href={shortcut.href}
-                tabIndex={group === 1 ? -1 : undefined}
-                key={`${group}-${shortcut.label}`}
-              >
-                {shortcut.icon ? <shortcut.icon size={14} /> : null}
-                {shortcut.label}
-              </CatalogPrefetchLink>
-            ))}
-          </div>
-        ))}
+    <ScrollingShortcutsMarquee>
+      <div aria-label="Atajos de catálogo">
+        <div className="public-store-shortcuts-marquee-group">
+          {items.map((shortcut) => (
+            <CatalogPrefetchLink className="public-store-shortcut" href={shortcut.href} key={shortcut.label}>
+              {shortcut.icon ? <shortcut.icon size={14} /> : null}
+              {shortcut.label}
+            </CatalogPrefetchLink>
+          ))}
+        </div>
       </div>
-    </div>
+    </ScrollingShortcutsMarquee>
   );
 }
 

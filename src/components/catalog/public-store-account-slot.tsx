@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { LayoutDashboard, LogOut, UserRound } from "lucide-react";
+import { House, LayoutDashboard, LogOut, UserRound } from "lucide-react";
 import { shopperLogoutAction } from "@/app/acceso/actions";
 import type { SessionUser } from "@/lib/auth";
+import { usePublicStoreHeaderState } from "@/components/catalog/public-store-header-shell";
 
 type AccountRole = SessionUser["role"] | undefined;
 
@@ -51,6 +52,17 @@ function AccountPopover({
 }
 
 export function PublicStoreAccountSlot({ role }: { role?: AccountRole }) {
+  const { collapsed } = usePublicStoreHeaderState();
+
+  if (collapsed) {
+    return (
+      <Link className="public-store-quick-link public-store-cart-link public-store-home-link" href="/" aria-label="Volver al inicio">
+        <House size={16} />
+        <span>Inicio</span>
+      </Link>
+    );
+  }
+
   if (role === "ADMIN") {
     return (
       <Link className="public-store-quick-link" href="/admin">
