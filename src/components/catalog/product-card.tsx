@@ -8,6 +8,7 @@ import { isCartStoreHydrated, rehydrateCartStore, useCartStore } from "@/compone
 import { getSafeMediaUrl } from "@/lib/media-url";
 import { getPublicProductName } from "@/lib/product-name";
 import type { CatalogProduct, StoreSettingsView } from "@/lib/store";
+import { buildPublicWhatsappHref } from "@/lib/utils";
 import { ProductPriceRows } from "@/components/catalog/product-display";
 
 type ProductCardProps = {
@@ -23,10 +24,7 @@ export function ProductCard({ product, settings }: ProductCardProps) {
   const [imageFailed, setImageFailed] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const shouldShowMedia = primaryMedia && primaryMediaUrl && !(primaryMedia.type === "IMAGE" && imageFailed);
-  const whatsappNumber = settings.whatsappNumber.replace(/\D/g, "");
-  const whatsappHref = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(
-    `Hola, quiero consultar por el producto ${displayName}.`,
-  )}`;
+  const whatsappHref = buildPublicWhatsappHref(`Hola, quiero consultar por el producto ${displayName}.`);
   const handleAddToCart = async () => {
     if (!isCartStoreHydrated()) {
       await rehydrateCartStore();

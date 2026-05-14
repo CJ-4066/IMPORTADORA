@@ -1,11 +1,9 @@
 import Link from "next/link";
 import {
   CircleUserRound,
+  House,
   KeyRound,
   MessageCircleMore,
-  SearchCode,
-  ShoppingBag,
-  Sparkles,
 } from "lucide-react";
 import { redirectIfAuthenticated } from "@/lib/auth";
 import { shopperLoginAction, shopperRegisterAction } from "@/app/acceso/actions";
@@ -24,53 +22,7 @@ export default async function AccessPage({ searchParams }: AccessPageProps) {
 
   return (
     <main className="auth-shell">
-      <section className="auth-layout">
-        <article className="auth-showcase auth-showcase-shopper">
-          <div className="stack-md">
-            <div className="auth-brand">
-              <span className="auth-brand-mark">US</span>
-              <div>
-                <p className="eyebrow">Acceso comprador</p>
-                <strong>Cuenta usershop</strong>
-              </div>
-            </div>
-
-            <div className="stack-sm">
-              <h1>Compra rápido sin tocar nada interno del negocio</h1>
-              <p className="muted">
-                Tu cuenta sirve para entrar directo a la tienda, guardar tu identidad de compra y
-                generar pedidos sin ver paneles, dashboards ni configuración.
-              </p>
-            </div>
-          </div>
-
-          <div className="auth-feature-list">
-            <article className="auth-feature-card">
-              <SearchCode size={18} />
-              <div>
-                <strong>Búsqueda por código o nombre</strong>
-                <p>Encuentra productos rápido y filtra por categoría sin perder tiempo.</p>
-              </div>
-            </article>
-
-            <article className="auth-feature-card">
-              <ShoppingBag size={18} />
-              <div>
-                <strong>Carrito y generación de compra</strong>
-                <p>Arma tu pedido y envíalo por WhatsApp desde una vista simple y directa.</p>
-              </div>
-            </article>
-
-            <article className="auth-feature-card">
-              <Sparkles size={18} />
-              <div>
-                <strong>Ofertas y destacados</strong>
-                <p>Accede a productos destacados sin mezclar información interna del catálogo.</p>
-              </div>
-            </article>
-          </div>
-        </article>
-
+      <section className="auth-layout auth-layout-single">
         <section className="auth-panel">
           <div className="stack-sm">
             <p className="eyebrow">Cuenta usershop</p>
@@ -176,11 +128,11 @@ export default async function AccessPage({ searchParams }: AccessPageProps) {
             </div>
 
             <div className="auth-inline-actions">
-              <Link className="button button-ghost" href="/">
-                Volver a la tienda
-              </Link>
               <Link className="button button-secondary" href="/login">
                 Ingreso admin
+              </Link>
+              <Link className="button button-ghost auth-home-link" href="/" aria-label="Volver a la tienda">
+                <House size={18} />
               </Link>
             </div>
           </div>

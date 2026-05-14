@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { ArrowLeft, MessageCircleMore, Search } from "lucide-react";
 import { StoreAssistantLauncher } from "@/components/catalog/store-assistant-launcher";
 import type { StoreSettingsView } from "@/lib/store";
-import { cleanWhatsappNumber } from "@/lib/utils";
+import { buildPublicWhatsappHref } from "@/lib/utils";
 
 type StoreSideActionsProps = {
   settings: Pick<StoreSettingsView, "businessName" | "supportHours" | "whatsappNumber">;
@@ -39,7 +39,7 @@ export function StoreSideActions({ settings }: StoreSideActionsProps) {
 
       <a
         className="store-side-action store-side-action-whatsapp"
-        href={`https://wa.me/${cleanWhatsappNumber(settings.whatsappNumber)}`}
+        href={buildPublicWhatsappHref()}
         rel="noreferrer"
         target="_blank"
         aria-label="Abrir WhatsApp"

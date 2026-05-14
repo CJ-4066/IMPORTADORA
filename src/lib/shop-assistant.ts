@@ -1,6 +1,6 @@
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { cleanWhatsappNumber, formatCurrency } from "@/lib/utils";
+import { buildPublicWhatsappHref, formatCurrency } from "@/lib/utils";
 import type {
   ShopAssistantProductCard,
   ShopAssistantQuickAction,
@@ -836,7 +836,7 @@ export function createShopAssistantService(repository: ShopAssistantRepository) 
     const trimmedMessage = input.message.trim();
     const normalized = normalizeAssistantText(trimmedMessage);
     const baseData = await repository.getBaseData();
-    const whatsappHref = `https://wa.me/${cleanWhatsappNumber(baseData.settings.whatsappNumber)}`;
+    const whatsappHref = buildPublicWhatsappHref();
     const recentConversation = (input.recentMessages ?? [])
       .map((item) => normalizeAssistantText(item.text))
       .filter(Boolean)

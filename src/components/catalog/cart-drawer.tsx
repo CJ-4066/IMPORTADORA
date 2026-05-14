@@ -17,7 +17,7 @@ import { rehydrateCartStore } from "@/components/catalog/cart-store";
 import { getSafeMediaUrl } from "@/lib/media-url";
 import { getLinePricing } from "@/lib/pricing";
 import type { StoreSettingsView } from "@/lib/store";
-import { cleanWhatsappNumber, formatCurrency } from "@/lib/utils";
+import { buildPublicWhatsappHref, formatCurrency } from "@/lib/utils";
 import { useCartStore } from "@/components/catalog/cart-store";
 
 type CartDrawerProps = {
@@ -435,7 +435,7 @@ export function CartDrawer({
     [orderLines, settings.currencySymbol, settings.orderFooter, settings.orderIntro, totalAmount],
   );
 
-  const whatsappHref = `https://wa.me/${cleanWhatsappNumber(settings.whatsappNumber)}?text=${encodeURIComponent(whatsappText)}`;
+  const whatsappHref = buildPublicWhatsappHref(whatsappText);
 
   const updateQuoteDraft = (field: keyof QuoteDraft, value: string) => {
     setQuoteDraft((current) => ({

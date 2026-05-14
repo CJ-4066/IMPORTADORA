@@ -21,7 +21,7 @@ import { CartDrawer } from "@/components/catalog/cart-drawer";
 import { PublicStoreHeader } from "@/components/catalog/public-store-header";
 import { StoreSideActions } from "@/components/catalog/store-side-actions";
 import { getCatalogPageData, getShopperAccount, getShopperQuoteHistory } from "@/lib/store";
-import { cleanWhatsappNumber, formatCurrency } from "@/lib/utils";
+import { buildPublicWhatsappHref, formatCurrency } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -68,7 +68,7 @@ export default async function ShopperAccountPage({ searchParams }: ShopperAccoun
   const lastQuote = quoteHistory[0] ?? null;
   const quotedUnits = quoteHistory.reduce((sum, quote) => sum + quote.itemCount, 0);
   const quotedTotal = quoteHistory.reduce((sum, quote) => sum + quote.total, 0);
-  const supportHref = `https://wa.me/${cleanWhatsappNumber(catalogData.settings.whatsappNumber)}`;
+  const supportHref = buildPublicWhatsappHref();
   const firstName = getFirstName(account.name);
 
   return (

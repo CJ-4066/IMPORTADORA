@@ -3471,6 +3471,19 @@ body {
   overflow: hidden;
 }
 
+.auth-layout.auth-layout-single {
+  grid-template-columns: minmax(0, 1fr);
+  width: min(42rem, 100%);
+}
+
+.auth-layout.auth-layout-single .auth-panel {
+  width: 100%;
+}
+
+.auth-layout.auth-layout-single .auth-showcase {
+  display: none;
+}
+
 .auth-showcase {
   position: relative;
   display: grid;
@@ -3639,6 +3652,8 @@ body {
   display: flex;
   flex-wrap: wrap;
   gap: 0.75rem;
+  justify-content: flex-end;
+  align-items: center;
 }
 
 .auth-note {
@@ -3651,6 +3666,18 @@ body {
 .auth-note span {
   color: var(--muted);
   font-size: 0.84rem;
+}
+
+.auth-home-link {
+  min-width: 2.9rem;
+  width: 2.9rem;
+  min-height: 2.9rem;
+  padding: 0;
+}
+
+.auth-home-link svg {
+  width: 18px;
+  height: 18px;
 }
 
 .auth-showcase-shopper {

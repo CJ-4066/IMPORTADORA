@@ -28,6 +28,18 @@ export function cleanWhatsappNumber(value: string) {
   return value.replace(/[^\d]/g, "");
 }
 
+const PUBLIC_WHATSAPP_NUMBER = "51955252609";
+
+export function buildPublicWhatsappHref(text?: string) {
+  const base = `https://wa.me/${PUBLIC_WHATSAPP_NUMBER}`;
+
+  if (!text) {
+    return base;
+  }
+
+  return `${base}?text=${encodeURIComponent(text)}`;
+}
+
 export function isTruthy(value: FormDataEntryValue | null) {
   return value === "on" || value === "true" || value === "1";
 }
