@@ -140,6 +140,9 @@ export async function getAdminDashboardData(period: DashboardPeriod = "MONTH") {
     outOfStockProducts,
     hiddenOutOfStockProducts,
     visibleOutOfStockProducts,
+    hiddenWithoutPhotoProducts,
+    visibleWithoutPhotoProducts,
+    productsWithoutPhoto,
     totalCategories,
     settings,
     currentSyncAggregate,
@@ -161,6 +164,15 @@ export async function getAdminDashboardData(period: DashboardPeriod = "MONTH") {
     }),
     prisma.product.count({
       where: { syncEnabled: true, isVisible: true, stockUnits: { lte: 0 } },
+    }),
+    prisma.product.count({
+      where: { imageUrl: null, media: { none: {} }, isVisible: false },
+    }),
+    prisma.product.count({
+      where: { imageUrl: null, media: { none: {} }, isVisible: true },
+    }),
+    prisma.product.count({
+      where: { imageUrl: null, media: { none: {} } },
     }),
     prisma.category.count(),
     prisma.storeSettings.findUnique({ where: { id: 1 } }),
@@ -253,6 +265,9 @@ export async function getAdminDashboardData(period: DashboardPeriod = "MONTH") {
       outOfStockProducts,
       hiddenOutOfStockProducts,
       visibleOutOfStockProducts,
+      hiddenWithoutPhotoProducts,
+      visibleWithoutPhotoProducts,
+      productsWithoutPhoto,
     },
     trendAnalysis: {
       title: formatDashboardPeriodTitle(period, currentRange),
@@ -290,18 +305,30 @@ export async function getAdminProducts(input: {
   category?: string;
   brand?: string;
   visibility?: "all" | "visible" | "hidden";
+  photo?: "all" | "missing" | "with-photo";
   stock?: "all" | "low";
   page?: number;
 }) {
   const page = Math.max(1, input.page ?? 1);
+  const baseWhere = buildWhere(input.query, input.category, input.brand, false);
+  const photoWhere =
+    input.photo === "missing"
+      ? { imageUrl: null, media: { none: {} } }
+      : input.photo === "with-photo"
+        ? { OR: [{ imageUrl: { not: null } }, { media: { some: {} } }] }
+        : null;
+
   const where: Prisma.ProductWhereInput = {
-    ...buildWhere(input.query, input.category, input.brand, false),
-    ...(input.visibility === "visible"
-      ? { isVisible: true }
-      : input.visibility === "hidden"
-        ? { isVisible: false }
-        : {}),
-    ...(input.stock === "low" ? { stockUnits: { lte: 12 } } : {}),
+    AND: [
+      baseWhere,
+      ...(input.visibility === "visible"
+        ? [{ isVisible: true }]
+        : input.visibility === "hidden"
+          ? [{ isVisible: false }]
+          : []),
+      ...(input.stock === "low" ? [{ stockUnits: { lte: 12 } }] : []),
+      ...(photoWhere ? [photoWhere] : []),
+    ],
   };
 
   const [products, totalResults, categories, brands] = await prisma.$transaction([

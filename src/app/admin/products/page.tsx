@@ -24,6 +24,11 @@ export default async function AdminProductsPage({ searchParams }: AdminProductsP
     ["all", "visible", "hidden"].includes(params.visibility)
       ? (params.visibility as "all" | "visible" | "hidden")
       : "all";
+  const photo =
+    typeof params?.photo === "string" &&
+    ["all", "missing", "with-photo"].includes(params.photo)
+      ? (params.photo as "all" | "missing" | "with-photo")
+      : "all";
   const stock =
     typeof params?.stock === "string" && ["all", "low"].includes(params.stock)
       ? (params.stock as "all" | "low")
@@ -34,6 +39,7 @@ export default async function AdminProductsPage({ searchParams }: AdminProductsP
     category,
     brand,
     visibility,
+    photo,
     stock,
     page: Number.isNaN(page) ? 1 : page,
   });
@@ -76,6 +82,11 @@ export default async function AdminProductsPage({ searchParams }: AdminProductsP
           <option value="all">Todos los estados</option>
           <option value="visible">Solo visibles</option>
           <option value="hidden">Solo ocultos</option>
+        </select>
+        <select defaultValue={photo} name="photo">
+          <option value="all">Todas las fotos</option>
+          <option value="missing">Sin foto</option>
+          <option value="with-photo">Con foto</option>
         </select>
         <select defaultValue={stock} name="stock">
           <option value="all">Todo el stock</option>
@@ -193,7 +204,7 @@ export default async function AdminProductsPage({ searchParams }: AdminProductsP
         {data.page > 1 ? (
           <Link
             className="button button-secondary"
-            href={`/admin/products?q=${encodeURIComponent(q)}&category=${encodeURIComponent(category)}&brand=${encodeURIComponent(brand)}&visibility=${encodeURIComponent(visibility)}&stock=${encodeURIComponent(stock)}&page=${data.page - 1}`}
+            href={`/admin/products?q=${encodeURIComponent(q)}&category=${encodeURIComponent(category)}&brand=${encodeURIComponent(brand)}&visibility=${encodeURIComponent(visibility)}&photo=${encodeURIComponent(photo)}&stock=${encodeURIComponent(stock)}&page=${data.page - 1}`}
           >
             Página anterior
           </Link>
@@ -204,7 +215,7 @@ export default async function AdminProductsPage({ searchParams }: AdminProductsP
         {data.page < data.totalPages ? (
           <Link
             className="button button-secondary"
-            href={`/admin/products?q=${encodeURIComponent(q)}&category=${encodeURIComponent(category)}&brand=${encodeURIComponent(brand)}&visibility=${encodeURIComponent(visibility)}&stock=${encodeURIComponent(stock)}&page=${data.page + 1}`}
+          href={`/admin/products?q=${encodeURIComponent(q)}&category=${encodeURIComponent(category)}&brand=${encodeURIComponent(brand)}&visibility=${encodeURIComponent(visibility)}&photo=${encodeURIComponent(photo)}&stock=${encodeURIComponent(stock)}&page=${data.page + 1}`}
           >
             Siguiente página
           </Link>

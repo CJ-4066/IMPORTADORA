@@ -6,6 +6,7 @@ import {
   CalendarClock,
   DatabaseZap,
   EyeOff,
+  ImageOff,
   FolderTree,
   Layers3,
   PackageSearch,
@@ -13,7 +14,7 @@ import {
   TrendingDown,
   TrendingUp,
 } from "lucide-react";
-import { syncProductsFromErpAction } from "@/app/admin/actions";
+import { hideProductsWithoutPhotoAction, syncProductsFromErpAction } from "@/app/admin/actions";
 import { SubmitButton } from "@/components/ui/submit-button";
 import type { DashboardComparisonMetric, DashboardPeriod, DashboardTrendProduct } from "@/lib/store";
 import { getAdminDashboardData } from "@/lib/store";
@@ -171,6 +172,9 @@ export default async function AdminHomePage({ searchParams }: AdminHomePageProps
           <form action={syncProductsFromErpAction}>
             <SubmitButton pendingLabel="Sincronizando...">Sincronizar desde ERP</SubmitButton>
           </form>
+          <form action={hideProductsWithoutPhotoAction}>
+            <SubmitButton pendingLabel="Ocultando...">Ocultar productos sin foto</SubmitButton>
+          </form>
           <Link className="button button-ghost" href="/admin/settings#erp-sync">
             Ver bitácora
           </Link>
@@ -209,6 +213,11 @@ export default async function AdminHomePage({ searchParams }: AdminHomePageProps
             <EyeOff size={22} />
             <strong>{data.dataFreshness.hiddenOutOfStockProducts}</strong>
             <span>Ocultos sin stock ERP</span>
+          </Link>
+          <Link className="metric-panel metric-panel-link" href="/admin/products?visibility=hidden&photo=missing">
+            <ImageOff size={22} />
+            <strong>{data.dataFreshness.hiddenWithoutPhotoProducts}</strong>
+            <span>Ocultos por no tener foto</span>
           </Link>
           <Link className="metric-panel metric-panel-link" href="/admin/products?stock=low">
             <TriangleAlert size={22} />

@@ -279,6 +279,26 @@ export async function bulkProductAction(formData: FormData) {
   redirect("/admin/products?status=invalid-action");
 }
 
+export async function hideProductsWithoutPhotoAction() {
+  await requireAdmin();
+
+  await prisma.product.updateMany({
+    where: {
+      isVisible: true,
+      imageUrl: null,
+      media: { none: {} },
+    },
+    data: {
+      isVisible: false,
+    },
+  });
+
+  revalidatePath("/");
+  revalidatePath("/admin");
+  revalidatePath("/admin/products");
+  redirect("/admin/products?status=photo-hidden&visibility=hidden&photo=missing");
+}
+
 export async function updateSettingsAction(formData: FormData) {
   await requireAdmin();
   try {

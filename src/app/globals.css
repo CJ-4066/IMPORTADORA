@@ -186,6 +186,8 @@ body {
 }
 
 .public-store-shortcuts-marquee {
+  position: relative;
+  z-index: 1;
   width: 100%;
   overflow-x: auto;
   overflow-y: hidden;
@@ -222,6 +224,8 @@ body {
 }
 
 .public-store-topline {
+  position: relative;
+  z-index: 1;
   width: min(1880px, calc(100% - 0.75rem));
   margin: 0 auto;
   display: flex;
@@ -7743,6 +7747,15 @@ body {
     z-index: 110;
   }
 
+  .public-store-header-shell .public-store-account-popover .account-popover-menu {
+    position: fixed;
+    top: 4.85rem;
+    right: 0.4rem;
+    left: auto;
+    z-index: 260;
+    min-width: min(14rem, calc(100vw - 0.8rem));
+  }
+
   .public-store-header-shell .public-store-account-popover > .account-popover-trigger span {
     display: block;
     font-size: 0.64rem;
@@ -7939,6 +7952,11 @@ body {
 }
 
 @media (min-width: 921px) {
+  .public-store-header-shell .public-store-bar {
+    position: relative;
+    z-index: 2;
+  }
+
   .public-store-header-shell .public-store-header,
   .public-store-header-shell .public-store-bar,
   .public-store-header-shell .public-store-desktop-shortcuts,
@@ -7958,9 +7976,30 @@ body {
     gap: clamp(0.75rem, 1.4vw, 1.25rem);
   }
 
+  .public-store-header-shell .public-store-desktop-shortcuts,
+  .public-store-header-shell .public-store-topline,
+  .public-store-header-shell .public-store-shortcuts-marquee {
+    position: relative;
+    z-index: 1;
+  }
+
+  .public-store-header-shell .public-store-account-slot {
+    position: relative;
+    z-index: 40;
+  }
+
+  .public-store-header-shell .public-store-account-popover {
+    position: relative;
+    z-index: 50;
+  }
+
   .public-store-header-shell .public-store-topline {
     padding-left: clamp(1rem, 2.2vw, 2.5rem);
     padding-right: clamp(1rem, 2.2vw, 2.5rem);
+  }
+
+  .public-store-header-shell .public-store-account-popover .account-popover-menu {
+    z-index: 1000;
   }
 }
 
@@ -8036,6 +8075,15 @@ main,
 
   .public-store-header-shell .public-store-mobile-marquee {
     display: none;
+  }
+
+  .public-store-header-shell .account-popover-menu {
+    position: fixed;
+    top: 5rem;
+    right: clamp(0.5rem, 2.4vw, 2rem);
+    left: auto;
+    z-index: 1000;
+    min-width: min(15rem, calc(100vw - 1rem));
   }
 }
 

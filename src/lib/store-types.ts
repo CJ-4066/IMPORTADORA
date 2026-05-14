@@ -244,6 +244,9 @@ export type DashboardDataFreshness = {
   outOfStockProducts: number;
   hiddenOutOfStockProducts: number;
   visibleOutOfStockProducts: number;
+  hiddenWithoutPhotoProducts: number;
+  visibleWithoutPhotoProducts: number;
+  productsWithoutPhoto: number;
 };
 
 export type ErpSyncLogView = {

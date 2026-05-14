@@ -31,6 +31,7 @@ export function ScrollingShortcutsMarquee({
     startX: 0,
     startScrollLeft: 0,
   });
+  const offsetRef = useRef(0);
   const frameRef = useRef<number | null>(null);
   const [cycleWidth, setCycleWidth] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
@@ -78,8 +79,8 @@ export function ScrollingShortcutsMarquee({
       const viewport = viewportRef.current;
 
       if (viewport && !dragStateRef.current.active) {
-        const nextOffset = wrapOffset(viewport.scrollLeft + speed, cycleWidth);
-        viewport.scrollLeft = nextOffset;
+        offsetRef.current = wrapOffset(offsetRef.current + speed, cycleWidth);
+        viewport.scrollLeft = offsetRef.current;
       }
 
       frameRef.current = window.requestAnimationFrame(step);
@@ -108,6 +109,7 @@ export function ScrollingShortcutsMarquee({
         dragStateRef.current.pointerId = event.pointerId;
         dragStateRef.current.startX = event.clientX;
         dragStateRef.current.startScrollLeft = viewport.scrollLeft;
+        offsetRef.current = viewport.scrollLeft;
         setIsDragging(true);
         viewport.setPointerCapture(event.pointerId);
       }}
@@ -118,7 +120,8 @@ export function ScrollingShortcutsMarquee({
 
         const deltaX = event.clientX - dragStateRef.current.startX;
         const viewport = event.currentTarget as HTMLDivElement;
-        viewport.scrollLeft = wrapOffset(dragStateRef.current.startScrollLeft - deltaX, cycleWidth);
+        offsetRef.current = wrapOffset(dragStateRef.current.startScrollLeft - deltaX, cycleWidth);
+        viewport.scrollLeft = offsetRef.current;
       }}
       onPointerUp={(event) => {
         const viewport = event.currentTarget;
