@@ -176,9 +176,6 @@ export function ProductDetailView({ product, settings }: ProductDetailViewProps)
 
             <div className="stack-xs">
               <h1>{displayName}</h1>
-              <p className="muted">
-                {product.brand ? product.brand : "Producto disponible para pedido"}
-              </p>
             </div>
 
             {product.description ? <p className="product-detail-description">{product.description}</p> : null}

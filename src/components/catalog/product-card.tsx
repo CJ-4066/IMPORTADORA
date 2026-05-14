@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Clock3, ImageIcon, Minus, MessageCircle, Plus, ShoppingCart } from "lucide-react";
+import { ImageIcon, Minus, MessageCircle, Plus, ShoppingCart } from "lucide-react";
 import { STORE_CART_OPEN_EVENT } from "@/components/catalog/cart-events";
 import { isCartStoreHydrated, rehydrateCartStore, useCartStore } from "@/components/catalog/cart-store";
 import { getSafeMediaUrl } from "@/lib/media-url";
@@ -27,12 +27,6 @@ export function ProductCard({ product, settings }: ProductCardProps) {
   const whatsappHref = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(
     `Hola, quiero consultar por el producto ${displayName}.`,
   )}`;
-  const lastSyncedLabel = product.lastSyncedAt
-    ? new Intl.DateTimeFormat("es-PE", { day: "2-digit", month: "short" }).format(
-        new Date(product.lastSyncedAt),
-      )
-    : null;
-
   const handleAddToCart = async () => {
     if (!isCartStoreHydrated()) {
       await rehydrateCartStore();
@@ -85,17 +79,6 @@ export function ProductCard({ product, settings }: ProductCardProps) {
                 {displayName}
               </Link>
             </h3>
-            <p className="muted">
-              {product.brand ? product.brand : "Compra por unidad o volumen"}
-            </p>
-            <div className="product-card-facts">
-              {product.syncEnabled ? (
-                <span>
-                  <Clock3 size={13} />
-                  ERP{lastSyncedLabel ? ` ${lastSyncedLabel}` : ""}
-                </span>
-              ) : null}
-            </div>
           </div>
         </div>
 

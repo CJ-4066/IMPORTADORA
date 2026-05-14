@@ -122,7 +122,7 @@ body {
   position: sticky;
   top: 0;
   z-index: 44;
-  display: grid;
+  display: block;
   gap: 0;
   width: 100vw;
   margin-inline: calc(50% - 50vw);
@@ -134,7 +134,7 @@ body {
 }
 
 .public-store-header {
-  display: grid;
+  display: block;
   gap: 0;
   width: 100%;
   margin: 0;
@@ -7936,6 +7936,32 @@ body {
 .public-store-header-shell .public-store-account-slot,
 .public-store-header-shell.is-collapsed .public-store-account-slot {
   display: block !important;
+}
+
+@media (min-width: 921px) {
+  .public-store-header-shell .public-store-header,
+  .public-store-header-shell .public-store-bar,
+  .public-store-header-shell .public-store-desktop-shortcuts,
+  .public-store-header-shell .public-store-topline,
+  .public-store-header-shell .public-store-shortcuts-marquee {
+    width: 100% !important;
+    max-width: none !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    box-sizing: border-box;
+  }
+
+  .public-store-header-shell .public-store-bar,
+  .public-store-header-shell.is-collapsed .public-store-bar {
+    padding-left: clamp(1rem, 2.2vw, 2.5rem);
+    padding-right: clamp(1rem, 2.2vw, 2.5rem);
+    gap: clamp(0.75rem, 1.4vw, 1.25rem);
+  }
+
+  .public-store-header-shell .public-store-topline {
+    padding-left: clamp(1rem, 2.2vw, 2.5rem);
+    padding-right: clamp(1rem, 2.2vw, 2.5rem);
+  }
 }
 
 header,
