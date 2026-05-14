@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { House, LayoutDashboard, LogOut, UserRound } from "lucide-react";
 import { shopperLogoutAction } from "@/app/acceso/actions";
 import type { SessionUser } from "@/lib/auth";
@@ -53,6 +54,13 @@ function AccountPopover({
 
 export function PublicStoreAccountSlot({ role }: { role?: AccountRole }) {
   const { collapsed } = usePublicStoreHeaderState();
+  const pathname = usePathname();
+
+  const handleStartClick = () => {
+    if (pathname === "/") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
 
   return (
     <div className={`public-store-account-switch${collapsed ? " is-collapsed" : ""}`}>
@@ -80,14 +88,26 @@ export function PublicStoreAccountSlot({ role }: { role?: AccountRole }) {
       </div>
 
       <div className="public-store-account-switch-layer is-collapsed" aria-hidden={!collapsed}>
-        <Link
-          className="public-store-quick-link public-store-cart-link public-store-home-link public-store-account-switch-link"
-          href="/"
-          aria-label="Volver al inicio"
-        >
-          <House size={16} />
-          <span>Inicio</span>
-        </Link>
+        {pathname === "/" ? (
+          <button
+            className="public-store-quick-link public-store-cart-link public-store-home-link public-store-account-switch-link"
+            type="button"
+            aria-label="Volver al inicio"
+            onClick={handleStartClick}
+          >
+            <House size={16} />
+            <span>Inicio</span>
+          </button>
+        ) : (
+          <Link
+            className="public-store-quick-link public-store-cart-link public-store-home-link public-store-account-switch-link"
+            href="/"
+            aria-label="Volver al inicio"
+          >
+            <House size={16} />
+            <span>Inicio</span>
+          </Link>
+        )}
       </div>
     </div>
   );
