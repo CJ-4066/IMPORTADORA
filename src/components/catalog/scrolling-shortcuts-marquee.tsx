@@ -30,6 +30,7 @@ export function ScrollingShortcutsMarquee({
     pointerId: -1,
     startX: 0,
     startScrollLeft: 0,
+    draggingStarted: false,
   });
   const offsetRef = useRef(0);
   const frameRef = useRef<number | null>(null);
@@ -105,21 +106,32 @@ export function ScrollingShortcutsMarquee({
           return;
         }
 
-        dragStateRef.current.active = true;
+        dragStateRef.current.active = false;
+        dragStateRef.current.draggingStarted = false;
         dragStateRef.current.pointerId = event.pointerId;
         dragStateRef.current.startX = event.clientX;
         dragStateRef.current.startScrollLeft = viewport.scrollLeft;
         offsetRef.current = viewport.scrollLeft;
-        setIsDragging(true);
-        viewport.setPointerCapture(event.pointerId);
       }}
       onPointerMove={(event) => {
-        if (!dragStateRef.current.active || dragStateRef.current.pointerId !== event.pointerId || cycleWidth <= 0) {
+        if (dragStateRef.current.pointerId !== event.pointerId || cycleWidth <= 0) {
           return;
         }
 
         const deltaX = event.clientX - dragStateRef.current.startX;
         const viewport = event.currentTarget as HTMLDivElement;
+
+        if (!dragStateRef.current.draggingStarted) {
+          if (Math.abs(deltaX) < 6) {
+            return;
+          }
+
+          dragStateRef.current.draggingStarted = true;
+          dragStateRef.current.active = true;
+          setIsDragging(true);
+          viewport.setPointerCapture(event.pointerId);
+        }
+
         offsetRef.current = wrapOffset(dragStateRef.current.startScrollLeft - deltaX, cycleWidth);
         viewport.scrollLeft = offsetRef.current;
       }}
@@ -132,16 +144,19 @@ export function ScrollingShortcutsMarquee({
 
         dragStateRef.current.active = false;
         dragStateRef.current.pointerId = -1;
+        dragStateRef.current.draggingStarted = false;
         setIsDragging(false);
       }}
       onPointerLeave={() => {
         dragStateRef.current.active = false;
         dragStateRef.current.pointerId = -1;
+        dragStateRef.current.draggingStarted = false;
         setIsDragging(false);
       }}
       onPointerCancel={() => {
         dragStateRef.current.active = false;
         dragStateRef.current.pointerId = -1;
+        dragStateRef.current.draggingStarted = false;
         setIsDragging(false);
       }}
       ref={viewportRef}
@@ -151,7 +166,6 @@ export function ScrollingShortcutsMarquee({
           <div
             className="public-store-shortcuts-marquee-copy"
             aria-hidden={index > 0}
-            inert={index > 0}
             key={`shortcut-copy-${index}`}
             ref={index === 0 ? firstGroupRef : undefined}
           >
