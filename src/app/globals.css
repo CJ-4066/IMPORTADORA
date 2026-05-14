@@ -8229,6 +8229,36 @@ main,
   overflow-anchor: none;
 }
 
+.public-store-header-shell {
+  position: sticky;
+  top: 0;
+  isolation: isolate;
+  z-index: 2;
+}
+
+.public-store-header-shell .public-store-desktop-shortcuts,
+.public-store-header-shell .public-store-topline,
+.public-store-header-shell .public-store-shortcuts-marquee {
+  position: relative;
+  z-index: 1;
+}
+
+.public-store-header-shell .public-store-actions {
+  position: relative;
+  z-index: 60;
+}
+
+.public-store-header-shell .public-store-account-slot,
+.public-store-header-shell .public-store-account-popover {
+  position: relative;
+  z-index: 100;
+}
+
+.public-store-header-shell .account-popover-menu {
+  z-index: 2000;
+  pointer-events: auto;
+}
+
 @media (min-width: 921px) {
   .public-store-header-shell .public-store-account-slot,
   .public-store-header-shell .public-store-account-popover > .account-popover-trigger,
