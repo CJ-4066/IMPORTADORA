@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 
 type ScrollingShortcutsMarqueeProps = {
   children: ReactNode;
@@ -24,17 +24,15 @@ export function ScrollingShortcutsMarquee({
   repeatCount = 2,
 }: ScrollingShortcutsMarqueeProps) {
   const viewportRef = useRef<HTMLDivElement | null>(null);
-  const trackRef = useRef<HTMLDivElement | null>(null);
   const firstGroupRef = useRef<HTMLDivElement | null>(null);
   const dragStateRef = useRef({
     active: false,
     pointerId: -1,
     startX: 0,
-    startOffset: 0,
+    startScrollLeft: 0,
   });
   const frameRef = useRef<number | null>(null);
   const [cycleWidth, setCycleWidth] = useState(0);
-  const [offset, setOffset] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
 
   useEffect(() => {
@@ -77,8 +75,11 @@ export function ScrollingShortcutsMarquee({
     }
 
     const step = () => {
-      if (!dragStateRef.current.active) {
-        setOffset((current) => wrapOffset(current + speed, cycleWidth));
+      const viewport = viewportRef.current;
+
+      if (viewport && !dragStateRef.current.active) {
+        const nextOffset = wrapOffset(viewport.scrollLeft + speed, cycleWidth);
+        viewport.scrollLeft = nextOffset;
       }
 
       frameRef.current = window.requestAnimationFrame(step);
@@ -93,18 +94,11 @@ export function ScrollingShortcutsMarquee({
     };
   }, [cycleWidth, speed]);
 
-  const trackStyle = useMemo(
-    () => ({
-      transform: `translate3d(${-offset}px, 0, 0)`,
-    }),
-    [offset],
-  );
-
   return (
     <div
       className={`public-store-shortcuts-marquee${isDragging ? " is-dragging" : ""}`}
       onPointerDown={(event) => {
-        const viewport = viewportRef.current ?? event.currentTarget;
+        const viewport = event.currentTarget as HTMLDivElement;
 
         if (event.pointerType !== "mouse" && event.pointerType !== "pen" && event.pointerType !== "touch") {
           return;
@@ -113,7 +107,7 @@ export function ScrollingShortcutsMarquee({
         dragStateRef.current.active = true;
         dragStateRef.current.pointerId = event.pointerId;
         dragStateRef.current.startX = event.clientX;
-        dragStateRef.current.startOffset = offset;
+        dragStateRef.current.startScrollLeft = viewport.scrollLeft;
         setIsDragging(true);
         viewport.setPointerCapture(event.pointerId);
       }}
@@ -123,7 +117,8 @@ export function ScrollingShortcutsMarquee({
         }
 
         const deltaX = event.clientX - dragStateRef.current.startX;
-        setOffset(wrapOffset(dragStateRef.current.startOffset - deltaX, cycleWidth));
+        const viewport = event.currentTarget as HTMLDivElement;
+        viewport.scrollLeft = wrapOffset(dragStateRef.current.startScrollLeft - deltaX, cycleWidth);
       }}
       onPointerUp={(event) => {
         const viewport = event.currentTarget;
@@ -148,7 +143,7 @@ export function ScrollingShortcutsMarquee({
       }}
       ref={viewportRef}
     >
-      <div className="public-store-shortcuts-marquee-track" ref={trackRef} style={trackStyle}>
+      <div className="public-store-shortcuts-marquee-track">
         {Array.from({ length: Math.max(2, repeatCount) }, (_, index) => (
           <div
             className="public-store-shortcuts-marquee-copy"

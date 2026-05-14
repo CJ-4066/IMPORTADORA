@@ -187,20 +187,27 @@ body {
 
 .public-store-shortcuts-marquee {
   width: 100%;
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
   cursor: grab;
-  touch-action: pan-y;
+  touch-action: pan-x;
+  overscroll-behavior-x: contain;
   user-select: none;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
 }
 
 .public-store-shortcuts-marquee.is-dragging {
   cursor: grabbing;
 }
 
+.public-store-shortcuts-marquee::-webkit-scrollbar {
+  display: none;
+}
+
 .public-store-shortcuts-marquee-track {
   display: flex;
   width: max-content;
-  will-change: transform;
 }
 
 .public-store-shortcuts-marquee-copy {
@@ -7720,6 +7727,20 @@ body {
     gap: 0.15rem;
     background: transparent;
     box-shadow: none;
+  }
+
+  .public-store-header-shell .public-store-actions {
+    position: relative;
+    z-index: 60;
+  }
+
+  .public-store-header-shell .public-store-account-popover {
+    position: relative;
+    z-index: 70;
+  }
+
+  .public-store-header-shell .account-popover-menu {
+    z-index: 120;
   }
 
   .public-store-header-shell .public-store-account-popover > .account-popover-trigger span {
