@@ -46,7 +46,7 @@ export function ProductMediaManager({
   }
 
   return (
-    <section className={cn("media-builder", error && "field-has-error")}>
+    <section className={cn("media-builder", error && "field-has-error")} id="media">
       <div className="panel-header media-builder-header">
         <div>
           <p className="eyebrow">Fotos y videos</p>

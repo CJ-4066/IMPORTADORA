@@ -28,6 +28,7 @@ export type CatalogProduct = {
   isVisible: boolean;
   isFeatured: boolean;
   syncEnabled: boolean;
+  hasPhoto: boolean;
   lastSyncedAt: string | null;
   updatedAt: string;
 };

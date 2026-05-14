@@ -5,6 +5,7 @@ import {
   buildComparisonMetric,
   buildWhere,
   calculateDeltaPercent,
+  hasProductPhoto,
   mapCatalogMovementProduct,
   mapCategory,
   mapErpSyncLog,
@@ -311,39 +312,30 @@ export async function getAdminProducts(input: {
 }) {
   const page = Math.max(1, input.page ?? 1);
   const baseWhere = buildWhere(input.query, input.category, input.brand, false);
-  const photoWhere =
-    input.photo === "missing"
-      ? { imageUrl: null, media: { none: {} } }
-      : input.photo === "with-photo"
-        ? { OR: [{ imageUrl: { not: null } }, { media: { some: {} } }] }
-        : null;
+  const baseConditions: Prisma.ProductWhereInput[] = [
+    baseWhere,
+    ...(input.visibility === "visible"
+      ? [{ isVisible: true }]
+      : input.visibility === "hidden"
+        ? [{ isVisible: false }]
+        : []),
+    ...(input.stock === "low" ? [{ stockUnits: { lte: 12 } }] : []),
+  ];
 
-  const where: Prisma.ProductWhereInput = {
-    AND: [
-      baseWhere,
-      ...(input.visibility === "visible"
-        ? [{ isVisible: true }]
-        : input.visibility === "hidden"
-          ? [{ isVisible: false }]
-          : []),
-      ...(input.stock === "low" ? [{ stockUnits: { lte: 12 } }] : []),
-      ...(photoWhere ? [photoWhere] : []),
-    ],
+  const filtersWhere: Prisma.ProductWhereInput = {
+    AND: baseConditions,
   };
 
-  const [products, totalResults, categories, brands] = await prisma.$transaction([
+  const [allFilteredProducts, categories, brands, statsProducts] = await prisma.$transaction([
     prisma.product.findMany({
-      where,
+      where: filtersWhere,
       include: {
         media: {
           orderBy: { sortOrder: "asc" },
         },
       },
       orderBy: [{ updatedAt: "desc" }, { name: "asc" }],
-      take: ADMIN_PAGE_SIZE,
-      skip: (page - 1) * ADMIN_PAGE_SIZE,
     }),
-    prisma.product.count({ where }),
     prisma.category.findMany({
       orderBy: { name: "asc" },
     }),
@@ -353,17 +345,49 @@ export async function getAdminProducts(input: {
       orderBy: { brand: "asc" },
       select: { brand: true },
     }),
+    prisma.product.findMany({
+      select: {
+        imageUrl: true,
+        isVisible: true,
+        media: {
+          select: { url: true },
+        },
+      },
+    }),
   ]);
 
+  const filteredProducts =
+    input.photo === "all"
+      ? allFilteredProducts
+      : allFilteredProducts.filter((product) =>
+          input.photo === "missing"
+            ? !hasProductPhoto({ imageUrl: product.imageUrl, media: product.media })
+            : hasProductPhoto({ imageUrl: product.imageUrl, media: product.media }),
+        );
+  const visibleProductsCount = statsProducts.filter((product) => product.isVisible).length;
+  const hiddenProductsCount = statsProducts.length - visibleProductsCount;
+  const productsWithoutPhotoCount = statsProducts.filter(
+    (product) => !hasProductPhoto({ imageUrl: product.imageUrl, media: product.media }),
+  ).length;
+  const withPhotoProductsCount = statsProducts.length - productsWithoutPhotoCount;
+  const pageSlice = filteredProducts.slice((page - 1) * ADMIN_PAGE_SIZE, page * ADMIN_PAGE_SIZE);
+
   return {
-    products: products.map(mapProduct),
+    products: pageSlice.map(mapProduct),
     categories: categories.map(mapCategory),
     brands: brands
       .map((item) => item.brand?.trim())
       .filter((value): value is string => Boolean(value))
       .map((name) => ({ name })),
-    totalResults,
-    totalPages: Math.max(1, Math.ceil(totalResults / ADMIN_PAGE_SIZE)),
+    stats: {
+      totalProducts: statsProducts.length,
+      withPhotoProducts: withPhotoProductsCount,
+      withoutPhotoProducts: productsWithoutPhotoCount,
+      visibleProducts: visibleProductsCount,
+      hiddenProducts: hiddenProductsCount,
+    },
+    totalResults: filteredProducts.length,
+    totalPages: Math.max(1, Math.ceil(filteredProducts.length / ADMIN_PAGE_SIZE)),
     page,
   };
 }

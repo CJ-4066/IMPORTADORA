@@ -212,6 +212,7 @@ function AssistantProductCard({ product }: AssistantProductCardProps) {
         syncEnabled: true,
         lastSyncedAt: null,
         updatedAt: new Date().toISOString(),
+        hasPhoto: false,
       },
       "unit",
       quantity,

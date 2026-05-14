@@ -47,6 +47,18 @@ type ProductWithMedia = Product & {
   media: PrismaProductMedia[];
 };
 
+type ProductPhotoSource = {
+  imageUrl: string | null;
+  media: Array<{ url: string }>;
+};
+
+export function hasProductPhoto(product: ProductPhotoSource) {
+  const imageUrl = product.imageUrl?.trim() ?? "";
+  const mediaUrls = product.media.map((item) => item.url.trim()).filter((value) => value.length > 0);
+
+  return Boolean(imageUrl) || mediaUrls.length > 0;
+}
+
 function toNumber(value: Prisma.Decimal | number | null | undefined) {
   if (value === null || value === undefined) {
     return null;
@@ -104,6 +116,7 @@ export function mapProduct(product: ProductWithMedia): CatalogProduct {
     isVisible: product.isVisible,
     isFeatured: product.isFeatured,
     syncEnabled: product.syncEnabled,
+    hasPhoto: hasProductPhoto({ imageUrl: product.imageUrl, media: product.media }),
     lastSyncedAt: product.lastSyncedAt?.toISOString() ?? null,
     updatedAt: product.updatedAt.toISOString(),
   };
