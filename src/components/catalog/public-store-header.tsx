@@ -38,11 +38,11 @@ const SHORTCUTS: Shortcut[] = [
   { label: "Consolas de videojuego", href: "/?collection=consolas", icon: Gamepad2 },
 ];
 
-function CategoryShortcutMarquee() {
+function CategoryShortcutMarquee({ repeatCount = 2 }: { repeatCount?: number }) {
   const items = SHORTCUTS.slice(1);
 
   return (
-    <ScrollingShortcutsMarquee>
+    <ScrollingShortcutsMarquee repeatCount={repeatCount}>
       <div aria-label="Atajos de catálogo">
         <div className="public-store-shortcuts-marquee-group">
           {items.map((shortcut) => (
@@ -95,12 +95,12 @@ export async function PublicStoreHeader({
         </div>
 
         <div className="public-store-desktop-shortcuts">
-          <div className="public-store-topline">
-            <CategoryShortcutMarquee />
+        <div className="public-store-topline">
+            <CategoryShortcutMarquee repeatCount={3} />
           </div>
         </div>
         <div className="public-store-mobile-marquee">
-          <CategoryShortcutMarquee />
+          <CategoryShortcutMarquee repeatCount={2} />
         </div>
       </header>
     </PublicStoreHeaderShell>

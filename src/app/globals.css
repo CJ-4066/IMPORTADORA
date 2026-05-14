@@ -7924,6 +7924,53 @@ main,
   overflow-anchor: none;
 }
 
+@media (min-width: 921px) {
+  .public-store-header-shell .public-store-account-slot,
+  .public-store-header-shell .public-store-account-popover > .account-popover-trigger,
+  .public-store-header-shell .public-store-account-switch-link,
+  .public-store-header-shell .public-store-cart-link {
+    width: 6.25rem;
+    min-width: 6.25rem;
+    min-height: 3.5rem;
+  }
+
+  .public-store-header-shell .public-store-account-popover > .account-popover-trigger,
+  .public-store-header-shell .public-store-account-switch-link,
+  .public-store-header-shell .public-store-cart-link {
+    display: inline-flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 0.18rem;
+    padding: 0.46rem 0.72rem;
+    border-radius: 16px;
+  }
+
+  .public-store-header-shell .public-store-account-popover > .account-popover-trigger span,
+  .public-store-header-shell .public-store-account-switch-link span,
+  .public-store-header-shell .public-store-cart-link span {
+    display: block;
+    font-size: 0.7rem;
+    font-weight: 700;
+    line-height: 1;
+    white-space: nowrap;
+    text-align: center;
+  }
+
+  .public-store-header-shell .public-store-account-popover > .account-popover-trigger svg,
+  .public-store-header-shell .public-store-account-switch-link svg,
+  .public-store-header-shell .public-store-cart-link svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .public-store-header-shell .public-store-account-switch {
+    width: 6.25rem;
+    min-width: 6.25rem;
+    min-height: 3.5rem;
+  }
+}
+
 .public-store-header-shell .public-store-bar,
 .public-store-header-shell.is-collapsed .public-store-bar {
   grid-template-columns: auto minmax(0, 1fr) auto auto !important;

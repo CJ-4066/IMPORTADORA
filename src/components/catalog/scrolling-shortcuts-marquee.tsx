@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 type ScrollingShortcutsMarqueeProps = {
   children: ReactNode;
   speed?: number;
+  repeatCount?: number;
 };
 
 function wrapOffset(value: number, cycleWidth: number) {
@@ -17,7 +18,11 @@ function wrapOffset(value: number, cycleWidth: number) {
   return wrapped < 0 ? wrapped + cycleWidth : wrapped;
 }
 
-export function ScrollingShortcutsMarquee({ children, speed = 0.35 }: ScrollingShortcutsMarqueeProps) {
+export function ScrollingShortcutsMarquee({
+  children,
+  speed = 0.35,
+  repeatCount = 2,
+}: ScrollingShortcutsMarqueeProps) {
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const trackRef = useRef<HTMLDivElement | null>(null);
   const firstGroupRef = useRef<HTMLDivElement | null>(null);
@@ -144,12 +149,17 @@ export function ScrollingShortcutsMarquee({ children, speed = 0.35 }: ScrollingS
       ref={viewportRef}
     >
       <div className="public-store-shortcuts-marquee-track" ref={trackRef} style={trackStyle}>
-        <div className="public-store-shortcuts-marquee-copy" ref={firstGroupRef}>
-          {children}
-        </div>
-        <div className="public-store-shortcuts-marquee-copy" aria-hidden="true" inert>
-          {children}
-        </div>
+        {Array.from({ length: Math.max(2, repeatCount) }, (_, index) => (
+          <div
+            className="public-store-shortcuts-marquee-copy"
+            aria-hidden={index > 0}
+            inert={index > 0}
+            key={`shortcut-copy-${index}`}
+            ref={index === 0 ? firstGroupRef : undefined}
+          >
+            {children}
+          </div>
+        ))}
       </div>
     </div>
   );
