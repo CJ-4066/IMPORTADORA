@@ -40,9 +40,10 @@ export function ProductPriceRows({
       <div className="price-row">
         <span>Mayorista desde {product.wholesaleMinQty}</span>
         <strong>
-          {product.wholesalePrice
-            ? formatCurrency(product.wholesalePrice, currencySymbol)
-            : "Mismo precio"}
+          {formatCurrency(
+            product.wholesalePrice ?? product.unitPrice,
+            currencySymbol,
+          )}
         </strong>
       </div>
     </>

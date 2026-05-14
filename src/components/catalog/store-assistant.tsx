@@ -10,6 +10,7 @@ import {
   useCartStore,
 } from "@/components/catalog/cart-store";
 import { getPublicProductName } from "@/lib/product-name";
+import { formatCurrency } from "@/lib/utils";
 import type {
   ShopAssistantProductCard,
   ShopAssistantQuickAction,
@@ -239,10 +240,10 @@ function AssistantProductCard({ product }: AssistantProductCardProps) {
       </span>
 
       <div className="store-assistant-product-prices">
-        <span>Unitario {product.unitPrice}</span>
+        <span>Unitario {formatCurrency(Number(product.unitPrice))}</span>
         {product.wholesalePrice ? (
           <span>
-            Mayorista {product.wholesalePrice} desde {product.wholesaleMinQty}
+            Mayorista {formatCurrency(Number(product.wholesalePrice))} desde {product.wholesaleMinQty}
           </span>
         ) : null}
       </div>

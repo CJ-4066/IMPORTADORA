@@ -17,6 +17,16 @@ export function formatCurrency(value: number, currencySymbol = "S/") {
   return `${currencySymbol} ${value.toFixed(2)}`;
 }
 
+export function formatRepeatedPriceRow(
+  price: number,
+  currencySymbol = "S/",
+  qtyLabel?: string,
+) {
+  const formattedPrice = formatCurrency(price, currencySymbol);
+
+  return qtyLabel ? `${qtyLabel} ${formattedPrice}` : formattedPrice;
+}
+
 export function formatCompactNumber(value: number) {
   return new Intl.NumberFormat("es-PE", {
     notation: "compact",
