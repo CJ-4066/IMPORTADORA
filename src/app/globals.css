@@ -7731,16 +7731,16 @@ body {
 
   .public-store-header-shell .public-store-actions {
     position: relative;
-    z-index: 60;
+    z-index: 80;
   }
 
   .public-store-header-shell .public-store-account-popover {
     position: relative;
-    z-index: 70;
+    z-index: 90;
   }
 
   .public-store-header-shell .account-popover-menu {
-    z-index: 120;
+    z-index: 110;
   }
 
   .public-store-header-shell .public-store-account-popover > .account-popover-trigger span {
@@ -7989,6 +7989,27 @@ main,
     width: 6.25rem;
     min-width: 6.25rem;
     min-height: 3.5rem;
+    overflow: hidden;
+  }
+
+  .public-store-header-shell .public-store-account-switch-layer {
+    inset: 0;
+  }
+
+  .public-store-header-shell .public-store-account-switch:not(.is-collapsed) .public-store-account-switch-layer.is-collapsed {
+    display: none;
+  }
+
+  .public-store-header-shell .public-store-account-switch.is-collapsed .public-store-account-switch-layer.is-expanded {
+    display: none;
+  }
+
+  .public-store-header-shell .public-store-desktop-shortcuts {
+    display: block;
+  }
+
+  .public-store-header-shell .public-store-mobile-marquee {
+    display: none;
   }
 }
 
