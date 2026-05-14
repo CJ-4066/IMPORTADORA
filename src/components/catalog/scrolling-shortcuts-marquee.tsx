@@ -134,6 +134,7 @@ export function ScrollingShortcutsMarquee({
 
         const nextScrollLeft = dragStateRef.current.startScrollLeft - deltaX;
 
+        offsetRef.current = nextScrollLeft;
         viewport.scrollLeft = nextScrollLeft;
       }}
       onPointerUp={(event) => {
@@ -146,8 +147,7 @@ export function ScrollingShortcutsMarquee({
         dragStateRef.current.active = false;
         dragStateRef.current.pointerId = -1;
         dragStateRef.current.draggingStarted = false;
-        offsetRef.current = wrapOffset(viewport.scrollLeft, cycleWidth);
-        viewport.scrollLeft = offsetRef.current;
+        offsetRef.current = viewport.scrollLeft;
         setIsDragging(false);
       }}
       onPointerLeave={() => {
