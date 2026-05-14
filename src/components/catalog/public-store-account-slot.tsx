@@ -54,41 +54,41 @@ function AccountPopover({
 export function PublicStoreAccountSlot({ role }: { role?: AccountRole }) {
   const { collapsed } = usePublicStoreHeaderState();
 
-  if (collapsed) {
-    return (
-      <Link className="public-store-quick-link public-store-cart-link public-store-home-link" href="/" aria-label="Volver al inicio">
-        <House size={16} />
-        <span>Inicio</span>
-      </Link>
-    );
-  }
-
-  if (role === "ADMIN") {
-    return (
-      <Link className="public-store-quick-link" href="/admin">
-        <LayoutDashboard size={16} />
-        <span>Panel admin</span>
-      </Link>
-    );
-  }
-
-  if (role === "USERSHOP") {
-    return (
-      <AccountPopover
-        canLogout
-        triggerLabel="Mi cuenta"
-        items={[{ label: "Mi cuenta", href: "/cuenta", icon: UserRound }]}
-      />
-    );
-  }
-
   return (
-    <AccountPopover
-      triggerLabel="Login"
-      items={[
-        { label: "Login", href: "/acceso?mode=login", icon: UserRound },
-        { label: "Crear cuenta", href: "/acceso?mode=register", icon: UserRound },
-      ]}
-    />
+    <div className={`public-store-account-switch${collapsed ? " is-collapsed" : ""}`}>
+      <div className="public-store-account-switch-layer is-expanded" aria-hidden={collapsed}>
+        {role === "ADMIN" ? (
+          <Link className="public-store-quick-link public-store-account-switch-link" href="/admin">
+            <LayoutDashboard size={16} />
+            <span>Panel admin</span>
+          </Link>
+        ) : role === "USERSHOP" ? (
+          <AccountPopover
+            canLogout
+            triggerLabel="Mi cuenta"
+            items={[{ label: "Mi cuenta", href: "/cuenta", icon: UserRound }]}
+          />
+        ) : (
+          <AccountPopover
+            triggerLabel="Login"
+            items={[
+              { label: "Login", href: "/acceso?mode=login", icon: UserRound },
+              { label: "Crear cuenta", href: "/acceso?mode=register", icon: UserRound },
+            ]}
+          />
+        )}
+      </div>
+
+      <div className="public-store-account-switch-layer is-collapsed" aria-hidden={!collapsed}>
+        <Link
+          className="public-store-quick-link public-store-cart-link public-store-home-link public-store-account-switch-link"
+          href="/"
+          aria-label="Volver al inicio"
+        >
+          <House size={16} />
+          <span>Inicio</span>
+        </Link>
+      </div>
+    </div>
   );
 }

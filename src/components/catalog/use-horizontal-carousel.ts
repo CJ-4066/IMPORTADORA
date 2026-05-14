@@ -28,10 +28,11 @@ export function useHorizontalCarousel({ itemCount, intervalSeconds = 0 }: UseHor
       return;
     }
 
-    slide.scrollIntoView({
+    const targetLeft = Math.max(0, slide.offsetLeft - viewport.offsetLeft);
+
+    viewport.scrollTo({
+      left: targetLeft,
       behavior,
-      block: "nearest",
-      inline: "start",
     });
 
     setActiveIndex(nextIndex);

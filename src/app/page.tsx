@@ -199,9 +199,9 @@ export default async function Home({ searchParams }: HomeProps) {
       />
 
       {isSectionedView ? (
-        <section className="hero">
+        <section className="hero" data-hero>
           <div className="hero-grid hero-grid-centered">
-            <div className="hero-panel">
+            <div className="hero-panel hero-panel-fixed">
               {heroProducts.length >= 2 ? (
                 <HeroProductCarousel intervalSeconds={data.settings.heroAutoplaySeconds} products={heroProducts} />
               ) : data.settings.heroSlides.length ? (
