@@ -14,8 +14,6 @@ import {
   TrendingDown,
   TrendingUp,
 } from "lucide-react";
-import { hideProductsWithoutPhotoAction, syncProductsFromErpAction } from "@/app/admin/actions";
-import { SubmitButton } from "@/components/ui/submit-button";
 import type { DashboardComparisonMetric, DashboardPeriod, DashboardTrendProduct } from "@/lib/store";
 import { getAdminDashboardData } from "@/lib/store";
 import { cn, formatCompactNumber, formatCurrency } from "@/lib/utils";
@@ -157,39 +155,6 @@ export default async function AdminHomePage({ searchParams }: AdminHomePageProps
 
   return (
     <div className="stack-lg">
-      <section className="panel admin-sync-banner">
-        <div className="admin-sync-banner-copy">
-          <div>
-            <p className="eyebrow">ERP</p>
-            <h2>Sincronización rápida</h2>
-          </div>
-            <p className="panel-copy">
-            Trae productos, precios, categorías y stock desde el ERP. El dashboard solo usa datos
-            de catálogo sincronizado y bitácora real.
-          </p>
-        </div>
-
-        <div className="admin-sync-banner-actions">
-          <form action={syncProductsFromErpAction} className="sync-action-form">
-            <input name="returnTo" type="hidden" value="/admin" />
-            <label className="field sync-mode-field">
-              <span>Modo de sincronización</span>
-              <select defaultValue="FULL" name="syncMode">
-                <option value="FULL">Sincronización completa</option>
-                <option value="NEW_ONLY">Solo vincular nuevos</option>
-              </select>
-            </label>
-            <SubmitButton pendingLabel="Sincronizando...">Sincronizar desde ERP</SubmitButton>
-          </form>
-          <form action={hideProductsWithoutPhotoAction}>
-            <SubmitButton pendingLabel="Ocultando...">Ocultar productos sin foto</SubmitButton>
-          </form>
-          <Link className="button button-ghost" href="/admin/settings#erp-sync">
-            Ver bitácora
-          </Link>
-        </div>
-      </section>
-
       <section className="panel">
         <div className="panel-header">
           <div>
