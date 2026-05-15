@@ -168,51 +168,51 @@ export default async function AdminHomePage({ searchParams }: AdminHomePageProps
         </div>
 
         <div className="admin-metrics">
-          <Link className="metric-panel metric-panel-link" href="/admin/products">
+          <article className="metric-panel">
             <Boxes size={22} />
             <strong>{data.totalProducts}</strong>
             <span>Total de productos</span>
-          </Link>
-          <Link className="metric-panel metric-panel-link" href="/admin/products?visibility=visible">
+          </article>
+          <article className="metric-panel">
             <Layers3 size={22} />
             <strong>{data.visibleProducts}</strong>
             <span>Visibles en catálogo</span>
-          </Link>
-          <Link className="metric-panel metric-panel-link" href="/admin/products?visibility=hidden">
+          </article>
+          <article className="metric-panel">
             <EyeOff size={22} />
             <strong>{data.hiddenProducts}</strong>
             <span>Ocultos</span>
-          </Link>
-          <Link className="metric-panel metric-panel-link" href="/admin/products?visibility=hidden&stock=low">
+          </article>
+          <article className="metric-panel">
             <EyeOff size={22} />
             <strong>{data.dataFreshness.hiddenOutOfStockProducts}</strong>
             <span>Ocultos sin stock ERP</span>
-          </Link>
-          <Link className="metric-panel metric-panel-link" href="/admin/products?visibility=hidden&photo=missing">
+          </article>
+          <article className="metric-panel">
             <ImageOff size={22} />
             <strong>{data.dataFreshness.hiddenWithoutPhotoProducts}</strong>
             <span>Ocultos por no tener foto</span>
-          </Link>
-          <Link className="metric-panel metric-panel-link" href="/admin/products?stock=low">
+          </article>
+          <article className="metric-panel">
             <TriangleAlert size={22} />
             <strong>{data.lowStockProducts}</strong>
             <span>Con stock bajo</span>
-          </Link>
-          <Link className="metric-panel metric-panel-link" href="/admin/products?stock=low">
+          </article>
+          <article className="metric-panel">
             <TriangleAlert size={22} />
             <strong>{data.dataFreshness.visibleOutOfStockProducts}</strong>
             <span>Alerta: visibles sin stock</span>
-          </Link>
-          <Link className="metric-panel metric-panel-link" href="/admin/categories">
+          </article>
+          <article className="metric-panel">
             <FolderTree size={22} />
             <strong>{data.totalCategories}</strong>
             <span>Categorías activas</span>
-          </Link>
-          <Link className="metric-panel metric-panel-link" href="/admin/erp">
+          </article>
+          <article className="metric-panel">
             <DatabaseZap size={22} />
             <strong>{data.dataFreshness.syncedProducts}</strong>
             <span>Sincronizados ERP</span>
-          </Link>
+          </article>
         </div>
       </section>
 
