@@ -113,6 +113,22 @@ type PreparedSyncableProduct = SyncableProduct & {
   categoryName: string | null;
 };
 
+type WriteAction = "created" | "updated";
+
+type PreparedWritableProduct = SyncableProduct & {
+  categoryId: string | null;
+  writeAction: WriteAction;
+};
+
+type ChunkUpsertResult = {
+  created: number;
+  updated: number;
+  skipped: Array<{
+    externalId: string | null;
+    reason: string;
+  }>;
+};
+
 async function resolveCategoryIds(products: PreparedSyncableProduct[]) {
   const names = Array.from(
     new Set(
@@ -294,27 +310,24 @@ export async function syncFacturadorProducts(options: FacturadorSyncOptions = {}
         const categoryId = product.categoryName
           ? categoryIdsByName.get(product.categoryName) ?? null
           : null;
-
-        return {
-          ...product,
-          categoryId,
-        };
-      });
-
-      for (const product of resolvedProducts) {
         const existingId =
           existingByExternal.get(
             buildExternalKey(product.externalSource, product.externalId),
           ) ?? existingByCode.get(product.code);
 
-        if (existingId) {
-          summary.updated += 1;
-        } else {
-          summary.created += 1;
-        }
-      }
+        const writeAction: WriteAction = existingId ? "updated" : "created";
 
-      await upsertProductChunk(resolvedProducts);
+        return {
+          ...product,
+          categoryId,
+          writeAction,
+        };
+      });
+
+      const result = await upsertProductChunk(resolvedProducts);
+      summary.created += result.created;
+      summary.updated += result.updated;
+      summary.skipped.push(...result.skipped);
     }
 
     if (
@@ -385,78 +398,111 @@ export async function syncFacturadorProducts(options: FacturadorSyncOptions = {}
 }
 
 async function upsertProductChunk(
-  products: Array<
-    SyncableProduct & {
-      categoryId: string | null;
-    }
-  >,
-) {
+  products: Array<PreparedWritableProduct>,
+): Promise<ChunkUpsertResult> {
   if (!products.length) {
-    return;
+    return {
+      created: 0,
+      updated: 0,
+      skipped: [],
+    };
   }
 
   const rows = products.map((product) => buildProductRow(product));
 
-  await prisma.$executeRaw(Prisma.sql`
-    INSERT INTO "Product" (
-      "id",
-      "code",
-      "slug",
-      "name",
-      "description",
-      "brand",
-      "category",
-      "categoryId",
-      "imageUrl",
-      "unitLabel",
-      "unitPrice",
-      "wholesalePrice",
-      "wholesaleMinQty",
-      "boxPrice",
-      "unitsPerBox",
-      "stockUnits",
-      "isVisible",
-      "isFeatured",
-      "createdAt",
-      "updatedAt",
-      "externalSource",
-      "externalId",
-      "externalCode",
-      "syncEnabled",
-      "lastSyncedAt"
-    )
-    VALUES ${Prisma.join(rows)}
-    ON CONFLICT ("code") DO UPDATE
-    SET
-      "slug" = EXCLUDED."slug",
-      "name" = EXCLUDED."name",
-      "description" = EXCLUDED."description",
-      "brand" = EXCLUDED."brand",
-      "category" = EXCLUDED."category",
-      "categoryId" = EXCLUDED."categoryId",
-      "imageUrl" = EXCLUDED."imageUrl",
-      "unitLabel" = EXCLUDED."unitLabel",
-      "unitPrice" = EXCLUDED."unitPrice",
-      "wholesalePrice" = EXCLUDED."wholesalePrice",
-      "wholesaleMinQty" = EXCLUDED."wholesaleMinQty",
-      "boxPrice" = EXCLUDED."boxPrice",
-      "unitsPerBox" = EXCLUDED."unitsPerBox",
-      "stockUnits" = EXCLUDED."stockUnits",
-      "isVisible" = EXCLUDED."isVisible",
-      "isFeatured" = EXCLUDED."isFeatured",
-      "externalSource" = EXCLUDED."externalSource",
-      "externalId" = EXCLUDED."externalId",
-      "externalCode" = EXCLUDED."externalCode",
-      "syncEnabled" = EXCLUDED."syncEnabled",
-      "lastSyncedAt" = EXCLUDED."lastSyncedAt",
-      "updatedAt" = CURRENT_TIMESTAMP
-  `);
+  try {
+    await prisma.$executeRaw(Prisma.sql`
+      INSERT INTO "Product" (
+        "id",
+        "code",
+        "slug",
+        "name",
+        "description",
+        "brand",
+        "category",
+        "categoryId",
+        "imageUrl",
+        "unitLabel",
+        "unitPrice",
+        "wholesalePrice",
+        "wholesaleMinQty",
+        "boxPrice",
+        "unitsPerBox",
+        "stockUnits",
+        "isVisible",
+        "isFeatured",
+        "createdAt",
+        "updatedAt",
+        "externalSource",
+        "externalId",
+        "externalCode",
+        "syncEnabled",
+        "lastSyncedAt"
+      )
+      VALUES ${Prisma.join(rows)}
+      ON CONFLICT ("code") DO UPDATE
+      SET
+        "slug" = EXCLUDED."slug",
+        "name" = EXCLUDED."name",
+        "description" = EXCLUDED."description",
+        "brand" = EXCLUDED."brand",
+        "category" = EXCLUDED."category",
+        "categoryId" = EXCLUDED."categoryId",
+        "imageUrl" = EXCLUDED."imageUrl",
+        "unitLabel" = EXCLUDED."unitLabel",
+        "unitPrice" = EXCLUDED."unitPrice",
+        "wholesalePrice" = EXCLUDED."wholesalePrice",
+        "wholesaleMinQty" = EXCLUDED."wholesaleMinQty",
+        "boxPrice" = EXCLUDED."boxPrice",
+        "unitsPerBox" = EXCLUDED."unitsPerBox",
+        "stockUnits" = EXCLUDED."stockUnits",
+        "isVisible" = EXCLUDED."isVisible",
+        "isFeatured" = EXCLUDED."isFeatured",
+        "externalSource" = EXCLUDED."externalSource",
+        "externalId" = EXCLUDED."externalId",
+        "externalCode" = EXCLUDED."externalCode",
+        "syncEnabled" = EXCLUDED."syncEnabled",
+        "lastSyncedAt" = EXCLUDED."lastSyncedAt",
+        "updatedAt" = CURRENT_TIMESTAMP
+    `);
+
+    return {
+      created: products.filter((product) => product.writeAction === "created").length,
+      updated: products.filter((product) => product.writeAction === "updated").length,
+      skipped: [],
+    };
+  } catch (error) {
+    const skipped: ChunkUpsertResult["skipped"] = [];
+    let created = 0;
+    let updated = 0;
+
+    for (const product of products) {
+      try {
+        await prisma.product.upsert({
+          where: { code: product.code },
+          create: buildPrismaProductData(product),
+          update: buildPrismaProductData(product),
+        });
+
+        if (product.writeAction === "created") {
+          created += 1;
+        } else {
+          updated += 1;
+        }
+      } catch (itemError) {
+        skipped.push({
+          externalId: product.externalId,
+          reason: normalizeErrorMessage(itemError ?? error),
+        });
+      }
+    }
+
+    return { created, updated, skipped };
+  }
 }
 
 function buildProductRow(
-  product: SyncableProduct & {
-    categoryId: string | null;
-  },
+  product: PreparedWritableProduct,
 ) {
   return Prisma.sql`(
     ${randomUUID()},
@@ -485,4 +531,31 @@ function buildProductRow(
     ${product.syncEnabled},
     ${product.lastSyncedAt}
   )`;
+}
+
+function buildPrismaProductData(product: PreparedWritableProduct) {
+  return {
+    code: product.code,
+    slug: product.slug,
+    name: product.name,
+    description: product.description,
+    brand: product.brand,
+    category: product.category,
+    categoryId: product.categoryId,
+    imageUrl: product.imageUrl,
+    unitLabel: product.unitLabel,
+    unitPrice: new Prisma.Decimal(product.unitPrice),
+    wholesalePrice: product.wholesalePrice === null ? null : new Prisma.Decimal(product.wholesalePrice),
+    wholesaleMinQty: product.wholesaleMinQty,
+    boxPrice: product.boxPrice === null ? null : new Prisma.Decimal(product.boxPrice),
+    unitsPerBox: product.unitsPerBox,
+    stockUnits: product.stockUnits,
+    isVisible: product.isVisible,
+    isFeatured: product.isFeatured,
+    externalSource: product.externalSource,
+    externalId: product.externalId,
+    externalCode: product.externalCode,
+    syncEnabled: product.syncEnabled,
+    lastSyncedAt: product.lastSyncedAt,
+  };
 }
