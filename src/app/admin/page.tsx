@@ -149,6 +149,7 @@ export default async function AdminHomePage({ searchParams }: AdminHomePageProps
   const activePeriod = periodOptions.find((item) => item.value === data.selectedPeriod) ?? periodOptions[1];
   const lastSyncDate = data.dataFreshness.lastSyncAt
     ? new Intl.DateTimeFormat("es-PE", {
+        timeZone: "America/Lima",
         dateStyle: "medium",
         timeStyle: "short",
       }).format(new Date(data.dataFreshness.lastSyncAt))

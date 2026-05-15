@@ -76,6 +76,7 @@ export default async function ShopperQuoteDetailPage({ params }: ShopperQuoteDet
             <h1>{quote.quoteNumber ?? "Solicitud de tienda"}</h1>
             <p className="muted">
               {new Intl.DateTimeFormat("es-PE", {
+                timeZone: "America/Lima",
                 dateStyle: "medium",
                 timeStyle: "short",
               }).format(new Date(quote.createdAt))}

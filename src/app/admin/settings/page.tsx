@@ -15,6 +15,7 @@ type SettingsPageProps = {
 export const dynamic = "force-dynamic";
 
 const dateFormatter = new Intl.DateTimeFormat("es-PE", {
+  timeZone: "America/Lima",
   dateStyle: "medium",
   timeStyle: "short",
 });

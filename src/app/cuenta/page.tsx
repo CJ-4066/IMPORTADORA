@@ -137,6 +137,7 @@ export default async function ShopperAccountPage({ searchParams }: ShopperAccoun
               <strong>
                 {lastQuote
                   ? new Intl.DateTimeFormat("es-PE", {
+                      timeZone: "America/Lima",
                       dateStyle: "medium",
                     }).format(new Date(lastQuote.createdAt))
                   : "Sin registros"}
@@ -200,9 +201,10 @@ export default async function ShopperAccountPage({ searchParams }: ShopperAccoun
                   <article className="shopper-order-card" key={quote.id}>
                     <div className="shopper-order-main">
                       <span>
-                        {new Intl.DateTimeFormat("es-PE", { dateStyle: "medium" }).format(
-                          new Date(quote.createdAt),
-                        )}
+                      {new Intl.DateTimeFormat("es-PE", {
+                        timeZone: "America/Lima",
+                        dateStyle: "medium",
+                      }).format(new Date(quote.createdAt))}
                       </span>
                       <strong>{quote.quoteNumber ?? "Cotización tienda"}</strong>
                       <p>
@@ -334,9 +336,10 @@ export default async function ShopperAccountPage({ searchParams }: ShopperAccoun
               <div className="shopper-account-row">
                 <span>Cliente desde</span>
                 <strong>
-                  {new Intl.DateTimeFormat("es-PE", { dateStyle: "medium" }).format(
-                    new Date(account.createdAt),
-                  )}
+                  {new Intl.DateTimeFormat("es-PE", {
+                    timeZone: "America/Lima",
+                    dateStyle: "medium",
+                  }).format(new Date(account.createdAt))}
                 </strong>
               </div>
             </div>

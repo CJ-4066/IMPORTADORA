@@ -121,6 +121,7 @@ export default async function AdminQuotesPage({ searchParams }: AdminQuotesPageP
                 <tr key={quote.id}>
                   <td data-label="Fecha">
                     {new Intl.DateTimeFormat("es-PE", {
+                      timeZone: "America/Lima",
                       dateStyle: "medium",
                       timeStyle: "short",
                     }).format(new Date(quote.createdAt))}
