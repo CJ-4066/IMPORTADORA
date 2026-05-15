@@ -93,6 +93,11 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
           actualizados: {updated} · omitidos: {skipped}
         </p>
       ) : null}
+      {syncStatus === "running" ? (
+        <p className="success-text">
+          Sincronización iniciada en segundo plano ({syncModeLabel}). Puedes seguir navegando.
+        </p>
+      ) : null}
       {syncStatus === "error" ? <p className="error-text auth-error">{syncError}</p> : null}
       {syncStatus === "cancelled" ? (
         <p className="success-text">La sincronización fue cancelada desde el panel.</p>
@@ -116,6 +121,7 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
               Ejecuta la sincronización cuando necesites traer productos nuevos, stock o cambios hechos en el ERP.
             </p>
             <form action={syncProductsFromErpAction} className="sync-action-form">
+              <input name="returnTo" type="hidden" value="/admin/settings" />
               <label className="field sync-mode-field">
                 <span>Modo de sincronización</span>
                 <select defaultValue="FULL" name="syncMode">

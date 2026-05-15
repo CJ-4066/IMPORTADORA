@@ -6,12 +6,7 @@ import { Prisma } from "@prisma/client";
 import { ZodError } from "zod";
 import { prisma } from "@/lib/prisma";
 import { clearSession, requireAdmin } from "@/lib/auth";
-import { FacturadorApiError } from "@/lib/facturador/client";
-import {
-  ErpSyncCancelledError,
-  parseFacturadorSyncMode,
-  syncFacturadorProducts,
-} from "@/lib/facturador/sync";
+import { parseFacturadorSyncMode, syncFacturadorProducts } from "@/lib/facturador/sync";
 import { slugify } from "@/lib/utils";
 import type {
   ProductActionState,
@@ -106,6 +101,32 @@ function parseProductMedia(
 
 function parseSyncMode(formData: FormData) {
   return parseFacturadorSyncMode(String(formData.get("syncMode") ?? ""));
+}
+
+function parseSyncReturnPath(formData: FormData) {
+  const value = String(formData.get("returnTo") ?? "");
+
+  if (value === "/admin" || value === "/admin/settings") {
+    return value;
+  }
+
+  return "/admin/settings";
+}
+
+function scheduleErpSync(options: Parameters<typeof syncFacturadorProducts>[0]) {
+  setImmediate(() => {
+    void syncFacturadorProducts(options)
+      .catch((error) => {
+        console.error("[ERP sync] background task failed:", error);
+      })
+      .finally(() => {
+        revalidatePath("/");
+        revalidatePath("/admin");
+        revalidatePath("/admin/products");
+        revalidatePath("/admin/settings");
+        revalidatePath("/admin/categories");
+      });
+  });
 }
 
 function mapProductActionError(
@@ -333,36 +354,16 @@ export async function updateSettingsAction(formData: FormData) {
 export async function syncProductsFromErpAction(formData: FormData) {
   const session = await requireAdmin();
   const syncMode = parseSyncMode(formData);
+  const returnTo = parseSyncReturnPath(formData);
 
-  try {
-    const summary = await syncFacturadorProducts({
-      trigger: "MANUAL",
-      initiatedByName: session.name,
-      initiatedByEmail: session.email,
-      syncMode,
-    });
-    revalidatePath("/");
-    revalidatePath("/admin");
-    revalidatePath("/admin/products");
-    revalidatePath("/admin/settings");
-    revalidatePath("/admin/categories");
-    redirect(
-      `/admin/settings?syncStatus=success&fetched=${summary.fetched}&created=${summary.created}&updated=${summary.updated}&skipped=${summary.skipped.length}&syncMode=${syncMode}`,
-    );
-  } catch (error) {
-    if (error instanceof ErpSyncCancelledError) {
-      redirect("/admin/settings?syncStatus=cancelled");
-    }
+  scheduleErpSync({
+    trigger: "MANUAL",
+    initiatedByName: session.name,
+    initiatedByEmail: session.email,
+    syncMode,
+  });
 
-    const message =
-      error instanceof FacturadorApiError
-        ? `ERP respondio ${error.status}: ${error.message}`
-        : error instanceof Error
-          ? error.message
-          : "No se pudo sincronizar con el ERP.";
-
-    redirect(`/admin/settings?syncStatus=error&syncError=${encodeURIComponent(message)}`);
-  }
+  redirect(`${returnTo}?syncStatus=running&syncMode=${syncMode}`);
 }
 
 export async function cancelErpSyncAction(formData: FormData) {

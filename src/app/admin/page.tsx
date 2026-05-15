@@ -171,6 +171,7 @@ export default async function AdminHomePage({ searchParams }: AdminHomePageProps
 
         <div className="admin-sync-banner-actions">
           <form action={syncProductsFromErpAction} className="sync-action-form">
+            <input name="returnTo" type="hidden" value="/admin" />
             <label className="field sync-mode-field">
               <span>Modo de sincronización</span>
               <select defaultValue="FULL" name="syncMode">
