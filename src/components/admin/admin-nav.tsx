@@ -18,7 +18,7 @@ const links = [
   { href: "/admin/products", label: "Productos", icon: PackageSearch },
   { href: "/admin/quotes", label: "Cotizaciones", icon: FileText },
   { href: "/admin/categories", label: "Categorías", icon: FolderTree },
-  { href: "/admin/settings#erp-sync", label: "ERP", icon: DatabaseZap },
+  { href: "/admin/erp", label: "ERP", icon: DatabaseZap },
   { href: "/admin/products/new", label: "Nuevo producto", icon: PackagePlus },
   { href: "/admin/settings", label: "Configuración", icon: Settings2 },
 ];

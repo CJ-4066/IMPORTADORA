@@ -106,11 +106,11 @@ function parseSyncMode(formData: FormData) {
 function parseSyncReturnPath(formData: FormData) {
   const value = String(formData.get("returnTo") ?? "");
 
-  if (value === "/admin" || value === "/admin/settings") {
+  if (value === "/admin" || value === "/admin/settings" || value === "/admin/erp") {
     return value;
   }
 
-  return "/admin/settings";
+  return "/admin/erp";
 }
 
 function scheduleErpSync(options: Parameters<typeof syncFacturadorProducts>[0]) {
@@ -124,6 +124,7 @@ function scheduleErpSync(options: Parameters<typeof syncFacturadorProducts>[0]) 
         revalidatePath("/admin");
         revalidatePath("/admin/products");
         revalidatePath("/admin/settings");
+        revalidatePath("/admin/erp");
         revalidatePath("/admin/categories");
       });
   });
@@ -379,7 +380,7 @@ export async function cancelErpSyncAction(formData: FormData) {
   const syncLogId = String(formData.get("syncLogId") ?? "");
 
   if (!syncLogId) {
-    redirect("/admin/settings?syncStatus=error&syncError=No se encontró la sincronización.");
+    redirect("/admin/erp?syncStatus=error&syncError=No se encontró la sincronización.");
   }
 
   await prisma.erpSyncLog.updateMany({
@@ -399,7 +400,8 @@ export async function cancelErpSyncAction(formData: FormData) {
 
   revalidatePath("/admin");
   revalidatePath("/admin/settings");
-  redirect("/admin/settings?syncStatus=cancelled");
+  revalidatePath("/admin/erp");
+  redirect("/admin/erp?syncStatus=cancelled");
 }
 
 export async function createCategoryAction(formData: FormData) {

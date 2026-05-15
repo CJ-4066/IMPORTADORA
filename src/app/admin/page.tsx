@@ -208,7 +208,7 @@ export default async function AdminHomePage({ searchParams }: AdminHomePageProps
             <strong>{data.totalCategories}</strong>
             <span>Categorías activas</span>
           </Link>
-          <Link className="metric-panel metric-panel-link" href="/admin/settings#erp-sync">
+          <Link className="metric-panel metric-panel-link" href="/admin/erp">
             <DatabaseZap size={22} />
             <strong>{data.dataFreshness.syncedProducts}</strong>
             <span>Sincronizados ERP</span>
