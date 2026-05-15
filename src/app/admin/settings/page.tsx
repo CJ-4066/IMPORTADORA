@@ -65,7 +65,11 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
   const updated = Number(typeof params?.updated === "string" ? params.updated : "0");
   const skipped = Number(typeof params?.skipped === "string" ? params.skipped : "0");
   const syncModeLabel =
-    syncMode === "NEW_ONLY" ? "solo vincular nuevos" : "sincronización completa";
+    syncMode === "INCREMENTAL"
+      ? "incremental real"
+      : syncMode === "NEW_ONLY"
+        ? "solo vincular nuevos"
+        : "sincronización completa";
   const successfulDurations = syncLogs
     .filter((log) => log.status === "SUCCESS" && log.durationMs !== null)
     .map((log) => log.durationMs as number);
@@ -124,9 +128,19 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
               <input name="returnTo" type="hidden" value="/admin/settings" />
               <label className="field sync-mode-field">
                 <span>Modo de sincronización</span>
-                <select defaultValue="FULL" name="syncMode">
+                <select
+                  defaultValue={
+                    syncMode === "INCREMENTAL"
+                      ? "INCREMENTAL"
+                      : syncMode === "NEW_ONLY"
+                        ? "NEW_ONLY"
+                        : "FULL"
+                  }
+                  name="syncMode"
+                >
                   <option value="FULL">Sincronización completa</option>
                   <option value="NEW_ONLY">Solo vincular nuevos</option>
+                  <option value="INCREMENTAL">Incremental real (requiere filtro ERP)</option>
                 </select>
               </label>
               <SubmitButton pendingLabel="Sincronizando...">Sincronizar desde ERP</SubmitButton>
@@ -144,6 +158,12 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
             <p className="muted">
               Puedes añadir `ERP_SYNC_MODE=NEW_ONLY` si quieres crear solo productos nuevos sin
               tocar los ya vinculados.
+            </p>
+            <p className="muted">
+              Si el ERP expone un filtro por fecha, añade `ERP_SYNC_MODE=INCREMENTAL` junto con
+              `FACTURADOR_SYNC_UPDATED_SINCE_PARAM` para leer solo cambios desde el último
+              checkpoint. Si aún no existe un checkpoint exitoso previo, la primera corrida
+              cargará todo el catálogo.
             </p>
           </article>
 

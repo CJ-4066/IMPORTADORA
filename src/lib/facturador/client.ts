@@ -18,11 +18,16 @@ const DEFAULT_PRODUCT_PAGE_CONCURRENCY = 12;
 const DEFAULT_MAX_RETRIES = 5;
 const DEFAULT_RETRY_DELAY_MS = 5_000;
 const DEFAULT_RUNNING_SYNC_TIMEOUT_MS = 2 * 60 * 60 * 1000;
+const DEFAULT_PRODUCT_UPDATED_SINCE_FORMAT = "iso";
 
 type RequestOptions = {
   body?: unknown;
   method?: "GET" | "POST";
   query?: Record<string, string | number | boolean | null | undefined>;
+};
+
+type ProductSyncOptions = {
+  updatedSince?: Date | null;
 };
 
 export class FacturadorApiError extends Error {
@@ -46,6 +51,10 @@ export function getFacturadorConfig(): FacturadorConfig {
   );
   const productPageConcurrency = Number(
     process.env.FACTURADOR_PRODUCT_PAGE_CONCURRENCY ?? DEFAULT_PRODUCT_PAGE_CONCURRENCY,
+  );
+  const productUpdatedSinceParam = process.env.FACTURADOR_SYNC_UPDATED_SINCE_PARAM?.trim();
+  const productUpdatedSinceFormat = parseUpdatedSinceFormat(
+    process.env.FACTURADOR_SYNC_UPDATED_SINCE_FORMAT,
   );
   const maxRetries = Number(process.env.FACTURADOR_MAX_RETRIES ?? DEFAULT_MAX_RETRIES);
   const retryDelayMs = Number(process.env.FACTURADOR_RETRY_DELAY_MS ?? DEFAULT_RETRY_DELAY_MS);
@@ -85,6 +94,8 @@ export function getFacturadorConfig(): FacturadorConfig {
       Number.isFinite(runningSyncTimeoutMs) && runningSyncTimeoutMs > 0
         ? runningSyncTimeoutMs
         : DEFAULT_RUNNING_SYNC_TIMEOUT_MS,
+    productUpdatedSinceParam: productUpdatedSinceParam || null,
+    productUpdatedSinceFormat,
   };
 }
 
@@ -172,6 +183,39 @@ function isRecord(value: unknown): value is FacturadorRecord {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
+function parseUpdatedSinceFormat(
+  value: string | undefined,
+): "iso" | "date" | "unix-ms" | "unix-seconds" {
+  const normalized = value?.trim().toLowerCase();
+
+  if (
+    normalized === "date" ||
+    normalized === "unix-ms" ||
+    normalized === "unix-seconds" ||
+    normalized === "iso"
+  ) {
+    return normalized;
+  }
+
+  return DEFAULT_PRODUCT_UPDATED_SINCE_FORMAT;
+}
+
+function formatUpdatedSinceValue(date: Date, format: "iso" | "date" | "unix-ms" | "unix-seconds") {
+  if (format === "date") {
+    return date.toISOString().slice(0, 10);
+  }
+
+  if (format === "unix-ms") {
+    return String(date.getTime());
+  }
+
+  if (format === "unix-seconds") {
+    return String(Math.floor(date.getTime() / 1000));
+  }
+
+  return date.toISOString();
+}
+
 export class FacturadorClient {
   constructor(private readonly config = getFacturadorConfig()) {}
 
@@ -234,10 +278,28 @@ export class FacturadorClient {
     }
   }
 
-  async getProducts() {
+  async getProducts(options: ProductSyncOptions = {}) {
     const startPage = this.config.startProductPage;
+    const updatedSinceQueryValue =
+      options.updatedSince && this.config.productUpdatedSinceParam
+        ? formatUpdatedSinceValue(options.updatedSince, this.config.productUpdatedSinceFormat)
+        : null;
+    const query: Record<string, string | number | boolean | null | undefined> = {
+      page: startPage,
+    };
+
+    if (updatedSinceQueryValue) {
+      if (!this.config.productUpdatedSinceParam) {
+        throw new Error(
+          "El modo incremental requiere FACTURADOR_SYNC_UPDATED_SINCE_PARAM para consultar solo productos cambiados.",
+        );
+      }
+
+      query[this.config.productUpdatedSinceParam] = updatedSinceQueryValue;
+    }
+
     const firstPayload = await this.request("/items/records", {
-      query: { page: startPage },
+      query,
     });
     const products = extractRecords(firstPayload) as FacturadorProduct[];
     const lastPage = getLastPage(firstPayload) ?? 1;
@@ -265,7 +327,13 @@ export class FacturadorClient {
       const payloads = await Promise.all(
         chunk.map((page) =>
           this.request("/items/records", {
-            query: { page },
+            query:
+              updatedSinceQueryValue && this.config.productUpdatedSinceParam
+                ? {
+                    page,
+                    [this.config.productUpdatedSinceParam]: updatedSinceQueryValue,
+                  }
+                : { page },
           }),
         ),
       );
@@ -365,6 +433,10 @@ export class FacturadorClient {
 
   shouldHideMissingProducts() {
     return this.config.hideMissingProducts;
+  }
+
+  supportsIncrementalProductSync() {
+    return Boolean(this.config.productUpdatedSinceParam?.trim());
   }
 
   get runningSyncTimeoutMs() {

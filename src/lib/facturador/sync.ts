@@ -12,7 +12,7 @@ import { slugify } from "@/lib/utils";
 
 const WRITE_BATCH_SIZE = 250;
 
-export type FacturadorSyncMode = "FULL" | "NEW_ONLY";
+export type FacturadorSyncMode = "FULL" | "NEW_ONLY" | "INCREMENTAL";
 
 export type FacturadorSyncSummary = {
   source: string;
@@ -61,6 +61,10 @@ function buildExternalKey(source: string, externalId: string) {
 
 export function parseFacturadorSyncMode(value: string | null | undefined): FacturadorSyncMode {
   const normalized = value?.trim().toUpperCase().replace(/-/g, "_") ?? "";
+
+  if (normalized === "INCREMENTAL") {
+    return "INCREMENTAL";
+  }
 
   if (normalized === "NEW_ONLY") {
     return "NEW_ONLY";
@@ -122,6 +126,20 @@ async function prepareSyncSlot(client: FacturadorClient) {
       `Ya hay una sincronización ERP en ejecución desde ${runningSync.startedAt.toISOString()}.`,
     );
   }
+}
+
+async function loadIncrementalCheckpoint(source: string) {
+  const lastSuccessfulSync = await prisma.erpSyncLog.findFirst({
+    where: {
+      source,
+      status: "SUCCESS",
+      finishedAt: { not: null },
+    },
+    orderBy: { finishedAt: "desc" },
+    select: { finishedAt: true },
+  });
+
+  return lastSuccessfulSync?.finishedAt ?? null;
 }
 
 function chunkArray<T>(items: T[], size: number) {
@@ -246,6 +264,7 @@ export async function syncFacturadorProducts(options: FacturadorSyncOptions = {}
   const client = options.client ?? new FacturadorClient();
   const syncMode = options.syncMode ?? "FULL";
   const isNewOnlyMode = syncMode === "NEW_ONLY";
+  const isIncrementalMode = syncMode === "INCREMENTAL";
   await prepareSyncSlot(client);
   const syncedAt = new Date();
   const syncLog = await prisma.erpSyncLog.create({
@@ -263,10 +282,25 @@ export async function syncFacturadorProducts(options: FacturadorSyncOptions = {}
   try {
     await ensureSyncNotCancelled(syncLog.id);
 
+    const incrementalCheckpoint =
+      isIncrementalMode && client.supportsIncrementalProductSync()
+        ? await loadIncrementalCheckpoint(client.source)
+        : null;
+
+    if (isIncrementalMode && !client.supportsIncrementalProductSync()) {
+      throw new Error(
+        "El modo incremental real requiere FACTURADOR_SYNC_UPDATED_SINCE_PARAM para filtrar solo cambios del ERP.",
+      );
+    }
+
     const [categories, brands, products] = await Promise.all([
       client.getCategories(),
       client.getBrands(),
-      client.getProducts(),
+      client.getProducts(
+        isIncrementalMode && incrementalCheckpoint
+          ? { updatedSince: incrementalCheckpoint }
+          : {},
+      ),
     ]);
     const categoryLookup = buildCategoryLookup(categories);
     const brandLookup = buildBrandLookup(brands);

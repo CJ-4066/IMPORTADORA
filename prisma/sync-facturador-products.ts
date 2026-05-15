@@ -8,7 +8,15 @@ async function main() {
   const summary = await syncFacturadorProducts({ trigger, syncMode });
 
   console.log(`Origen: ${summary.source}`);
-  console.log(`Modo: ${syncMode === "NEW_ONLY" ? "Solo vincular nuevos" : "Sincronización completa"}`);
+  console.log(
+    `Modo: ${
+      syncMode === "INCREMENTAL"
+        ? "Incremental real"
+        : syncMode === "NEW_ONLY"
+          ? "Solo vincular nuevos"
+          : "Sincronización completa"
+    }`,
+  );
   console.log(`Productos recibidos: ${summary.fetched}`);
   console.log(`Productos creados: ${summary.created}`);
   console.log(`Productos actualizados: ${summary.updated}`);

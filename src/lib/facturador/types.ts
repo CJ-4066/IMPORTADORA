@@ -43,6 +43,8 @@ export type FacturadorConfig = {
   retryDelayMs: number;
   hideMissingProducts: boolean;
   runningSyncTimeoutMs: number;
+  productUpdatedSinceParam: string | null;
+  productUpdatedSinceFormat: "iso" | "date" | "unix-ms" | "unix-seconds";
 };
 
 export type FacturadorQuoteItem = {

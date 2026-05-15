@@ -104,6 +104,19 @@ Cada ejecución deja bitácora en `ErpSyncLog`, visible desde `/admin/settings`,
 
 El sincronizador requiere `FACTURADOR_API_URL` y `FACTURADOR_API_TOKEN`. Si el token responde `401 Unauthorized`, la integración está lista pero no podrá traer datos reales hasta que el administrador de la API entregue credenciales válidas. Por defecto recorre todas las páginas del endpoint de productos; para pruebas o cargas por bloques se puede usar `FACTURADOR_SYNC_START_PRODUCT_PAGE` y `FACTURADOR_SYNC_MAX_PRODUCT_PAGES`. Si el ERP limita peticiones, se puede subir `FACTURADOR_PRODUCT_PAGE_DELAY_MS` o `FACTURADOR_RETRY_DELAY_MS`.
 
+Modos de sincronización:
+
+- `FULL`: sincroniza todo el catálogo del ERP y actualiza lo existente.
+- `NEW_ONLY`: lee todo el ERP pero solo crea productos que todavía no están vinculados.
+- `INCREMENTAL`: requiere que el ERP exponga un filtro por fecha en `FACTURADOR_SYNC_UPDATED_SINCE_PARAM`. Con ese parámetro el cliente lee solo los cambios desde el último checkpoint exitoso registrado en `ErpSyncLog`. Si todavía no hay checkpoint previo, la primera corrida hace carga completa.
+
+Para el modo incremental puedes ajustar el formato del valor enviado al ERP con `FACTURADOR_SYNC_UPDATED_SINCE_FORMAT`:
+
+- `iso` (por defecto)
+- `date`
+- `unix-ms`
+- `unix-seconds`
+
 ## Estructura principal
 
 - `src/app/page.tsx`: catálogo público

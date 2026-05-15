@@ -356,6 +356,14 @@ export async function syncProductsFromErpAction(formData: FormData) {
   const syncMode = parseSyncMode(formData);
   const returnTo = parseSyncReturnPath(formData);
 
+  if (syncMode === "INCREMENTAL" && !process.env.FACTURADOR_SYNC_UPDATED_SINCE_PARAM?.trim()) {
+    redirect(
+      `${returnTo}?syncStatus=error&syncError=${encodeURIComponent(
+        "El modo incremental requiere FACTURADOR_SYNC_UPDATED_SINCE_PARAM.",
+      )}`,
+    );
+  }
+
   scheduleErpSync({
     trigger: "MANUAL",
     initiatedByName: session.name,
