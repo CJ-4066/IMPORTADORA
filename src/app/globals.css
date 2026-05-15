@@ -5364,6 +5364,20 @@ body {
   flex-wrap: wrap;
 }
 
+.sync-action-form {
+  display: grid;
+  gap: 0.55rem;
+  width: min(100%, 18rem);
+}
+
+.sync-action-form .button {
+  width: 100%;
+}
+
+.sync-mode-field {
+  width: 100%;
+}
+
 .sync-panel-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

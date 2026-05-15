@@ -12,6 +12,8 @@ import { slugify } from "@/lib/utils";
 
 const WRITE_BATCH_SIZE = 250;
 
+export type FacturadorSyncMode = "FULL" | "NEW_ONLY";
+
 export type FacturadorSyncSummary = {
   source: string;
   fetched: number;
@@ -28,6 +30,7 @@ export type FacturadorSyncOptions = {
   trigger?: ErpSyncTrigger;
   initiatedByName?: string | null;
   initiatedByEmail?: string | null;
+  syncMode?: FacturadorSyncMode;
 };
 
 export class ErpSyncCancelledError extends Error {
@@ -54,6 +57,28 @@ function normalizeErrorMessage(error: unknown) {
 
 function buildExternalKey(source: string, externalId: string) {
   return `${source}::${externalId}`;
+}
+
+export function parseFacturadorSyncMode(value: string | null | undefined): FacturadorSyncMode {
+  const normalized = value?.trim().toUpperCase().replace(/-/g, "_") ?? "";
+
+  if (normalized === "NEW_ONLY") {
+    return "NEW_ONLY";
+  }
+
+  return "FULL";
+}
+
+function getExistingProductId(
+  product: Pick<PreparedSyncableProduct, "code" | "externalSource" | "externalId">,
+  existingByCode: Map<string, string>,
+  existingByExternal: Map<string, string>,
+) {
+  return (
+    existingByExternal.get(buildExternalKey(product.externalSource, product.externalId)) ??
+    existingByCode.get(product.code) ??
+    null
+  );
 }
 
 async function ensureSyncNotCancelled(syncLogId: string) {
@@ -219,6 +244,8 @@ async function loadExistingProductMap(products: PreparedSyncableProduct[]) {
 
 export async function syncFacturadorProducts(options: FacturadorSyncOptions = {}) {
   const client = options.client ?? new FacturadorClient();
+  const syncMode = options.syncMode ?? "FULL";
+  const isNewOnlyMode = syncMode === "NEW_ONLY";
   await prepareSyncSlot(client);
   const syncedAt = new Date();
   const syncLog = await prisma.erpSyncLog.create({
@@ -298,10 +325,25 @@ export async function syncFacturadorProducts(options: FacturadorSyncOptions = {}
     }
 
     await ensureSyncNotCancelled(syncLog.id);
-    const categoryIdsByName = await resolveCategoryIds(preparedProducts);
     const { existingByCode, existingByExternal } = await loadExistingProductMap(preparedProducts);
+    const productsToWrite = isNewOnlyMode
+      ? preparedProducts.filter((product) => {
+          const existingId = getExistingProductId(product, existingByCode, existingByExternal);
 
-    const writeChunks = chunkArray(preparedProducts, WRITE_BATCH_SIZE);
+          if (existingId) {
+            summary.skipped.push({
+              externalId: product.externalId,
+              reason: "Producto ya vinculado. Omitido en modo solo nuevos.",
+            });
+            return false;
+          }
+
+          return true;
+        })
+      : preparedProducts;
+    const categoryIdsByName = await resolveCategoryIds(productsToWrite);
+
+    const writeChunks = chunkArray(productsToWrite, WRITE_BATCH_SIZE);
 
     for (const chunk of writeChunks) {
       await ensureSyncNotCancelled(syncLog.id);
@@ -331,6 +373,7 @@ export async function syncFacturadorProducts(options: FacturadorSyncOptions = {}
     }
 
     if (
+      syncMode === "FULL" &&
       client.isFullProductSync() &&
       client.shouldHideMissingProducts() &&
       syncedExternalIds.size > 0

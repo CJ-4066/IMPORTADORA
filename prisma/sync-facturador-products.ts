@@ -1,12 +1,14 @@
 import { FacturadorApiError } from "../src/lib/facturador/client";
-import { syncFacturadorProducts } from "../src/lib/facturador/sync";
+import { parseFacturadorSyncMode, syncFacturadorProducts } from "../src/lib/facturador/sync";
 import { prisma } from "../src/lib/prisma";
 
 async function main() {
   const trigger = process.env.ERP_SYNC_TRIGGER === "AUTOMATIC" ? "AUTOMATIC" : "SCRIPT";
-  const summary = await syncFacturadorProducts({ trigger });
+  const syncMode = parseFacturadorSyncMode(process.env.ERP_SYNC_MODE);
+  const summary = await syncFacturadorProducts({ trigger, syncMode });
 
   console.log(`Origen: ${summary.source}`);
+  console.log(`Modo: ${syncMode === "NEW_ONLY" ? "Solo vincular nuevos" : "Sincronización completa"}`);
   console.log(`Productos recibidos: ${summary.fetched}`);
   console.log(`Productos creados: ${summary.created}`);
   console.log(`Productos actualizados: ${summary.updated}`);

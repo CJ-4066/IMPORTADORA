@@ -7,7 +7,11 @@ import { ZodError } from "zod";
 import { prisma } from "@/lib/prisma";
 import { clearSession, requireAdmin } from "@/lib/auth";
 import { FacturadorApiError } from "@/lib/facturador/client";
-import { ErpSyncCancelledError, syncFacturadorProducts } from "@/lib/facturador/sync";
+import {
+  ErpSyncCancelledError,
+  parseFacturadorSyncMode,
+  syncFacturadorProducts,
+} from "@/lib/facturador/sync";
 import { slugify } from "@/lib/utils";
 import type {
   ProductActionState,
@@ -98,6 +102,10 @@ function parseProductMedia(
     ...item,
     sortOrder: index,
   }));
+}
+
+function parseSyncMode(formData: FormData) {
+  return parseFacturadorSyncMode(String(formData.get("syncMode") ?? ""));
 }
 
 function mapProductActionError(
@@ -322,14 +330,16 @@ export async function updateSettingsAction(formData: FormData) {
   redirect("/admin/settings?status=updated");
 }
 
-export async function syncProductsFromErpAction() {
+export async function syncProductsFromErpAction(formData: FormData) {
   const session = await requireAdmin();
+  const syncMode = parseSyncMode(formData);
 
   try {
     const summary = await syncFacturadorProducts({
       trigger: "MANUAL",
       initiatedByName: session.name,
       initiatedByEmail: session.email,
+      syncMode,
     });
     revalidatePath("/");
     revalidatePath("/admin");
@@ -337,7 +347,7 @@ export async function syncProductsFromErpAction() {
     revalidatePath("/admin/settings");
     revalidatePath("/admin/categories");
     redirect(
-      `/admin/settings?syncStatus=success&fetched=${summary.fetched}&created=${summary.created}&updated=${summary.updated}&skipped=${summary.skipped.length}`,
+      `/admin/settings?syncStatus=success&fetched=${summary.fetched}&created=${summary.created}&updated=${summary.updated}&skipped=${summary.skipped.length}&syncMode=${syncMode}`,
     );
   } catch (error) {
     if (error instanceof ErpSyncCancelledError) {

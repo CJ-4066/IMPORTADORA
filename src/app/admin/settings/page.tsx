@@ -59,10 +59,13 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
   const error = typeof params?.error === "string" ? params.error : "";
   const syncStatus = typeof params?.syncStatus === "string" ? params.syncStatus : "";
   const syncError = typeof params?.syncError === "string" ? params.syncError : "";
+  const syncMode = typeof params?.syncMode === "string" ? params.syncMode : "";
   const fetched = Number(typeof params?.fetched === "string" ? params.fetched : "0");
   const created = Number(typeof params?.created === "string" ? params.created : "0");
   const updated = Number(typeof params?.updated === "string" ? params.updated : "0");
   const skipped = Number(typeof params?.skipped === "string" ? params.skipped : "0");
+  const syncModeLabel =
+    syncMode === "NEW_ONLY" ? "solo vincular nuevos" : "sincronización completa";
   const successfulDurations = syncLogs
     .filter((log) => log.status === "SUCCESS" && log.durationMs !== null)
     .map((log) => log.durationMs as number);
@@ -86,7 +89,8 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
       {error ? <p className="error-text auth-error">{error}</p> : null}
       {syncStatus === "success" ? (
         <p className="success-text">
-          Sincronización completada. Recibidos: {fetched} · creados: {created} · actualizados: {updated} · omitidos: {skipped}
+          Sincronización completada ({syncModeLabel}). Recibidos: {fetched} · creados: {created} ·
+          actualizados: {updated} · omitidos: {skipped}
         </p>
       ) : null}
       {syncStatus === "error" ? <p className="error-text auth-error">{syncError}</p> : null}
@@ -111,7 +115,14 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
             <p className="muted">
               Ejecuta la sincronización cuando necesites traer productos nuevos, stock o cambios hechos en el ERP.
             </p>
-            <form action={syncProductsFromErpAction}>
+            <form action={syncProductsFromErpAction} className="sync-action-form">
+              <label className="field sync-mode-field">
+                <span>Modo de sincronización</span>
+                <select defaultValue="FULL" name="syncMode">
+                  <option value="FULL">Sincronización completa</option>
+                  <option value="NEW_ONLY">Solo vincular nuevos</option>
+                </select>
+              </label>
               <SubmitButton pendingLabel="Sincronizando...">Sincronizar desde ERP</SubmitButton>
             </form>
           </article>
@@ -124,6 +135,10 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
             <code className="sync-command">
               0 * * * * cd /ruta/de/IMPORTADORA && ERP_SYNC_TRIGGER=AUTOMATIC npm run sync:facturador-products
             </code>
+            <p className="muted">
+              Puedes añadir `ERP_SYNC_MODE=NEW_ONLY` si quieres crear solo productos nuevos sin
+              tocar los ya vinculados.
+            </p>
           </article>
 
           <article className="sync-note-card">
