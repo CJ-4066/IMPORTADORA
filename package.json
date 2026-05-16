@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "prisma generate && next build",
-    "start": "mkdir -p .next/standalone/.next && rm -rf .next/standalone/.next/static .next/standalone/public && cp -R .next/static .next/standalone/.next/static && cp -R public .next/standalone/public && PORT=${PORT:-4000} HOSTNAME=0.0.0.0 node .next/standalone/server.js",
+    "start": "PORT=${PORT:-4000} HOSTNAME=0.0.0.0 next start",
     "lint": "eslint .",
     "test:assistant": "node --import tsx --test src/lib/shop-assistant.test.ts",
     "postinstall": "prisma generate",
