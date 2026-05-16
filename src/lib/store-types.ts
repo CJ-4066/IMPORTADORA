@@ -33,6 +33,23 @@ export type CatalogProduct = {
   updatedAt: string;
 };
 
+export type AdminProductListItem = {
+  id: string;
+  code: string;
+  name: string;
+  brand: string | null;
+  imageUrl: string | null;
+  thumbnailUrl: string | null;
+  unitPrice: number;
+  wholesalePrice: number | null;
+  stockUnits: number;
+  isVisible: boolean;
+  isFeatured: boolean;
+  hasPhoto: boolean;
+  lastSyncedAt: string | null;
+  updatedAt: string;
+};
+
 export type ProductMediaView = {
   id: string;
   type: "IMAGE" | "VIDEO";
@@ -207,6 +224,7 @@ export type AdminQuoteDetailView = Omit<AdminQuoteView, "items" | "itemCount"> &
 export type AdminQuotesData = {
   quotes: AdminQuoteView[];
   page: number;
+  pageSize: number;
   totalPages: number;
   totalResults: number;
   stats: {

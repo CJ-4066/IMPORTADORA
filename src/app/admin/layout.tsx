@@ -14,32 +14,32 @@ export default async function AdminLayout({
   return (
     <main className="admin-shell">
       <aside className="admin-sidebar">
-        <div className="stack-md">
+        <div className="admin-sidebar-main">
           <div className="admin-profile-card">
             <span className="admin-profile-badge">
               <ShieldCheck size={18} />
             </span>
-            <div className="stack-xs">
-              <p className="eyebrow">Sesión activa</p>
-              <h2>{session.name}</h2>
-              <p className="muted">{session.email}</p>
+            <div className="admin-profile-body">
+              <div className="stack-xs">
+                <p className="eyebrow">Sesión activa</p>
+                <h2>{session.name}</h2>
+              </div>
+              <div className="admin-profile-actions">
+                <Link className="button button-secondary button-chip" href="/">
+                  <Store size={16} />
+                  Ver catálogo
+                </Link>
+                <form action={logoutAction}>
+                  <button className="button button-ghost button-chip" type="submit">
+                    <LogOut size={16} />
+                    Cerrar sesión
+                  </button>
+                </form>
+              </div>
             </div>
           </div>
 
           <AdminNav />
-        </div>
-
-        <div className="stack-sm">
-          <Link className="button button-secondary" href="/">
-            <Store size={16} />
-            Ver catálogo
-          </Link>
-          <form action={logoutAction}>
-            <button className="button button-ghost admin-full-button" type="submit">
-              <LogOut size={16} />
-              Cerrar sesión
-            </button>
-          </form>
         </div>
       </aside>
 

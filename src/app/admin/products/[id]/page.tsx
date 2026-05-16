@@ -8,13 +8,16 @@ import { getCategoryOptions, getProductById } from "@/lib/store";
 
 type ProductEditPageProps = {
   params: Promise<{ id: string }>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
 export const dynamic = "force-dynamic";
 
-export default async function ProductEditPage({ params }: ProductEditPageProps) {
+export default async function ProductEditPage({ params, searchParams }: ProductEditPageProps) {
+  const query = searchParams ? await searchParams : undefined;
   const { id } = await params;
   const [product, categories] = await Promise.all([getProductById(id), getCategoryOptions()]);
+  const status = typeof query?.status === "string" ? query.status : "";
 
   if (!product) {
     notFound();
@@ -24,7 +27,6 @@ export default async function ProductEditPage({ params }: ProductEditPageProps) 
     <ProductForm
       action={updateProductFormAction}
       categories={categories}
-      description="Actualiza precios, stock y visibilidad. El cambio impacta en el catálogo público al instante."
       initialState={getEmptyProductActionState({
         code: product.code,
         name: product.name,
@@ -48,6 +50,7 @@ export default async function ProductEditPage({ params }: ProductEditPageProps) 
         isFeatured: product.isFeatured,
       })}
       product={product}
+      status={status}
       title={`Editar ${product.name}`}
     />
   );

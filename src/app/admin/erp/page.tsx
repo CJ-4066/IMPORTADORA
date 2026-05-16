@@ -42,16 +42,8 @@ function getStatusLabel(status: ErpSyncLogView["status"]) {
   }
 }
 
-function formatDuration(ms: number) {
-  const totalSeconds = Math.max(0, Math.floor(ms / 1000));
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-
-  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
-}
-
 export default async function ErpPage({ searchParams }: ErpPageProps) {
-  const syncLogs = await getRecentErpSyncLogs();
+  const syncLogs = await getRecentErpSyncLogs(5);
   const params = searchParams ? await searchParams : undefined;
   const syncStatus = typeof params?.syncStatus === "string" ? params.syncStatus : "";
   const syncError = typeof params?.syncError === "string" ? params.syncError : "";
@@ -66,12 +58,6 @@ export default async function ErpPage({ searchParams }: ErpPageProps) {
       : syncMode === "NEW_ONLY"
         ? "solo vincular nuevos"
         : "sincronización completa";
-  const successfulDurations = syncLogs
-    .filter((log) => log.status === "SUCCESS" && log.durationMs !== null)
-    .map((log) => log.durationMs as number);
-  const averageDurationMs = successfulDurations.length
-    ? Math.round(successfulDurations.reduce((total, value) => total + value, 0) / successfulDurations.length)
-    : null;
 
   return (
     <section className="panel">
@@ -80,9 +66,6 @@ export default async function ErpPage({ searchParams }: ErpPageProps) {
           <p className="eyebrow">ERP</p>
           <h1>Sincronización de productos</h1>
         </div>
-        <p className="panel-copy">
-          Toda la operación de sincronización vive aquí. El panel de configuración queda solo para ajustes globales del catálogo.
-        </p>
       </div>
 
       {syncStatus === "success" ? (
@@ -107,17 +90,10 @@ export default async function ErpPage({ searchParams }: ErpPageProps) {
             <p className="eyebrow">ERP</p>
             <h2>Sincronización de productos</h2>
           </div>
-          <p className="panel-copy">
-            El flujo actual sincroniza desde el ERP hacia la tienda. Para que ocurra cada 60 minutos, prográmalo en el VPS con `npm run sync:facturador-products`.
-          </p>
         </div>
 
         <div className="sync-panel-grid">
           <article className="sync-note-card">
-            <strong>Manual desde ERP</strong>
-            <p className="muted">
-              Ejecuta la sincronización cuando necesites traer productos nuevos, stock o cambios hechos en el ERP.
-            </p>
             <form action={syncProductsFromErpAction} className="sync-action-form">
               <input name="returnTo" type="hidden" value="/admin/erp" />
               <label className="field sync-mode-field">
@@ -131,51 +107,12 @@ export default async function ErpPage({ searchParams }: ErpPageProps) {
               <SubmitButton pendingLabel="Sincronizando...">Sincronizar desde ERP</SubmitButton>
             </form>
           </article>
-
-          <article className="sync-note-card">
-            <strong>Automática cada 60 minutos</strong>
-            <p className="muted">
-              Recomendado en el VPS con `cron`. Ejemplo:
-            </p>
-            <code className="sync-command">
-              0 * * * * cd /ruta/de/IMPORTADORA && ERP_SYNC_TRIGGER=AUTOMATIC npm run sync:facturador-products
-            </code>
-            <p className="muted">
-              Puedes añadir `ERP_SYNC_MODE=NEW_ONLY` si quieres crear solo productos nuevos sin
-              tocar los ya vinculados.
-            </p>
-            <p className="muted">
-              Si el ERP expone un filtro por fecha, añade `ERP_SYNC_MODE=INCREMENTAL` junto con
-              `FACTURADOR_SYNC_UPDATED_SINCE_PARAM` para leer solo cambios desde el último
-              checkpoint. Si aún no existe un checkpoint exitoso previo, la primera corrida
-              cargará todo el catálogo.
-            </p>
-          </article>
-
-          <article className="sync-note-card">
-            <strong>Estado actual del proyecto</strong>
-            <p className="muted">
-              Hoy el proyecto soporta `ERP → tienda`. La salida `tienda → ERP` todavía no está implementada, así que fotos, mayoristas y cambios web se guardan localmente.
-            </p>
-          </article>
-
-          <article className="sync-note-card">
-            <strong>Tiempo de referencia</strong>
-            <p className="muted">
-              {averageDurationMs !== null
-                ? `Promedio reciente: ${formatDuration(averageDurationMs)} por sincronización completa.`
-                : "Aún no hay suficientes ejecuciones cerradas para calcular un promedio."}
-            </p>
-          </article>
         </div>
 
         <div className="sync-history">
           <div className="sync-history-head">
             <div>
               <strong>Bitácora de sincronización</strong>
-              <p className="muted">
-                Últimas ejecuciones registradas desde admin o por tarea programada.
-              </p>
             </div>
           </div>
 
@@ -239,9 +176,7 @@ export default async function ErpPage({ searchParams }: ErpPageProps) {
               ))}
             </div>
           ) : (
-            <p className="muted">
-              Todavía no hay ejecuciones registradas. La primera sincronización creará la bitácora.
-            </p>
+            <p>Sin ejecuciones.</p>
           )}
         </div>
       </section>

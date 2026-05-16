@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import {
   PUBLIC_PAGE_SIZE,
   buildWhere,
+  buildRealProductPhotoWhere,
   getStoreSettings,
   mapCategory,
   mapProduct,
@@ -73,8 +74,7 @@ export async function getCatalogPageData(input: {
         where: {
           products: {
             some: {
-              isVisible: true,
-              stockUnits: { gt: 0 },
+              AND: [{ isVisible: true }, { stockUnits: { gt: 0 } }, buildRealProductPhotoWhere()],
             },
           },
         },
@@ -85,14 +85,15 @@ export async function getCatalogPageData(input: {
           isVisible: true,
           stockUnits: { gt: 0 },
           brand: { not: null },
+          ...buildRealProductPhotoWhere(),
         },
         distinct: ["brand"],
         orderBy: { brand: "asc" },
         select: { brand: true },
       }),
-      prisma.product.count({ where: { isVisible: true, stockUnits: { gt: 0 } } }),
+      prisma.product.count({ where: { AND: [{ isVisible: true }, { stockUnits: { gt: 0 } }, buildRealProductPhotoWhere()] } }),
       prisma.product.count({
-        where: { isVisible: true, isFeatured: true, stockUnits: { gt: 0 } },
+        where: { AND: [{ isVisible: true }, { isFeatured: true }, { stockUnits: { gt: 0 } }, buildRealProductPhotoWhere()] },
       }),
       getStoreSettings(),
     ]);
@@ -242,6 +243,7 @@ function buildBestSellerProductsWhere(bestSellerCodes: string[]) {
     AND: [
       { isVisible: true },
       { stockUnits: { gt: 0 } },
+      buildRealProductPhotoWhere(),
       {
         OR: [
           { code: { in: bestSellerCodes } },
@@ -296,6 +298,7 @@ export async function getCatalogSuggestions(query: string) {
     where: {
       isVisible: true,
       stockUnits: { gt: 0 },
+      AND: [buildRealProductPhotoWhere()],
       OR: [
         { code: { contains: trimmedQuery, mode: "insensitive" } },
         { name: { contains: trimmedQuery, mode: "insensitive" } },
@@ -315,6 +318,8 @@ export async function getCatalogProductBySlug(slug: string) {
     where: {
       slug,
       isVisible: true,
+      stockUnits: { gt: 0 },
+      AND: [buildRealProductPhotoWhere()],
     },
     include: {
       media: {
@@ -333,11 +338,13 @@ export async function getCatalogProductBySlug(slug: string) {
       where: {
         id: { not: product.id },
         isVisible: true,
+        stockUnits: { gt: 0 },
         ...(product.categoryId
           ? { categoryId: product.categoryId }
           : product.category
             ? { category: product.category }
             : {}),
+        AND: [buildRealProductPhotoWhere()],
       },
       include: {
         media: {
@@ -370,6 +377,7 @@ export async function getBrandOptions() {
       isVisible: true,
       stockUnits: { gt: 0 },
       brand: { not: null },
+      AND: [buildRealProductPhotoWhere()],
     },
     distinct: ["brand"],
     orderBy: { brand: "asc" },

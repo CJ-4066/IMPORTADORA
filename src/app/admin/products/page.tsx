@@ -44,6 +44,7 @@ export default async function AdminProductsPage({ searchParams }: AdminProductsP
       categories={data.categories}
       filters={{ q, category, brand, visibility, photo, stock }}
       page={data.page}
+      pageSize={data.pageSize}
       products={data.products}
       status={status}
       stats={data.stats}

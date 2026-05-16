@@ -9,6 +9,7 @@ import { isCartStoreHydrated, rehydrateCartStore, useCartStore } from "@/compone
 import { getSafeMediaUrl } from "@/lib/media-url";
 import { getPublicProductName } from "@/lib/product-name";
 import type { CatalogProduct, ProductMediaView, StoreSettingsView } from "@/lib/store";
+import { isGenericProductPhotoUrl } from "@/lib/store-shared";
 import { formatCurrency } from "@/lib/utils";
 import {
   getProductDiscountPercent,
@@ -24,7 +25,7 @@ type ProductDetailViewProps = {
 function getFallbackMedia(product: CatalogProduct): ProductMediaView | null {
   return product.primaryMedia
     ? product.primaryMedia
-    : product.imageUrl
+    : product.imageUrl && !isGenericProductPhotoUrl(product.imageUrl)
       ? {
           id: "legacy-image",
           type: "IMAGE",
@@ -39,7 +40,7 @@ export function ProductDetailView({ product, settings }: ProductDetailViewProps)
   const addItem = useCartStore((state) => state.addItem);
   const displayName = getPublicProductName(product.name);
   const gallery = useMemo(() => {
-    const media = product.media.length ? product.media : [];
+    const media = product.media.filter((item) => !isGenericProductPhotoUrl(item.url));
     const fallback = getFallbackMedia(product);
 
     if (media.length) {

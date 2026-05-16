@@ -4,14 +4,16 @@ import {
   ADMIN_PAGE_SIZE,
   buildComparisonMetric,
   buildWhere,
+  buildMissingProductPhotoWhere,
+  buildRealProductPhotoWhere,
   calculateDeltaPercent,
-  hasProductPhoto,
   mapCatalogMovementProduct,
-  mapCategory,
   mapErpSyncLog,
   mapProduct,
+  hasRealProductPhoto,
 } from "@/lib/store-shared";
 import type {
+  AdminProductListItem,
   AdminCategory,
   AdminQuoteDetailView,
   AdminQuotePdfNotificationView,
@@ -25,7 +27,40 @@ import type {
   ShopperQuoteView,
 } from "@/lib/store-types";
 
-const ADMIN_QUOTES_PAGE_SIZE = 20;
+const ADMIN_QUOTES_PAGE_SIZE = 10;
+
+function shouldLogAdminPerf() {
+  return process.env.NODE_ENV !== "production" || process.env.ADMIN_PERF_LOGS === "true";
+}
+
+async function profileAdminStep<T>(label: string, step: () => Promise<T>): Promise<T> {
+  const startedAt = Date.now();
+  const result = await step();
+
+  if (shouldLogAdminPerf()) {
+    console.info(`[admin-perf] ${label}: ${Date.now() - startedAt}ms`);
+  }
+
+  return result;
+}
+
+function logAdminPayload(
+  scope: string,
+  payload: unknown,
+  startedAt: number,
+  recordCount?: number,
+) {
+  if (!shouldLogAdminPerf()) {
+    return;
+  }
+
+  const serialized = JSON.stringify(payload);
+  const sizeKb = Buffer.byteLength(serialized, "utf8") / 1024;
+
+  console.info(
+    `[admin-perf] ${scope}: total=${Date.now() - startedAt}ms records=${recordCount ?? "n/a"} size=${sizeKb.toFixed(1)}KB`,
+  );
+}
 
 function mapQuoteStatusSteps(value: Prisma.JsonValue | null): AdminQuoteStatusStepView[] {
   if (!Array.isArray(value)) {
@@ -120,16 +155,35 @@ function formatDashboardPeriodTitle(period: DashboardPeriod, range: { start: Dat
   );
 }
 
-export async function getRecentErpSyncLogs(limit = 8): Promise<ErpSyncLogView[]> {
+export async function getRecentErpSyncLogs(limit = 5): Promise<ErpSyncLogView[]> {
   const logs = await prisma.erpSyncLog.findMany({
     orderBy: { createdAt: "desc" },
     take: limit,
+    select: {
+      id: true,
+      source: true,
+      trigger: true,
+      status: true,
+      fetchedCount: true,
+      createdCount: true,
+      updatedCount: true,
+      skippedCount: true,
+      errorMessage: true,
+      cancelRequestedAt: true,
+      initiatedByName: true,
+      initiatedByEmail: true,
+      canceledByName: true,
+      canceledByEmail: true,
+      startedAt: true,
+      finishedAt: true,
+    },
   });
 
-  return logs.map(mapErpSyncLog);
+  return logs.map((log) => mapErpSyncLog(log as Parameters<typeof mapErpSyncLog>[0]));
 }
 
 export async function getAdminDashboardData(period: DashboardPeriod = "MONTH") {
+  const startedAt = Date.now();
   const currentRange = getDashboardPeriodRange(period, 0);
   const previousRange = getDashboardPeriodRange(period, -1);
   const staleDate = new Date(Date.now() - 48 * 60 * 60 * 1000);
@@ -154,71 +208,115 @@ export async function getAdminDashboardData(period: DashboardPeriod = "MONTH") {
     staleSyncedProducts,
     recentlySyncedProducts,
     lowAvailabilityProducts,
-  ] = await prisma.$transaction([
-    prisma.product.count(),
-    prisma.product.count({ where: { isVisible: true, stockUnits: { gt: 0 } } }),
-    prisma.product.count({ where: { isVisible: false } }),
-    prisma.product.count({ where: { stockUnits: { gt: 0, lte: 12 } } }),
-    prisma.product.count({ where: { stockUnits: { lte: 0 } } }),
-    prisma.product.count({
-      where: { syncEnabled: true, isVisible: false, stockUnits: { lte: 0 } },
-    }),
-    prisma.product.count({
-      where: { syncEnabled: true, isVisible: true, stockUnits: { lte: 0 } },
-    }),
-    prisma.product.count({
-      where: { imageUrl: null, media: { none: {} }, isVisible: false },
-    }),
-    prisma.product.count({
-      where: { imageUrl: null, media: { none: {} }, isVisible: true },
-    }),
-    prisma.product.count({
-      where: { imageUrl: null, media: { none: {} } },
-    }),
-    prisma.category.count(),
-    prisma.storeSettings.findUnique({ where: { id: 1 } }),
-    prisma.erpSyncLog.aggregate({
-      where: {
-        startedAt: { gte: currentRange.start, lt: currentRange.end },
-        status: "SUCCESS",
-      },
-      _sum: {
-        fetchedCount: true,
-        createdCount: true,
-        updatedCount: true,
-        skippedCount: true,
-      },
-      _count: true,
-    }),
-    prisma.erpSyncLog.aggregate({
-      where: {
-        startedAt: { gte: previousRange.start, lt: previousRange.end },
-        status: "SUCCESS",
-      },
-      _sum: {
-        fetchedCount: true,
-        createdCount: true,
-        updatedCount: true,
-        skippedCount: true,
-      },
-      _count: true,
-    }),
-    prisma.erpSyncLog.findFirst({
-      orderBy: { startedAt: "desc" },
-    }),
-    prisma.product.count({ where: { syncEnabled: true } }),
-    prisma.product.count({ where: { lastSyncedAt: null } }),
-    prisma.product.count({ where: { syncEnabled: true, lastSyncedAt: { lt: staleDate } } }),
-    prisma.product.findMany({
-      where: { syncEnabled: true, lastSyncedAt: { not: null } },
-      orderBy: [{ lastSyncedAt: "desc" }, { stockUnits: "desc" }],
-      take: 4,
-    }),
-    prisma.product.findMany({
-      where: { isVisible: true, stockUnits: { gt: 0, lte: 12 } },
-      orderBy: [{ stockUnits: "asc" }, { lastSyncedAt: "asc" }],
-      take: 4,
-    }),
+  ] = await Promise.all([
+    profileAdminStep("dashboard.total-products", () => prisma.product.count()),
+    profileAdminStep("dashboard.visible-products", () =>
+      prisma.product.count({ where: { isVisible: true, stockUnits: { gt: 0 } } }),
+    ),
+    profileAdminStep("dashboard.hidden-products", () => prisma.product.count({ where: { isVisible: false } })),
+    profileAdminStep("dashboard.low-stock-products", () =>
+      prisma.product.count({ where: { stockUnits: { gt: 0, lte: 12 } } }),
+    ),
+    profileAdminStep("dashboard.out-of-stock-products", () =>
+      prisma.product.count({ where: { stockUnits: { lte: 0 } } }),
+    ),
+    profileAdminStep("dashboard.hidden-oos-products", () =>
+      prisma.product.count({
+        where: { syncEnabled: true, isVisible: false, stockUnits: { lte: 0 } },
+      }),
+    ),
+    profileAdminStep("dashboard.visible-oos-products", () =>
+      prisma.product.count({
+        where: { syncEnabled: true, isVisible: true, stockUnits: { lte: 0 } },
+      }),
+    ),
+    profileAdminStep("dashboard.hidden-without-photo", () =>
+      prisma.product.count({
+        where: { AND: [{ isVisible: false }, buildMissingProductPhotoWhere()] },
+      }),
+    ),
+    profileAdminStep("dashboard.visible-without-photo", () =>
+      prisma.product.count({
+        where: { AND: [{ isVisible: true }, buildMissingProductPhotoWhere()] },
+      }),
+    ),
+    profileAdminStep("dashboard.products-without-photo", () =>
+      prisma.product.count({ where: buildMissingProductPhotoWhere() }),
+    ),
+    profileAdminStep("dashboard.total-categories", () => prisma.category.count()),
+    profileAdminStep("dashboard.settings", () => prisma.storeSettings.findUnique({ where: { id: 1 } })),
+    profileAdminStep("dashboard.current-sync-aggregate", () =>
+      prisma.erpSyncLog.aggregate({
+        where: {
+          startedAt: { gte: currentRange.start, lt: currentRange.end },
+          status: "SUCCESS",
+        },
+        _sum: {
+          fetchedCount: true,
+          createdCount: true,
+          updatedCount: true,
+          skippedCount: true,
+        },
+        _count: true,
+      }),
+    ),
+    profileAdminStep("dashboard.previous-sync-aggregate", () =>
+      prisma.erpSyncLog.aggregate({
+        where: {
+          startedAt: { gte: previousRange.start, lt: previousRange.end },
+          status: "SUCCESS",
+        },
+        _sum: {
+          fetchedCount: true,
+          createdCount: true,
+          updatedCount: true,
+          skippedCount: true,
+        },
+        _count: true,
+      }),
+    ),
+    profileAdminStep("dashboard.last-sync", () =>
+      prisma.erpSyncLog.findFirst({
+        orderBy: { startedAt: "desc" },
+      }),
+    ),
+    profileAdminStep("dashboard.synced-products", () =>
+      prisma.product.count({ where: { syncEnabled: true } }),
+    ),
+    profileAdminStep("dashboard.never-synced-products", () =>
+      prisma.product.count({ where: { lastSyncedAt: null } }),
+    ),
+    profileAdminStep("dashboard.stale-synced-products", () =>
+      prisma.product.count({ where: { syncEnabled: true, lastSyncedAt: { lt: staleDate } } }),
+    ),
+    profileAdminStep("dashboard.recently-synced-products", () =>
+      prisma.product.findMany({
+        where: { syncEnabled: true, lastSyncedAt: { not: null } },
+        orderBy: [{ lastSyncedAt: "desc" }, { stockUnits: "desc" }],
+        take: 4,
+        select: {
+          code: true,
+          name: true,
+          stockUnits: true,
+          lastSyncedAt: true,
+          updatedAt: true,
+        },
+      }),
+    ),
+    profileAdminStep("dashboard.low-availability-products", () =>
+      prisma.product.findMany({
+        where: { isVisible: true, stockUnits: { gt: 0, lte: 12 } },
+        orderBy: [{ stockUnits: "asc" }, { lastSyncedAt: "asc" }],
+        take: 4,
+        select: {
+          code: true,
+          name: true,
+          stockUnits: true,
+          lastSyncedAt: true,
+          updatedAt: true,
+        },
+      }),
+    ),
   ]);
 
   const currentFetched = currentSyncAggregate._sum.fetchedCount ?? 0;
@@ -246,8 +344,7 @@ export async function getAdminDashboardData(period: DashboardPeriod = "MONTH") {
     ? Math.max(...trendProducts.map((product) => product.unitsSold))
     : 1;
   const successfulSyncs = currentSyncAggregate._count;
-
-  return {
+  const payload = {
     totalProducts,
     visibleProducts,
     hiddenProducts,
@@ -299,6 +396,15 @@ export async function getAdminDashboardData(period: DashboardPeriod = "MONTH") {
       maxUnitsSold,
     },
   };
+
+  logAdminPayload(
+    "dashboard.payload",
+    payload,
+    startedAt,
+    recentlySyncedProducts.length + lowAvailabilityProducts.length,
+  );
+
+  return payload;
 }
 
 export async function getAdminProducts(input: {
@@ -310,8 +416,15 @@ export async function getAdminProducts(input: {
   stock?: "all" | "low";
   page?: number;
 }) {
+  const startedAt = Date.now();
   const page = Math.max(1, input.page ?? 1);
   const baseWhere = buildWhere(input.query, input.category, input.brand, false);
+  const photoWhere =
+    input.photo === "missing"
+      ? buildMissingProductPhotoWhere()
+      : input.photo === "with-photo"
+        ? buildRealProductPhotoWhere()
+        : undefined;
   const baseConditions: Prisma.ProductWhereInput[] = [
     baseWhere,
     ...(input.visibility === "visible"
@@ -320,76 +433,131 @@ export async function getAdminProducts(input: {
         ? [{ isVisible: false }]
         : []),
     ...(input.stock === "low" ? [{ stockUnits: { lte: 12 } }] : []),
+    ...(photoWhere ? [photoWhere] : []),
   ];
 
   const filtersWhere: Prisma.ProductWhereInput = {
     AND: baseConditions,
   };
 
-  const [allFilteredProducts, categories, brands, statsProducts] = await prisma.$transaction([
-    prisma.product.findMany({
-      where: filtersWhere,
-      include: {
-        media: {
-          orderBy: { sortOrder: "asc" },
+  const [
+    products,
+    categories,
+    brands,
+    totalProducts,
+    visibleProductsCount,
+    hiddenProductsCount,
+    withPhotoProductsCount,
+    withoutPhotoProductsCount,
+    totalResults,
+  ] = await Promise.all([
+    profileAdminStep("products.page", () =>
+      prisma.product.findMany({
+        where: filtersWhere,
+        select: {
+          id: true,
+          code: true,
+          name: true,
+          brand: true,
+          imageUrl: true,
+          unitPrice: true,
+          wholesalePrice: true,
+          stockUnits: true,
+          isVisible: true,
+          isFeatured: true,
+          lastSyncedAt: true,
+          updatedAt: true,
+          media: {
+            take: 1,
+            orderBy: { sortOrder: "asc" },
+            select: {
+              url: true,
+            },
+          },
         },
-      },
-      orderBy: [{ updatedAt: "desc" }, { name: "asc" }],
-    }),
-    prisma.category.findMany({
-      orderBy: { name: "asc" },
-    }),
-    prisma.product.findMany({
-      where: { brand: { not: null } },
-      distinct: ["brand"],
-      orderBy: { brand: "asc" },
-      select: { brand: true },
-    }),
-    prisma.product.findMany({
-      select: {
-        imageUrl: true,
-        isVisible: true,
-        media: {
-          select: { url: true },
+        orderBy: [{ updatedAt: "desc" }, { name: "asc" }],
+        skip: (page - 1) * ADMIN_PAGE_SIZE,
+        take: ADMIN_PAGE_SIZE,
+      }),
+    ),
+    profileAdminStep("products.categories", () =>
+      prisma.category.findMany({
+        orderBy: { name: "asc" },
+        select: {
+          id: true,
+          name: true,
+          slug: true,
         },
-      },
-    }),
+      })),
+    profileAdminStep("products.brands", () =>
+      prisma.product.findMany({
+        where: { brand: { not: null } },
+        distinct: ["brand"],
+        orderBy: { brand: "asc" },
+        select: { brand: true },
+      })),
+    profileAdminStep("products.total", () => prisma.product.count()),
+    profileAdminStep("products.visible", () => prisma.product.count({ where: { isVisible: true } })),
+    profileAdminStep("products.hidden", () => prisma.product.count({ where: { isVisible: false } })),
+    profileAdminStep("products.with-photo", () =>
+      prisma.product.count({ where: buildRealProductPhotoWhere() })),
+    profileAdminStep("products.without-photo", () =>
+      prisma.product.count({ where: buildMissingProductPhotoWhere() })),
+    profileAdminStep("products.filtered", () => prisma.product.count({ where: filtersWhere })),
   ]);
 
-  const filteredProducts =
-    input.photo === "all"
-      ? allFilteredProducts
-      : allFilteredProducts.filter((product) =>
-          input.photo === "missing"
-            ? !hasProductPhoto({ imageUrl: product.imageUrl, media: product.media })
-            : hasProductPhoto({ imageUrl: product.imageUrl, media: product.media }),
-        );
-  const visibleProductsCount = statsProducts.filter((product) => product.isVisible).length;
-  const hiddenProductsCount = statsProducts.length - visibleProductsCount;
-  const productsWithoutPhotoCount = statsProducts.filter(
-    (product) => !hasProductPhoto({ imageUrl: product.imageUrl, media: product.media }),
-  ).length;
-  const withPhotoProductsCount = statsProducts.length - productsWithoutPhotoCount;
-  const pageSlice = filteredProducts.slice((page - 1) * ADMIN_PAGE_SIZE, page * ADMIN_PAGE_SIZE);
+  const payload = {
+    products: products.map((product) => {
+      const imageUrl = product.imageUrl?.trim() ?? "";
+      const mediaUrl = product.media[0]?.url?.trim() ?? "";
+      const hasPhoto = hasRealProductPhoto({
+        imageUrl: imageUrl || null,
+        media: mediaUrl ? [{ url: mediaUrl }] : [],
+      });
+      const thumbnailUrl = hasPhoto ? imageUrl || mediaUrl || null : null;
 
-  return {
-    products: pageSlice.map(mapProduct),
-    categories: categories.map(mapCategory),
+      return {
+        id: product.id,
+        code: product.code,
+        name: product.name,
+        brand: product.brand,
+        imageUrl: imageUrl || null,
+        thumbnailUrl,
+        unitPrice: Number(product.unitPrice),
+        wholesalePrice: product.wholesalePrice === null ? null : Number(product.wholesalePrice),
+        stockUnits: product.stockUnits,
+        isVisible: product.isVisible,
+        isFeatured: product.isFeatured,
+        hasPhoto,
+        lastSyncedAt: product.lastSyncedAt?.toISOString() ?? null,
+        updatedAt: product.updatedAt.toISOString(),
+      } satisfies AdminProductListItem;
+    }),
+    categories: categories.map((category) => ({
+      id: category.id,
+      name: category.name,
+      slug: category.slug,
+    })),
     brands: brands
       .map((item) => item.brand?.trim())
       .filter((value): value is string => Boolean(value))
       .map((name) => ({ name })),
     stats: {
-      totalProducts: statsProducts.length,
+      totalProducts,
       withPhotoProducts: withPhotoProductsCount,
-      withoutPhotoProducts: productsWithoutPhotoCount,
+      withoutPhotoProducts: withoutPhotoProductsCount,
       visibleProducts: visibleProductsCount,
       hiddenProducts: hiddenProductsCount,
     },
-    totalResults: filteredProducts.length,
-    totalPages: Math.max(1, Math.ceil(filteredProducts.length / ADMIN_PAGE_SIZE)),
+    totalResults,
+    totalPages: Math.max(1, Math.ceil(totalResults / ADMIN_PAGE_SIZE)),
+    pageSize: ADMIN_PAGE_SIZE,
     page,
   };
+
+  logAdminPayload("products.payload", payload, startedAt, products.length);
+
+  return payload;
 }
 
 export async function getProductById(id: string) {
@@ -556,6 +724,7 @@ export async function getAdminQuotes(input: {
   page?: number;
   status?: QuoteStatus | "all";
 } = {}): Promise<AdminQuotesData> {
+  const startedAt = Date.now();
   const page = Math.max(1, input.page ?? 1);
   const where: Prisma.QuoteWhereInput =
     input.status && input.status !== "all" ? { status: input.status } : {};
@@ -567,38 +736,52 @@ export async function getAdminQuotes(input: {
     pendingQuotes,
     registeredQuotes,
     errorQuotes,
-  ] = await prisma.$transaction([
-    prisma.quote.findMany({
-      where,
-      orderBy: { createdAt: "desc" },
-      take: ADMIN_QUOTES_PAGE_SIZE,
-      skip: (page - 1) * ADMIN_QUOTES_PAGE_SIZE,
-      include: {
-        user: {
-          select: {
-            email: true,
-            name: true,
+  ] = await Promise.all([
+    profileAdminStep("quotes.page", () =>
+      prisma.quote.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        take: ADMIN_QUOTES_PAGE_SIZE,
+        skip: (page - 1) * ADMIN_QUOTES_PAGE_SIZE,
+        select: {
+          id: true,
+          quoteNumber: true,
+          status: true,
+          total: true,
+          currencySymbol: true,
+          customerName: true,
+          customerPhone: true,
+          customerEmail: true,
+          erpCustomerMode: true,
+          createdAt: true,
+          user: {
+            select: {
+              email: true,
+              name: true,
+            },
+          },
+          items: {
+            orderBy: { createdAt: "asc" },
+            select: {
+              code: true,
+              name: true,
+              quantity: true,
+              total: true,
+            },
           },
         },
-        items: {
-          orderBy: { createdAt: "asc" },
-          select: {
-            code: true,
-            name: true,
-            quantity: true,
-            total: true,
-          },
-        },
-      },
-    }),
-    prisma.quote.count({ where }),
-    prisma.quote.count(),
-    prisma.quote.count({ where: { status: "PENDING" } }),
-    prisma.quote.count({ where: { status: "ERP_REGISTERED" } }),
-    prisma.quote.count({ where: { status: "ERROR" } }),
+      }),
+    ),
+    profileAdminStep("quotes.filtered", () => prisma.quote.count({ where })),
+    profileAdminStep("quotes.total", () => prisma.quote.count()),
+    profileAdminStep("quotes.pending", () => prisma.quote.count({ where: { status: "PENDING" } })),
+    profileAdminStep("quotes.registered", () =>
+      prisma.quote.count({ where: { status: "ERP_REGISTERED" } }),
+    ),
+    profileAdminStep("quotes.error", () => prisma.quote.count({ where: { status: "ERROR" } })),
   ]);
 
-  return {
+  const payload = {
     quotes: quotes.map((quote) => ({
       id: quote.id,
       quoteNumber: quote.quoteNumber,
@@ -625,6 +808,7 @@ export async function getAdminQuotes(input: {
         : null,
     })),
     page,
+    pageSize: ADMIN_QUOTES_PAGE_SIZE,
     totalPages: Math.max(1, Math.ceil(totalResults / ADMIN_QUOTES_PAGE_SIZE)),
     totalResults,
     stats: {
@@ -634,6 +818,10 @@ export async function getAdminQuotes(input: {
       error: errorQuotes,
     },
   };
+
+  logAdminPayload("quotes.payload", payload, startedAt, quotes.length);
+
+  return payload;
 }
 
 export async function getAdminQuoteById(id: string): Promise<AdminQuoteDetailView | null> {

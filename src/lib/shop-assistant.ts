@@ -1,5 +1,6 @@
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { buildRealProductPhotoWhere } from "@/lib/store-shared";
 import { buildPublicWhatsappHref, formatCurrency } from "@/lib/utils";
 import type {
   ShopAssistantProductCard,
@@ -622,6 +623,7 @@ function createRealRepository(): ShopAssistantRepository {
 
       return prisma.product.findFirst({
         where: {
+          AND: [buildRealProductPhotoWhere()],
           OR: [
             ...candidates.map((candidate) => ({
               code: {
@@ -688,6 +690,7 @@ function createRealRepository(): ShopAssistantRepository {
         where: {
           isVisible: true,
           stockUnits: { gt: 0 },
+          AND: [buildRealProductPhotoWhere()],
           OR: filters.length
             ? filters
             : [
@@ -732,6 +735,7 @@ function createRealRepository(): ShopAssistantRepository {
           isVisible: true,
           stockUnits: { gt: 0 },
           isFeatured: true,
+          AND: [buildRealProductPhotoWhere()],
         },
         orderBy: [{ updatedAt: "desc" }],
         take: MAX_PRODUCTS,
@@ -763,6 +767,7 @@ function createRealRepository(): ShopAssistantRepository {
           isVisible: true,
           stockUnits: { gt: 0 },
           categoryId,
+          AND: [buildRealProductPhotoWhere()],
         },
         orderBy: [{ isFeatured: "desc" }, { updatedAt: "desc" }],
         take: MAX_PRODUCTS,
@@ -794,6 +799,7 @@ function createRealRepository(): ShopAssistantRepository {
           id: { not: product.id },
           isVisible: true,
           stockUnits: { gt: 0 },
+          AND: [buildRealProductPhotoWhere()],
           ...(product.categoryId
             ? { categoryId: product.categoryId }
             : product.category

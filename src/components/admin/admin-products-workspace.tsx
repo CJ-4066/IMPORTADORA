@@ -1,7 +1,8 @@
 "use client";
 
+import { createPortal } from "react-dom";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Eye,
@@ -10,18 +11,22 @@ import {
   ImageOff,
   ImagePlus,
   PencilLine,
+  MoreHorizontal,
   Square,
   SquareCheckBig,
+  Trash2,
 } from "lucide-react";
-import type { BrandOption, CatalogProduct, CategoryOption } from "@/lib/store";
+import { deleteProductAction } from "@/app/admin/actions";
+import type { AdminProductListItem, BrandOption, CategoryOption } from "@/lib/store";
 import { formatCurrency } from "@/lib/utils";
 
 type AdminProductsWorkspaceProps = {
-  products: CatalogProduct[];
+  products: AdminProductListItem[];
   categories: CategoryOption[];
   brands: BrandOption[];
   status: string;
   page: number;
+  pageSize: number;
   totalPages: number;
   totalResults: number;
   stats: {
@@ -47,6 +52,17 @@ type ToastState = {
   tone: "success" | "error" | "info";
   message: string;
 } | null;
+
+const statusMessages: Record<string, { tone: "success" | "error" | "info"; message: string }> = {
+  created: { tone: "success", message: "Producto creado correctamente." },
+  updated: { tone: "success", message: "Cambios guardados correctamente." },
+  deleted: { tone: "success", message: "Producto eliminado correctamente." },
+  "bulk-hidden": { tone: "success", message: "Los productos seleccionados fueron ocultados." },
+  "bulk-deleted": { tone: "success", message: "Los productos seleccionados fueron eliminados." },
+  "photo-hidden": { tone: "success", message: "Se ocultaron los productos sin foto." },
+  "no-selection": { tone: "info", message: "Selecciona al menos un producto." },
+  "invalid-action": { tone: "error", message: "La acción solicitada no es válida." },
+};
 
 function buildQuery(filters: AdminProductsWorkspaceProps["filters"], extra: Partial<Record<string, string>> = {}) {
   const params = new URLSearchParams();
@@ -117,28 +133,36 @@ export function AdminProductsWorkspace({
   page,
   totalPages,
   totalResults,
+  pageSize,
   stats,
   filters,
 }: AdminProductsWorkspaceProps) {
   const router = useRouter();
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [pendingAction, setPendingAction] = useState<BulkAction | null>(null);
-  const [toast, setToast] = useState<ToastState>(
-    status ? { tone: "success", message: `Operación completada: ${status}` } : null,
-  );
+  const [openMenuProductId, setOpenMenuProductId] = useState<string | null>(null);
+  const [openMenuPosition, setOpenMenuPosition] = useState<{ top: number; left: number } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ productId: string; productName: string } | null>(null);
+  const menuButtonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const deleteFormRef = useRef<HTMLFormElement | null>(null);
+  const [toast, setToast] = useState<ToastState>(status ? statusMessages[status] ?? {
+    tone: "success",
+    message: "Operación completada correctamente.",
+  } : null);
 
   const selectedCount = selectedIds.length;
   const allSelected = products.length > 0 && selectedCount === products.length;
-
-  const selectedLabel = useMemo(() => {
-    if (!selectedCount) {
-      return "No hay productos seleccionados.";
-    }
-
-    return `${selectedCount} productos seleccionados.`;
-  }, [selectedCount]);
+  const pageStart = totalResults > 0 ? (page - 1) * pageSize + 1 : 0;
+  const pageEnd = Math.min(page * pageSize, totalResults);
 
   const currentHref = useMemo(() => `/admin/products?${buildQuery(filters)}`, [filters]);
+  const hasAnyFilter =
+    Boolean(filters.q) ||
+    filters.category !== "all" ||
+    filters.brand !== "all" ||
+    filters.visibility !== "all" ||
+    filters.photo !== "all" ||
+    filters.stock !== "all";
 
   function toggleSelection(productId: string) {
     setSelectedIds((current) =>
@@ -148,6 +172,36 @@ export function AdminProductsWorkspace({
 
   function setAllSelected(nextValue: boolean) {
     setSelectedIds(nextValue ? products.map((product) => product.id) : []);
+  }
+
+  function closeMenu() {
+    setOpenMenuProductId(null);
+    setOpenMenuPosition(null);
+  }
+
+  function closeDeleteTarget() {
+    setDeleteTarget(null);
+  }
+
+  function openMenu(productId: string) {
+    const button = menuButtonRefs.current[productId];
+
+    if (!button) {
+      return;
+    }
+
+    const rect = button.getBoundingClientRect();
+    const estimatedWidth = 18 * 16;
+    const estimatedHeight = 220;
+    const shouldOpenAbove = rect.bottom + estimatedHeight + 16 > window.innerHeight;
+    const top = shouldOpenAbove ? Math.max(12, rect.top - estimatedHeight - 12) : rect.bottom + 12;
+    const left = Math.min(
+      Math.max(12, rect.right - estimatedWidth),
+      window.innerWidth - estimatedWidth - 12,
+    );
+
+    setOpenMenuProductId(productId);
+    setOpenMenuPosition({ top, left });
   }
 
   async function runBulkAction(action: BulkAction, productIds: string[]) {
@@ -186,6 +240,7 @@ export function AdminProductsWorkspace({
             : `${totalUpdated} productos actualizados correctamente.`,
       });
       router.refresh();
+      closeMenu();
     } catch (error) {
       setToast({
         tone: "error",
@@ -200,6 +255,52 @@ export function AdminProductsWorkspace({
     await runBulkAction(action, [productId]);
   }
 
+  useEffect(() => {
+    function handlePointerDown(event: PointerEvent) {
+      const target = event.target;
+
+      if (!(target instanceof Node)) {
+        return;
+      }
+
+      const popover = document.querySelector(".admin-product-more-popover");
+      if (popover && !popover.contains(target)) {
+        closeMenu();
+      }
+
+      const deleteDialog = document.querySelector(".admin-confirm-dialog");
+      if (deleteDialog && !deleteDialog.contains(target)) {
+        closeDeleteTarget();
+      }
+    }
+
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        closeMenu();
+      }
+    }
+
+    function handleViewportChange() {
+      closeMenu();
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleEscape);
+    window.addEventListener("resize", handleViewportChange);
+    window.addEventListener("scroll", handleViewportChange, true);
+
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleEscape);
+      window.removeEventListener("resize", handleViewportChange);
+      window.removeEventListener("scroll", handleViewportChange, true);
+    };
+  }, []);
+
+  const activeProduct = openMenuProductId
+    ? products.find((product) => product.id === openMenuProductId) ?? null
+    : null;
+
   return (
     <section className="panel admin-products-panel">
       <div className="panel-header">
@@ -207,9 +308,6 @@ export function AdminProductsWorkspace({
           <p className="eyebrow">Productos</p>
           <h1>Listado optimizado para catálogo grande</h1>
         </div>
-        <p className="panel-copy">
-          Búsqueda rápida por código, nombre, marca o categoría. Diseñado para trabajar bien incluso con miles de SKU.
-        </p>
       </div>
 
       {toast ? (
@@ -217,7 +315,7 @@ export function AdminProductsWorkspace({
           <strong>{toast.tone === "success" ? "Listo" : toast.tone === "error" ? "Error" : "Aviso"}</strong>
           <span>{toast.message}</span>
           <button
-            className="icon-button"
+            className="icon-button admin-toast-close"
             onClick={() => setToast(null)}
             type="button"
           >
@@ -255,24 +353,6 @@ export function AdminProductsWorkspace({
       </div>
 
       <div className="admin-products-toolbar">
-        <div className="admin-products-chip-row">
-          <Link className={`admin-chip${filters.photo === "all" && filters.visibility === "all" ? " is-active" : ""}`} href={`/admin/products?${buildQuery(filters, { photo: "", visibility: "" })}`}>
-            Todos
-          </Link>
-          <Link className={`admin-chip${filters.photo === "with-photo" ? " is-active" : ""}`} href={`/admin/products?${buildQuery(filters, { photo: "with-photo" })}`}>
-            Con foto
-          </Link>
-          <Link className={`admin-chip${filters.photo === "missing" ? " is-active" : ""}`} href={`/admin/products?${buildQuery(filters, { photo: "missing" })}`}>
-            Sin foto
-          </Link>
-          <Link className={`admin-chip${filters.visibility === "visible" ? " is-active" : ""}`} href={`/admin/products?${buildQuery(filters, { visibility: "visible" })}`}>
-            Visibles
-          </Link>
-          <Link className={`admin-chip${filters.visibility === "hidden" ? " is-active" : ""}`} href={`/admin/products?${buildQuery(filters, { visibility: "hidden" })}`}>
-            Ocultos
-          </Link>
-        </div>
-
         <form className="filters-form admin-filters" method="GET">
           <label className="search-field">
             <Filter size={18} />
@@ -311,63 +391,76 @@ export function AdminProductsWorkspace({
           <button className="button button-primary" type="submit">
             Buscar
           </button>
-          <Link className="button button-secondary" href="/admin/categories">
-            Categorías
-          </Link>
-          <Link className="button button-secondary" href="/admin/products/new">
-            Nuevo producto
-          </Link>
+          {hasAnyFilter ? (
+            <Link className="button button-secondary" href="/admin/products">
+              Limpiar
+            </Link>
+          ) : null}
         </form>
 
-        <div className="admin-products-bulk-row">
-          <span className="muted">{selectedLabel}</span>
-          <div className="actions-row admin-products-bulk-actions">
-            <button
-              className="button button-secondary"
-              disabled={pendingAction !== null || selectedCount === 0}
-              onClick={() => void runBulkAction("hide", selectedIds)}
-              type="button"
-            >
-              Ocultar seleccionados
-            </button>
-            <button
-              className="button button-secondary"
-              disabled={pendingAction !== null || selectedCount === 0}
-              onClick={() => void runBulkAction("show", selectedIds)}
-              type="button"
-            >
-              Mostrar seleccionados
-            </button>
-            <button
-              className="button button-secondary"
-              disabled={pendingAction !== null || selectedCount === 0}
-              onClick={() => void runBulkAction("feature", selectedIds)}
-              type="button"
-            >
-              Marcar destacados
-            </button>
-            <button
-              className="button button-secondary"
-              disabled={pendingAction !== null || selectedCount === 0}
-              onClick={() => void runBulkAction("unfeature", selectedIds)}
-              type="button"
-            >
-              Quitar destacados
-            </button>
-            <button
-              className="button button-primary"
-              disabled={pendingAction !== null}
-              onClick={() => void runBulkAction("hide-without-photo", [])}
-              type="button"
-            >
-              Ocultar todos sin foto
-            </button>
+        <div className="admin-products-utility-row">
+          <div className="admin-products-utility-links">
+            <Link className="button button-secondary" href="/admin/categories">
+              Categorías
+            </Link>
+            <Link className="button button-secondary" href="/admin/products/new">
+              Nuevo producto
+            </Link>
           </div>
+
+          <button
+            className="button button-primary"
+            disabled={pendingAction !== null}
+            onClick={() => void runBulkAction("hide-without-photo", [])}
+            type="button"
+          >
+            Ocultar todos sin foto
+          </button>
         </div>
       </div>
 
+      {selectedCount > 0 ? (
+        <div className="admin-products-selection-bar">
+          <strong>{selectedCount} seleccionados</strong>
+          <div className="actions-row admin-products-bulk-actions">
+            <button
+              className="button button-secondary"
+              disabled={pendingAction !== null}
+              onClick={() => void runBulkAction("hide", selectedIds)}
+              type="button"
+            >
+              Ocultar
+            </button>
+            <button
+              className="button button-secondary"
+              disabled={pendingAction !== null}
+              onClick={() => void runBulkAction("show", selectedIds)}
+              type="button"
+            >
+              Mostrar
+            </button>
+            <button
+              className="button button-secondary"
+              disabled={pendingAction !== null}
+              onClick={() => void runBulkAction("feature", selectedIds)}
+              type="button"
+            >
+              Destacar
+            </button>
+            <button
+              className="button button-secondary"
+              disabled={pendingAction !== null}
+              onClick={() => void runBulkAction("unfeature", selectedIds)}
+              type="button"
+            >
+              Quitar destacado
+            </button>
+          </div>
+        </div>
+      ) : null}
+
       <p className="results-copy">
-        {totalResults} productos encontrados. Página {page} de {totalPages}.
+        Mostrando {pageStart}–{pageEnd} de {totalResults} · página {page} de {totalPages}.
       </p>
 
       {products.length ? (
@@ -397,6 +490,7 @@ export function AdminProductsWorkspace({
             <tbody>
               {products.map((product) => {
                 const hasPhoto = product.hasPhoto;
+                const isEffectivelyVisible = product.isVisible && hasPhoto;
 
                 return (
                   <tr key={product.id}>
@@ -413,23 +507,41 @@ export function AdminProductsWorkspace({
                       <p className="muted">{product.brand ?? "Sin marca"}</p>
                     </td>
                     <td data-label="Foto">
-                      {hasPhoto ? (
-                        <span className="status-badge is-visible">Con foto</span>
-                      ) : (
-                        <span className="status-badge is-hidden">Sin foto</span>
-                      )}
+                      <div className="admin-product-photo-cell">
+                        {product.thumbnailUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            alt={product.name}
+                            className="admin-product-thumb"
+                            height={40}
+                            decoding="async"
+                            loading="lazy"
+                            src={product.thumbnailUrl}
+                            width={40}
+                          />
+                        ) : (
+                          <span className="admin-product-thumb admin-product-thumb-empty">
+                            <ImageOff size={16} />
+                          </span>
+                        )}
+                        {hasPhoto ? (
+                          <span className="status-badge is-visible">Con foto</span>
+                        ) : (
+                          <span className="status-badge is-hidden">Sin foto</span>
+                        )}
+                      </div>
                     </td>
                     <td data-label="Código">{product.code}</td>
                     <td data-label="Precios">
                       <strong>{formatCurrency(product.unitPrice)}</strong>
-                      <p className="muted">
-                        Mayor: {product.wholesalePrice ? formatCurrency(product.wholesalePrice) : "igual"}
-                      </p>
+                      {product.wholesalePrice ? (
+                        <p className="muted">Mayor: {formatCurrency(product.wholesalePrice)}</p>
+                      ) : null}
                     </td>
                     <td data-label="Stock">{product.stockUnits}</td>
                     <td data-label="Estado">
-                      <span className={`status-badge ${product.isVisible ? "is-visible" : "is-hidden"}`}>
-                        {product.isVisible ? "Visible" : "Oculto"}
+                      <span className={`status-badge ${isEffectivelyVisible ? "is-visible" : "is-hidden"}`}>
+                        {isEffectivelyVisible ? "Visible" : "Oculto"}
                       </span>
                       {product.isFeatured ? (
                         <span className="status-badge is-visible">Destacado</span>
@@ -437,42 +549,33 @@ export function AdminProductsWorkspace({
                     </td>
                     <td data-label="Acciones">
                       <div className="table-actions admin-product-actions">
-                        {!hasPhoto ? (
-                          <span className="status-badge is-hidden">Sin foto</span>
-                        ) : null}
-                        {!hasPhoto ? (
-                          <button
-                            className="button button-secondary button-chip"
-                            disabled={pendingAction !== null}
-                            onClick={() => void runSingleAction("hide", product.id)}
-                            type="button"
-                          >
-                            Ocultar
-                          </button>
-                        ) : null}
+                        <Link className="icon-button" href={`/admin/products/${product.id}`}>
+                          <PencilLine size={16} />
+                        </Link>
                         {!hasPhoto ? (
                           <Link className="button button-secondary button-chip" href={`/admin/products/${product.id}#media`}>
                             Agregar foto
                           </Link>
                         ) : null}
-                        <Link className="icon-button" href={`/admin/products/${product.id}`}>
-                          <PencilLine size={16} />
-                        </Link>
                         <button
-                          className="button button-secondary button-chip"
-                          disabled={pendingAction !== null}
-                          onClick={() => void runSingleAction(product.isVisible ? "hide" : "show", product.id)}
+                          ref={(node) => {
+                            menuButtonRefs.current[product.id] = node;
+                          }}
+                          className="icon-button"
+                          aria-label={`Más acciones para ${product.name}`}
+                          aria-haspopup="menu"
+                          aria-expanded={openMenuProductId === product.id}
+                          onClick={() => {
+                            if (openMenuProductId === product.id) {
+                              closeMenu();
+                              return;
+                            }
+
+                            openMenu(product.id);
+                          }}
                           type="button"
                         >
-                          {product.isVisible ? "Ocultar" : "Mostrar"}
-                        </button>
-                        <button
-                          className="button button-secondary button-chip"
-                          disabled={pendingAction !== null}
-                          onClick={() => void runSingleAction(product.isFeatured ? "unfeature" : "feature", product.id)}
-                          type="button"
-                        >
-                          {product.isFeatured ? "Quitar destacado" : "Destacar"}
+                          <MoreHorizontal size={16} />
                         </button>
                       </div>
                     </td>
@@ -482,13 +585,12 @@ export function AdminProductsWorkspace({
             </tbody>
           </table>
         </div>
-      ) : (
-        <article className="panel panel-slim empty-state">
-          <p className="eyebrow">Sin coincidencias</p>
-          <h2>No hay productos con ese filtro</h2>
-          <p className="muted">Prueba con otra combinación de búsqueda, categoría o estado.</p>
-        </article>
-      )}
+        ) : (
+          <article className="panel panel-slim empty-state">
+            <p className="eyebrow">Sin coincidencias</p>
+            <h2>No hay productos con ese filtro</h2>
+          </article>
+        )}
 
       <div className="pagination-row">
         {page > 1 ? (
@@ -505,6 +607,99 @@ export function AdminProductsWorkspace({
           </Link>
         ) : null}
       </div>
+
+      {openMenuProductId && openMenuPosition && activeProduct && typeof document !== "undefined"
+        ? createPortal(
+            <div
+              className="admin-product-more-popover"
+              style={{
+                left: `${openMenuPosition.left}px`,
+                top: `${openMenuPosition.top}px`,
+              }}
+            >
+              <div className="admin-product-more-menu">
+                {!activeProduct.hasPhoto ? (
+                  <button
+                    className="button button-secondary button-chip"
+                    disabled={pendingAction !== null}
+                    onClick={() => void runSingleAction("hide", activeProduct.id)}
+                    type="button"
+                  >
+                    Ocultar
+                  </button>
+                ) : null}
+                <button
+                  className="button button-secondary button-chip"
+                  disabled={pendingAction !== null}
+                  onClick={() => {
+                    void runSingleAction(activeProduct.isVisible && activeProduct.hasPhoto ? "hide" : "show", activeProduct.id);
+                  }}
+                  type="button"
+                >
+                  {activeProduct.isVisible && activeProduct.hasPhoto ? "Ocultar" : "Mostrar"}
+                </button>
+                <button
+                  className="button button-secondary button-chip"
+                  disabled={pendingAction !== null}
+                  onClick={() => void runSingleAction(activeProduct.isFeatured ? "unfeature" : "feature", activeProduct.id)}
+                  type="button"
+                >
+                  {activeProduct.isFeatured ? "Quitar destacado" : "Destacar"}
+                </button>
+                <button
+                  className="button button-secondary button-chip danger"
+                  disabled={pendingAction !== null}
+                  onClick={() => {
+                    closeMenu();
+                    setDeleteTarget({ productId: activeProduct.id, productName: activeProduct.name });
+                  }}
+                  type="button"
+                >
+                  <Trash2 size={16} />
+                  Eliminar
+                </button>
+              </div>
+            </div>,
+            document.body,
+          )
+        : null}
+
+      {deleteTarget
+        ? createPortal(
+            <div className="admin-confirm-backdrop" role="presentation" onClick={closeDeleteTarget}>
+              <div
+                aria-modal="true"
+                className="admin-confirm-dialog"
+                role="dialog"
+                onClick={(event) => event.stopPropagation()}
+              >
+                <p className="eyebrow">Confirmación</p>
+                <h2>Eliminar producto</h2>
+                <p>Eliminarás {deleteTarget.productName}. Esta acción no se puede deshacer.</p>
+                <form action={deleteProductAction} ref={deleteFormRef}>
+                  <input name="productId" type="hidden" value={deleteTarget.productId} />
+                  <div className="admin-confirm-actions">
+                    <button className="button button-secondary" onClick={closeDeleteTarget} type="button">
+                      Cancelar
+                    </button>
+                    <button
+                      className="button button-primary"
+                      disabled={pendingAction !== null}
+                      onClick={() => {
+                        setPendingAction("hide");
+                        deleteFormRef.current?.requestSubmit();
+                      }}
+                      type="button"
+                    >
+                      Eliminar
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>,
+            document.body,
+          )
+        : null}
     </section>
   );
 }

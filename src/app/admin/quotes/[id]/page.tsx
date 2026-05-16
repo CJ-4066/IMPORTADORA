@@ -87,9 +87,8 @@ export default async function AdminQuoteDetailPage({ params }: AdminQuoteDetailP
         <div>
           <p className="eyebrow">Cotización</p>
           <h1>{quote.quoteNumber ?? "Sin número ERP"}</h1>
-          <p className="panel-copy">
-            Creada el {formatDate(quote.createdAt)}. Última actualización:{" "}
-            {formatDate(quote.updatedAt)}.
+          <p className="muted">
+            {formatDate(quote.createdAt)} · {formatDate(quote.updatedAt)}
           </p>
         </div>
         <div className="admin-quote-detail-total">
@@ -191,11 +190,9 @@ export default async function AdminQuoteDetailPage({ params }: AdminQuoteDetailP
                 <tr key={`${quote.id}-${item.code}`}>
                   <td data-label="Producto">
                     <strong>{item.name}</strong>
-                    <p className="muted">{item.tierLabel}</p>
                   </td>
                   <td data-label="Código">
                     {item.code}
-                    {item.externalId ? <p className="muted">ERP: {item.externalId}</p> : null}
                   </td>
                   <td data-label="Precio">{formatCurrency(item.unitPrice, quote.currencySymbol)}</td>
                   <td data-label="Cantidad">{item.quantity}</td>
@@ -223,7 +220,7 @@ export default async function AdminQuoteDetailPage({ params }: AdminQuoteDetailP
             <FileText size={18} />
             <h2>Notas</h2>
           </div>
-          <p className="muted">{quote.note ?? "El cliente no dejó una nota adicional."}</p>
+          {quote.note ? <p>{quote.note}</p> : null}
           {quote.errorMessage ? <p className="error-text">{quote.errorMessage}</p> : null}
         </section>
 

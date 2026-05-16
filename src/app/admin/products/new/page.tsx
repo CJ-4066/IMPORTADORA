@@ -12,7 +12,6 @@ export default async function NewProductPage() {
     <ProductForm
       action={createProductFormAction}
       categories={categories}
-      description="Completa los datos del SKU. Los precios unitarios y mayoristas quedan configurados desde aquí."
       initialState={getEmptyProductActionState()}
       title="Crear producto"
     />

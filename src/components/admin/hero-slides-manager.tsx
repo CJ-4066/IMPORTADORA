@@ -58,10 +58,6 @@ export function HeroSlidesManager({ initialItems }: HeroSlidesManagerProps) {
         </button>
       </div>
 
-      <p className="panel-copy">
-        Agrega imágenes por URL y texto opcional. El hero las mostrará en rotación automática.
-      </p>
-
       <div className="media-builder-grid">
         <div className="media-fields-list">
           {items.map((item, index) => (
@@ -116,10 +112,7 @@ export function HeroSlidesManager({ initialItems }: HeroSlidesManagerProps) {
               <div className="category-icon">
                 <ImagePlus size={18} />
               </div>
-              <div>
-                <h3>Vista previa</h3>
-                <p className="muted">Así se verá el carrusel del hero.</p>
-              </div>
+              <h3>Vista previa</h3>
             </div>
 
             <div className="media-preview-stack">
@@ -141,7 +134,6 @@ export function HeroSlidesManager({ initialItems }: HeroSlidesManagerProps) {
               ) : (
                 <div className="media-preview-empty">
                   <ImagePlus size={20} />
-                  <p>Agrega al menos una imagen para ver la vista previa del hero.</p>
                 </div>
               )}
             </div>

@@ -53,6 +53,8 @@ export default async function AdminQuotesPage({ searchParams }: AdminQuotesPageP
     page: Number.isNaN(page) ? 1 : page,
     status,
   });
+  const pageStart = data.totalResults > 0 ? (data.page - 1) * data.pageSize + 1 : 0;
+  const pageEnd = Math.min(data.page * data.pageSize, data.totalResults);
 
   return (
     <section className="panel admin-quotes-panel">
@@ -61,10 +63,6 @@ export default async function AdminQuotesPage({ searchParams }: AdminQuotesPageP
           <p className="eyebrow">Cotizaciones</p>
           <h1>Seguimiento comercial</h1>
         </div>
-        <p className="panel-copy">
-          Revisa las cotizaciones generadas desde la tienda, su vínculo con ERP y el cliente que
-          inició la solicitud.
-        </p>
       </div>
 
       <div className="admin-quote-stats">
@@ -89,6 +87,10 @@ export default async function AdminQuotesPage({ searchParams }: AdminQuotesPageP
           <span>Con error</span>
         </article>
       </div>
+
+      <p className="results-copy">
+        Mostrando {pageStart}–{pageEnd} de {data.totalResults} · página {data.page} de {data.totalPages}.
+      </p>
 
       <div className="trend-periods admin-quote-filters">
         {statusOptions.map((option) => (
@@ -174,7 +176,6 @@ export default async function AdminQuotesPage({ searchParams }: AdminQuotesPageP
           <SearchCode size={18} />
           <p className="eyebrow">Sin cotizaciones</p>
           <h2>No hay registros con este filtro</h2>
-          <p className="muted">Cuando un cliente complete una cotización, aparecerá en esta vista.</p>
         </article>
       )}
 

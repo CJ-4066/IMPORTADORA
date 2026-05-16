@@ -22,9 +22,6 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
           <p className="eyebrow">Configuración</p>
           <h1>Datos globales del catálogo</h1>
         </div>
-        <p className="panel-copy">
-          Aquí centralizas el número de WhatsApp, textos del hero y colores base de la interfaz.
-        </p>
       </div>
 
       {status ? <p className="success-text">Configuración actualizada.</p> : null}

@@ -9,7 +9,6 @@ import {
   ImageOff,
   FolderTree,
   Layers3,
-  PackageSearch,
   TriangleAlert,
   TrendingDown,
   TrendingUp,
@@ -81,6 +80,16 @@ function getDeltaTone(deltaPercent: number | null) {
   return deltaPercent >= 0 ? "is-positive" : "is-negative";
 }
 
+function buildProductsHref(extra: Record<string, string> = {}) {
+  const params = new URLSearchParams();
+
+  for (const [key, value] of Object.entries(extra)) {
+    params.set(key, value);
+  }
+
+  return `/admin/products${params.toString() ? `?${params.toString()}` : ""}`;
+}
+
 function ProductTrendList({
   emptyCopy,
   maxUnitsSold,
@@ -144,7 +153,6 @@ export default async function AdminHomePage({ searchParams }: AdminHomePageProps
   const selectedPeriod = parsePeriod(params?.period);
   const data = await getAdminDashboardData(selectedPeriod);
   const completionRate = data.trendAnalysis.forecast.completionRate ?? 0;
-  const activePeriod = periodOptions.find((item) => item.value === data.selectedPeriod) ?? periodOptions[1];
   const lastSyncDate = data.dataFreshness.lastSyncAt
     ? new Intl.DateTimeFormat("es-PE", {
         timeZone: "America/Lima",
@@ -161,58 +169,63 @@ export default async function AdminHomePage({ searchParams }: AdminHomePageProps
             <p className="eyebrow">Dashboard operativo</p>
             <h1>Dashboard del catálogo</h1>
           </div>
-          <p className="panel-copy">
-            Controla visibilidad, stock y estructura del catálogo desde un solo panel, sin ruido
-            comercial ni métricas demo.
-          </p>
         </div>
 
         <div className="admin-metrics">
-          <article className="metric-panel">
+          <Link className="metric-panel metric-panel-link" href="/admin/products">
             <Boxes size={22} />
             <strong>{data.totalProducts}</strong>
             <span>Total de productos</span>
-          </article>
-          <article className="metric-panel">
+          </Link>
+          <Link className="metric-panel metric-panel-link" href={buildProductsHref({ visibility: "visible" })}>
             <Layers3 size={22} />
             <strong>{data.visibleProducts}</strong>
             <span>Visibles en catálogo</span>
-          </article>
-          <article className="metric-panel">
+          </Link>
+          <Link className="metric-panel metric-panel-link" href={buildProductsHref({ visibility: "hidden" })}>
             <EyeOff size={22} />
             <strong>{data.hiddenProducts}</strong>
             <span>Ocultos</span>
-          </article>
-          <article className="metric-panel">
+          </Link>
+          <Link
+            className="metric-panel metric-panel-link"
+            href={buildProductsHref({ visibility: "hidden", stock: "low" })}
+          >
             <EyeOff size={22} />
             <strong>{data.dataFreshness.hiddenOutOfStockProducts}</strong>
             <span>Ocultos sin stock ERP</span>
-          </article>
-          <article className="metric-panel">
+          </Link>
+          <Link
+            className="metric-panel metric-panel-link"
+            href={buildProductsHref({ visibility: "hidden", photo: "missing" })}
+          >
             <ImageOff size={22} />
             <strong>{data.dataFreshness.hiddenWithoutPhotoProducts}</strong>
             <span>Ocultos por no tener foto</span>
-          </article>
-          <article className="metric-panel">
+          </Link>
+          <Link className="metric-panel metric-panel-link" href={buildProductsHref({ stock: "low" })}>
             <TriangleAlert size={22} />
             <strong>{data.lowStockProducts}</strong>
             <span>Con stock bajo</span>
-          </article>
-          <article className="metric-panel">
+          </Link>
+          <Link
+            className="metric-panel metric-panel-link"
+            href={buildProductsHref({ visibility: "visible", stock: "low" })}
+          >
             <TriangleAlert size={22} />
             <strong>{data.dataFreshness.visibleOutOfStockProducts}</strong>
             <span>Alerta: visibles sin stock</span>
-          </article>
-          <article className="metric-panel">
+          </Link>
+          <Link className="metric-panel metric-panel-link" href="/admin/categories">
             <FolderTree size={22} />
             <strong>{data.totalCategories}</strong>
             <span>Categorías activas</span>
-          </article>
-          <article className="metric-panel">
+          </Link>
+          <Link className="metric-panel metric-panel-link" href="/admin/erp">
             <DatabaseZap size={22} />
             <strong>{data.dataFreshness.syncedProducts}</strong>
             <span>Sincronizados ERP</span>
-          </article>
+          </Link>
         </div>
       </section>
 
@@ -222,10 +235,6 @@ export default async function AdminHomePage({ searchParams }: AdminHomePageProps
             <p className="eyebrow">10. Análisis de tendencias</p>
             <h2>Sincronización ERP y movimiento del catálogo</h2>
           </div>
-          <p className="panel-copy">
-            Compara ejecuciones reales del ERP por semana, mes o año. Si todavía no hay ventas
-            sincronizadas, no mostramos montos ni órdenes inventadas.
-          </p>
         </div>
 
         <div className="trend-periods">
@@ -264,15 +273,9 @@ export default async function AdminHomePage({ searchParams }: AdminHomePageProps
               </span>
             </div>
 
-            <p className="muted">
-              {data.trendAnalysis.previousTitle
-                ? `Base de comparación: ${data.trendAnalysis.previousTitle}`
-                : "Aún no hay sincronizaciones exitosas en el período anterior."}
-            </p>
-
             <div className="trend-progress-card">
               <div className="trend-progress-copy">
-                <span>Cobertura ERP del catálogo</span>
+                <span>Cobertura ERP</span>
                 <strong>{completionRate.toFixed(1)}%</strong>
               </div>
               <div className="trend-progress-track">
@@ -285,7 +288,7 @@ export default async function AdminHomePage({ searchParams }: AdminHomePageProps
             <div className="trend-card-head">
               <div>
                 <p className="eyebrow">ERP</p>
-                <h3>Fuente y frescura</h3>
+                <h3>Frescura</h3>
               </div>
               <span className="trend-icon-chip">
                 <CalendarClock size={18} />
@@ -294,8 +297,7 @@ export default async function AdminHomePage({ searchParams }: AdminHomePageProps
 
             <strong>{data.dataFreshness.sourceLabel}</strong>
             <p className="muted">
-              Última sincronización: {lastSyncDate}. Estado:{" "}
-              {data.dataFreshness.lastSyncStatus ?? "sin bitácora"}.
+              {lastSyncDate} · {data.dataFreshness.lastSyncStatus ?? "sin bitácora"}
             </p>
             <span
               className={cn(
@@ -348,46 +350,19 @@ export default async function AdminHomePage({ searchParams }: AdminHomePageProps
 
         <div className="trend-lists-grid">
           <ProductTrendList
-            emptyCopy="Todavía no hay productos en alza para este período."
+            emptyCopy="Sin datos."
             maxUnitsSold={data.trendAnalysis.maxUnitsSold}
             products={data.trendAnalysis.topRisingProducts}
             title="Productos recién actualizados por ERP"
             tone="positive"
           />
           <ProductTrendList
-            emptyCopy="Todavía no hay productos en caída para este período."
+            emptyCopy="Sin datos."
             maxUnitsSold={data.trendAnalysis.maxUnitsSold}
             products={data.trendAnalysis.topFallingProducts}
             title="Productos con stock crítico"
             tone="negative"
           />
-        </div>
-
-        <div className="trend-notes-grid">
-          <article className="trend-note-card">
-            <span className="trend-icon-chip">
-              <PackageSearch size={18} />
-            </span>
-            <div>
-              <strong>Movimiento por {activePeriod.shortLabel.toLowerCase()}</strong>
-              <p className="muted">
-                Esta vista resume ejecuciones exitosas del ERP y productos tocados en el período.
-                No depende de datos sembrados.
-              </p>
-            </div>
-          </article>
-          <article className="trend-note-card">
-            <span className="trend-icon-chip">
-              <Boxes size={18} />
-            </span>
-            <div>
-              <strong>Decisión operativa</strong>
-              <p className="muted">
-                Revisa productos sin stock o con sincronización atrasada antes de abrir campañas
-                o enviar cotizaciones grandes.
-              </p>
-            </div>
-          </article>
         </div>
       </section>
     </div>

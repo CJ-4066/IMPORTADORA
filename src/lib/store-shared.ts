@@ -21,10 +21,20 @@ import type {
 } from "@/lib/store-types";
 
 export const PUBLIC_PAGE_SIZE = 24;
-export const ADMIN_PAGE_SIZE = 25;
+export const ADMIN_PAGE_SIZE = 10;
 
 const BRAND_BLUE = "#0b86d1";
 const LEGACY_PRIMARY_BLUE = "#147cc4";
+const GENERIC_PRODUCT_PHOTO_MARKERS = [
+  "imagen-no-disponible",
+  "no-image",
+  "placeholder",
+  "sin-foto",
+];
+export const GENERIC_PRODUCT_PHOTO_URLS = [
+  "https://original.negocioserp.com/logo/imagen-no-disponible.jpg",
+];
+const GENERIC_PRODUCT_PHOTO_FILTER_URLS = [...GENERIC_PRODUCT_PHOTO_URLS, ""];
 
 const DEFAULT_STORE_SETTINGS: StoreSettingsView = {
   businessName: "Importaciones Super",
@@ -52,11 +62,90 @@ type ProductPhotoSource = {
   media: Array<{ url: string }>;
 };
 
-export function hasProductPhoto(product: ProductPhotoSource) {
+export function isGenericProductPhotoUrl(value: string | null | undefined) {
+  const normalized = value?.trim().toLowerCase() ?? "";
+
+  if (!normalized) {
+    return false;
+  }
+
+  if (GENERIC_PRODUCT_PHOTO_URLS.some((photoUrl) => photoUrl === normalized)) {
+    return true;
+  }
+
+  return GENERIC_PRODUCT_PHOTO_MARKERS.some((marker) => normalized.includes(marker));
+}
+
+export function hasRealProductPhoto(product: ProductPhotoSource) {
   const imageUrl = product.imageUrl?.trim() ?? "";
   const mediaUrls = product.media.map((item) => item.url.trim()).filter((value) => value.length > 0);
 
-  return Boolean(imageUrl) || mediaUrls.length > 0;
+  return [imageUrl, ...mediaUrls].some((value) => value.length > 0 && !isGenericProductPhotoUrl(value));
+}
+
+export function hasProductPhoto(product: ProductPhotoSource) {
+  return hasRealProductPhoto(product);
+}
+
+export function buildRealProductPhotoWhere(): Prisma.ProductWhereInput {
+  return {
+    OR: [
+      {
+        AND: [
+          { imageUrl: { not: null } },
+          { imageUrl: { notIn: GENERIC_PRODUCT_PHOTO_FILTER_URLS } },
+        ],
+      },
+      {
+        media: {
+          some: {
+            url: { notIn: GENERIC_PRODUCT_PHOTO_FILTER_URLS },
+          },
+        },
+      },
+    ],
+  };
+}
+
+export function buildMissingProductPhotoWhere(): Prisma.ProductWhereInput {
+  return {
+    OR: [
+      { imageUrl: null },
+      { imageUrl: "" },
+      { imageUrl: { in: GENERIC_PRODUCT_PHOTO_URLS } },
+      {
+        imageUrl: {
+          contains: "imagen-no-disponible",
+          mode: "insensitive",
+        },
+      },
+      {
+        imageUrl: {
+          contains: "no-image",
+          mode: "insensitive",
+        },
+      },
+      {
+        imageUrl: {
+          contains: "placeholder",
+          mode: "insensitive",
+        },
+      },
+      {
+        imageUrl: {
+          contains: "sin-foto",
+          mode: "insensitive",
+        },
+      },
+    ],
+    media: {
+      none: {
+        url: {
+          notIn: GENERIC_PRODUCT_PHOTO_FILTER_URLS,
+        },
+      },
+    },
+  };
 }
 
 function toNumber(value: Prisma.Decimal | number | null | undefined) {
@@ -82,9 +171,10 @@ export function mapProduct(product: ProductWithMedia): CatalogProduct {
     .slice()
     .sort((a, b) => a.sortOrder - b.sortOrder)
     .map(mapMedia);
+  const realMedia = media.find((item) => !isGenericProductPhotoUrl(item.url));
   const primaryMedia =
-    media[0] ??
-    (product.imageUrl
+    realMedia ??
+    (product.imageUrl && !isGenericProductPhotoUrl(product.imageUrl)
       ? {
           id: "legacy-image",
           type: "IMAGE" as const,
@@ -116,7 +206,7 @@ export function mapProduct(product: ProductWithMedia): CatalogProduct {
     isVisible: product.isVisible,
     isFeatured: product.isFeatured,
     syncEnabled: product.syncEnabled,
-    hasPhoto: hasProductPhoto({ imageUrl: product.imageUrl, media: product.media }),
+    hasPhoto: hasRealProductPhoto({ imageUrl: product.imageUrl, media: product.media }),
     lastSyncedAt: product.lastSyncedAt?.toISOString() ?? null,
     updatedAt: product.updatedAt.toISOString(),
   };
@@ -259,6 +349,7 @@ export function buildWhere(
   if (visibleOnly) {
     conditions.push({ isVisible: true });
     conditions.push({ stockUnits: { gt: 0 } });
+    conditions.push(buildRealProductPhotoWhere());
   }
 
   if (trimmedCategory && trimmedCategory !== "all") {

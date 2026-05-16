@@ -35,60 +35,28 @@ export default async function CategoriesPage({ searchParams }: CategoriesPagePro
       <div className="panel-header">
         <div>
           <p className="eyebrow">Categorías</p>
-          <h1>Organiza el catálogo por bloques reales</h1>
+          <h1>Gestión rápida</h1>
         </div>
       </div>
 
-      <div className="category-admin-grid">
-        <article className="category-create-card">
-          <div className="stack-sm">
-            <div className="category-icon">
-              <FolderTree size={18} />
-            </div>
-            <h2>Nueva categoría</h2>
-            <p className="muted">
-              Añádela una vez y luego asígnala a los productos desde el formulario.
-            </p>
-          </div>
-
-          <form action={createCategoryAction} className="stack-md">
-            <label className="field">
-              <span>Nombre</span>
-              <input name="name" placeholder="Ej. Abarrotes" required />
+      <div className="category-admin-stack">
+        <article className="category-toolbar-card">
+          <form className="category-search-form" method="get">
+            <label className="category-search-field">
+              <Search size={17} />
+              <input
+                defaultValue={query}
+                name="q"
+                placeholder="Buscar por nombre o slug"
+                type="search"
+              />
             </label>
-            <SubmitButton>Crear categoría</SubmitButton>
+            {query ? (
+              <a className="button button-ghost" href="/admin/categories">
+                Limpiar
+              </a>
+            ) : null}
           </form>
-
-          {status ? <p className="success-text">Operación completada: {status}</p> : null}
-          {error ? <p className="error-text auth-error">{error}</p> : null}
-        </article>
-
-        <div className="category-list">
-          <div className="category-toolbar-card">
-            <div className="category-toolbar-copy">
-              <h2>Vista compacta</h2>
-              <p className="muted">
-                Busca, corrige nombres y detecta categorías vacías sin recorrer una lista eterna.
-              </p>
-            </div>
-
-            <form className="category-search-form" method="get">
-              <label className="category-search-field">
-                <Search size={17} />
-                <input
-                  defaultValue={query}
-                  name="q"
-                  placeholder="Buscar por nombre o slug"
-                  type="search"
-                />
-              </label>
-              {query ? (
-                <a className="button button-ghost" href="/admin/categories">
-                  Limpiar
-                </a>
-              ) : null}
-            </form>
-          </div>
 
           <div className="category-summary-grid">
             <article className="category-summary-card">
@@ -96,7 +64,7 @@ export default async function CategoriesPage({ searchParams }: CategoriesPagePro
                 <FolderTree size={17} />
               </span>
               <strong>{categories.length}</strong>
-              <span>Total registradas</span>
+              <span>Total</span>
             </article>
             <article className="category-summary-card">
               <span className="category-summary-icon">
@@ -113,7 +81,29 @@ export default async function CategoriesPage({ searchParams }: CategoriesPagePro
               <span>Vacías</span>
             </article>
           </div>
+        </article>
 
+        <article className="category-create-card">
+          <div className="stack-sm">
+            <div className="category-icon">
+              <FolderTree size={18} />
+            </div>
+            <h2>Nueva categoría</h2>
+          </div>
+
+          <form action={createCategoryAction} className="stack-md">
+            <label className="field">
+              <span>Nombre</span>
+              <input name="name" placeholder="Ej. Abarrotes" required />
+            </label>
+            <SubmitButton>Crear categoría</SubmitButton>
+          </form>
+
+          {status ? <p className="success-text">Operación completada: {status}</p> : null}
+          {error ? <p className="error-text auth-error">{error}</p> : null}
+        </article>
+
+        <div className="category-list">
           {filteredCategories.length ? (
             <div className="category-card-grid">
               {filteredCategories.map((category) => (
@@ -150,11 +140,7 @@ export default async function CategoriesPage({ searchParams }: CategoriesPagePro
             </div>
           ) : (
             <article className="panel panel-slim">
-              <p className="muted">
-                {categories.length
-                  ? "No hay categorías que coincidan con esa búsqueda."
-                  : "Todavía no hay categorías creadas."}
-              </p>
+              <p>{categories.length ? "Sin coincidencias." : "Sin categorías."}</p>
             </article>
           )}
         </div>
