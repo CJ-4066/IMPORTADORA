@@ -15,6 +15,9 @@ const bodyFont = Instrument_Sans({
 export const metadata: Metadata = {
   title: "Importaciones Super",
   description: "Catálogo mayorista con panel administrativo y pedidos por WhatsApp.",
+  icons: {
+    icon: "/icon.png",
+  },
 };
 
 export default function RootLayout({
