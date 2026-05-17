@@ -1,20 +1,21 @@
 :root {
-  --brand-primary: #0b86d1;
-  --brand-accent: #0b86d1;
-  --brand-rgb: 11, 134, 209;
-  --brand-ink: #053f73;
-  --brand-ink-rgb: 5, 63, 115;
-  --brand-deep: #24324f;
-  --brand-deep-rgb: 36, 50, 79;
+  --brand-primary: #292c95;
+  --brand-accent: #292c95;
+  --brand-rgb: 41, 44, 149;
+  --brand-primary-rgb: 41, 44, 149;
+  --brand-ink: #22256f;
+  --brand-ink-rgb: 34, 37, 111;
+  --brand-deep: #1b1e5f;
+  --brand-deep-rgb: 27, 30, 95;
   --brand-night-rgb: 17, 24, 39;
   --brand-bg: #f6fbff;
   --brand-bg-rgb: 246, 251, 255;
   --brand-bg-soft: #f1f9ff;
   --brand-surface-strong: #fbfeff;
-  --brand-tint: #e8f6ff;
-  --brand-tint-rgb: 232, 246, 255;
-  --brand-tint-strong-rgb: 217, 241, 255;
-  --brand-text-on-dark: #bdeeff;
+  --brand-tint: #eceefc;
+  --brand-tint-rgb: 236, 238, 252;
+  --brand-tint-strong-rgb: 220, 223, 248;
+  --brand-text-on-dark: #e1e4ff;
   --background: var(--brand-bg);
   --surface: rgba(255, 255, 255, 0.72);
   --surface-strong: var(--brand-surface-strong);
@@ -174,7 +175,10 @@ body {
 }
 
 .public-store-desktop-category-slot {
-  display: block;
+  display: grid;
+  justify-items: start;
+  align-content: start;
+  gap: 0.45rem;
 }
 
 .public-store-mobile-category-slot {
@@ -676,6 +680,33 @@ body {
   min-width: 0;
 }
 
+.brand-logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  line-height: 0;
+  min-width: 0;
+}
+
+.brand-logo-image {
+  display: block;
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+}
+
+.brand-logo-sm {
+  width: 8.8rem;
+}
+
+.brand-logo-md {
+  width: 10rem;
+}
+
+.brand-logo-lg {
+  width: 11.5rem;
+}
+
 .public-store-mark {
   display: inline-flex;
   align-items: center;
@@ -1169,6 +1200,21 @@ body {
   border: 1px solid rgba(var(--brand-ink-rgb), 0.08);
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.84);
+}
+
+.store-assistant-product-media {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: 14px;
+  background: rgba(var(--brand-ink-rgb), 0.04);
+}
+
+.store-assistant-product-media img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .store-assistant-product-top {
@@ -4985,6 +5031,12 @@ body {
   gap: 1rem;
 }
 
+.admin-sidebar-brand {
+  display: flex;
+  align-items: center;
+  padding-inline: 0.15rem;
+}
+
 .admin-profile-card {
   display: grid;
   grid-template-columns: auto 1fr;
@@ -5359,6 +5411,11 @@ body {
 .status-badge.is-hidden {
   color: var(--danger);
   background: rgba(197, 59, 53, 0.12);
+}
+
+.status-badge.is-warning {
+  color: #8a4b00;
+  background: rgba(245, 158, 11, 0.14);
 }
 
 .admin-product-photo-cell {

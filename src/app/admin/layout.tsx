@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ShieldCheck, Store, LogOut } from "lucide-react";
 import { requireAdmin } from "@/lib/auth";
 import { logoutAction } from "@/app/admin/actions";
+import { BrandLogo } from "@/components/brand/brand-logo";
 import { AdminNav } from "@/components/admin/admin-nav";
 
 export default async function AdminLayout({
@@ -15,6 +16,9 @@ export default async function AdminLayout({
     <main className="admin-shell">
       <aside className="admin-sidebar">
         <div className="admin-sidebar-main">
+          <div className="admin-sidebar-brand">
+            <BrandLogo href="/admin" priority size="sm" />
+          </div>
           <div className="admin-profile-card">
             <span className="admin-profile-badge">
               <ShieldCheck size={18} />

@@ -5,6 +5,7 @@ import {
   PUBLIC_PAGE_SIZE,
   buildWhere,
   buildRealProductPhotoWhere,
+  buildSellableProductWhere,
   getStoreSettings,
   mapCategory,
   mapProduct,
@@ -55,7 +56,9 @@ export async function getCatalogPageData(input: {
           },
         },
         orderBy:
-          collection === "mas-vendidos" ? [{ updatedAt: "desc" }] : getCatalogOrderBy(input.sort),
+          collection === "mas-vendidos"
+            ? [{ updatedAt: "desc" as const }, { id: "desc" as const }]
+            : getCatalogOrderBy(input.sort),
         skip: shouldRankBestSellers ? undefined : (page - 1) * PUBLIC_PAGE_SIZE,
         take: shouldRankBestSellers ? undefined : PUBLIC_PAGE_SIZE,
       }),
@@ -74,7 +77,7 @@ export async function getCatalogPageData(input: {
         where: {
           products: {
             some: {
-              AND: [{ isVisible: true }, { stockUnits: { gt: 0 } }, buildRealProductPhotoWhere()],
+              AND: [buildSellableProductWhere()],
             },
           },
         },
@@ -82,18 +85,16 @@ export async function getCatalogPageData(input: {
       }),
       prisma.product.findMany({
         where: {
-          isVisible: true,
-          stockUnits: { gt: 0 },
+          ...buildSellableProductWhere(),
           brand: { not: null },
-          ...buildRealProductPhotoWhere(),
         },
         distinct: ["brand"],
         orderBy: { brand: "asc" },
         select: { brand: true },
       }),
-      prisma.product.count({ where: { AND: [{ isVisible: true }, { stockUnits: { gt: 0 } }, buildRealProductPhotoWhere()] } }),
+      prisma.product.count({ where: buildSellableProductWhere() }),
       prisma.product.count({
-        where: { AND: [{ isVisible: true }, { isFeatured: true }, { stockUnits: { gt: 0 } }, buildRealProductPhotoWhere()] },
+        where: { AND: [buildSellableProductWhere(), { isFeatured: true }] },
       }),
       getStoreSettings(),
     ]);
@@ -158,14 +159,18 @@ function shouldLoadBestSellerSnapshot(
 function getCatalogOrderBy(sort?: string) {
   switch (sort) {
     case "price-asc":
-      return [{ unitPrice: "asc" as const }, { updatedAt: "desc" as const }];
+      return [{ unitPrice: "asc" as const }, { updatedAt: "desc" as const }, { id: "asc" as const }];
     case "price-desc":
-      return [{ unitPrice: "desc" as const }, { updatedAt: "desc" as const }];
+      return [{ unitPrice: "desc" as const }, { updatedAt: "desc" as const }, { id: "asc" as const }];
     case "newest":
-      return [{ updatedAt: "desc" as const }];
+      return [{ updatedAt: "desc" as const }, { id: "desc" as const }];
     case "featured":
     default:
-      return [{ isFeatured: "desc" as const }, { updatedAt: "desc" as const }];
+      return [
+        { isFeatured: "desc" as const },
+        { updatedAt: "desc" as const },
+        { id: "asc" as const },
+      ];
   }
 }
 
@@ -365,7 +370,7 @@ export async function getCatalogProductBySlug(slug: string) {
 
 export async function getCategoryOptions() {
   const categories = await prisma.category.findMany({
-    orderBy: { name: "asc" },
+    orderBy: [{ name: "asc" }, { id: "asc" }],
   });
 
   return categories.map(mapCategory);
@@ -380,7 +385,7 @@ export async function getBrandOptions() {
       AND: [buildRealProductPhotoWhere()],
     },
     distinct: ["brand"],
-    orderBy: { brand: "asc" },
+    orderBy: [{ brand: "asc" }, { id: "asc" }],
     select: { brand: true },
   });
 

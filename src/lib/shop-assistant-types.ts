@@ -11,6 +11,8 @@ export type ShopAssistantProductCard = {
   name: string;
   brand: string | null;
   category: string | null;
+  imageUrl: string | null;
+  imageAlt: string | null;
   unitPrice: string;
   unitPriceValue: number;
   wholesalePrice: string | null;

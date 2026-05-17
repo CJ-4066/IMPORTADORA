@@ -23,7 +23,7 @@ import type {
 export const PUBLIC_PAGE_SIZE = 24;
 export const ADMIN_PAGE_SIZE = 10;
 
-const BRAND_BLUE = "#0b86d1";
+const BRAND_BLUE = "#292c95";
 const LEGACY_PRIMARY_BLUE = "#147cc4";
 const GENERIC_PRODUCT_PHOTO_MARKERS = [
   "imagen-no-disponible",
@@ -104,6 +104,15 @@ export function buildRealProductPhotoWhere(): Prisma.ProductWhereInput {
         },
       },
     ],
+  };
+}
+
+export function buildSellableProductWhere(): Prisma.ProductWhereInput {
+  // CHANGE-CODE: CAT-001
+  return {
+    isVisible: true,
+    stockUnits: { gt: 0 },
+    AND: [buildRealProductPhotoWhere()],
   };
 }
 
@@ -262,8 +271,9 @@ function parseHeroSlides(value: Prisma.JsonValue | null | undefined): HeroSlideV
 function mapStoreSettings(
   settings: Awaited<ReturnType<typeof readStoreSettingsRecord>>,
 ): StoreSettingsView {
+  const storedPrimaryColor = settings?.primaryColor?.toLowerCase() ?? null;
   const primaryColor =
-    settings?.primaryColor?.toLowerCase() === LEGACY_PRIMARY_BLUE
+    storedPrimaryColor === LEGACY_PRIMARY_BLUE || storedPrimaryColor === "#0b86d1"
       ? BRAND_BLUE
       : settings?.primaryColor ?? DEFAULT_STORE_SETTINGS.primaryColor;
 
@@ -347,9 +357,7 @@ export function buildWhere(
   const conditions: Prisma.ProductWhereInput[] = [];
 
   if (visibleOnly) {
-    conditions.push({ isVisible: true });
-    conditions.push({ stockUnits: { gt: 0 } });
-    conditions.push(buildRealProductPhotoWhere());
+    conditions.push(buildSellableProductWhere());
   }
 
   if (trimmedCategory && trimmedCategory !== "all") {

@@ -243,6 +243,41 @@ test("ordena recomendaciones por presupuesto cercano", async () => {
   assert.ok(containsNormalized(reply.text, "S/ 25"));
 });
 
+test("no confunde scooter electrico con hervidor electrico", async () => {
+  const reply = await answerShopAssistant({
+    message: "necesito un scoter electrico que opciones me recomiendas",
+  });
+
+  assert.ok(containsNormalized(reply.text, "no encontré una coincidencia clara"));
+  assert.ok(!reply.products?.some((product) => containsNormalized(product.name, "hervidor")));
+});
+
+test("sugiere scooter cuando el usuario escribe scuter", async () => {
+  const reply = await answerShopAssistant({
+    message: "necesito un scuter",
+  });
+
+  assert.ok(containsNormalized(reply.text, "quizá quisiste decir"));
+  assert.ok(containsNormalized(reply.text, "scooter"));
+});
+
+test("corrige errores comunes de escritura antes de buscar", async () => {
+  const reply = await answerShopAssistant({
+    message: "busco audiphonos",
+  });
+
+  assert.ok(reply.products?.some((product) => product.code === "AUD-025"));
+});
+
+test("sugiere correcciones cuando la palabra mal escrita no tiene resultados", async () => {
+  const reply = await answerShopAssistant({
+    message: "busco mause gamer",
+  });
+
+  assert.ok(containsNormalized(reply.text, "quizá quisiste decir"));
+  assert.ok(containsNormalized(reply.text, "mouse"));
+});
+
 test("responde soporte y flujo de compra", async () => {
   const reply = await answerShopAssistant({ message: "como envio mi pedido por whatsapp" });
 

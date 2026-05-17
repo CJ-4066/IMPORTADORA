@@ -7,6 +7,7 @@ import type {
   ShopAssistantQuickAction,
   ShopAssistantReply,
 } from "@/lib/shop-assistant-types";
+import { isGenericProductPhotoUrl } from "@/lib/store-shared";
 
 const MAX_PRODUCTS = 4;
 const MAX_SEARCH_CANDIDATES = 80;
@@ -49,7 +50,17 @@ const STOPWORDS = new Set([
   "precio",
   "producto",
   "productos",
+  "opcion",
+  "opciones",
+  "q",
+  "que",
+  "qué",
   "quiero",
+  "recomienda",
+  "recomendame",
+  "recomiéndame",
+  "recomendar",
+  "recomiendas",
   "unidad",
   "unidades",
   "sol",
@@ -66,6 +77,10 @@ const STOPWORDS = new Set([
   "unas",
   "unos",
   "ver",
+  "electrico",
+  "electrica",
+  "electricos",
+  "electricas",
 ]);
 
 const SEARCH_SYNONYMS: Record<string, string[]> = {
@@ -73,6 +88,36 @@ const SEARCH_SYNONYMS: Record<string, string[]> = {
   audifonos: ["audifono", "audifonos", "auricular", "auriculares", "bluetooth"],
   auricular: ["auricular", "auriculares", "audifono", "audifonos", "bluetooth"],
   auriculares: ["auricular", "auriculares", "audifono", "audifonos", "bluetooth"],
+  alexas: ["alexa", "alexas", "echo"],
+  alexa: ["alexa", "alexas", "echo"],
+  cocina: ["cocina", "cocinas", "utensilios"],
+  mouse: ["mouse", "mause", "raton"],
+  scoter: ["scooter", "scoter", "patineta"],
+  scuter: ["scooter", "scuter", "patineta"],
+  scooter: ["scooter", "scoter", "patineta"],
+};
+
+const SEARCH_CORRECTIONS: Record<string, string> = {
+  acsesorio: "accesorio",
+  acsesorios: "accesorios",
+  audiphono: "audifono",
+  audiphonos: "audifonos",
+  aurikular: "auricular",
+  aurikulares: "auriculares",
+  bluetoo: "bluetooth",
+  blutut: "bluetooth",
+  cavle: "cable",
+  cosina: "cocina",
+  cosinas: "cocina",
+  mause: "mouse",
+  maus: "mouse",
+  scuter: "scooter",
+  scoter: "scooter",
+  selular: "celular",
+  selulares: "celulares",
+  smar: "smart",
+  wach: "watch",
+  utilez: "utiles",
 };
 
 const GIFT_SEARCH_SEEDS = [
@@ -100,6 +145,13 @@ export type AssistantProductRecord = {
   brand: string | null;
   category: string | null;
   categoryId?: string | null;
+  imageUrl?: string | null;
+  media?: Array<{
+    type: "IMAGE" | "VIDEO";
+    url: string;
+    altText: string | null;
+    sortOrder: number;
+  }>;
   unitPrice: Prisma.Decimal | number;
   wholesalePrice: Prisma.Decimal | number | null;
   wholesaleMinQty: number;
@@ -158,12 +210,39 @@ function getAvailabilityLabel(stockUnits: number) {
   return "Disponible";
 }
 
+function getAssistantProductImage(product: AssistantProductRecord) {
+  const realImageMedia = product.media
+    ?.slice()
+    .sort((left, right) => left.sortOrder - right.sortOrder)
+    .find((item) => item.type === "IMAGE" && !isGenericProductPhotoUrl(item.url));
+
+  if (realImageMedia) {
+    return {
+      imageUrl: realImageMedia.url,
+      imageAlt: realImageMedia.altText ?? product.name,
+    };
+  }
+
+  if (product.imageUrl && !isGenericProductPhotoUrl(product.imageUrl)) {
+    return {
+      imageUrl: product.imageUrl,
+      imageAlt: product.name,
+    };
+  }
+
+  return {
+    imageUrl: null,
+    imageAlt: null,
+  };
+}
+
 function mapAssistantProduct(
   product: AssistantProductRecord,
   currencySymbol: string,
 ): ShopAssistantProductCard {
   const unitPrice = Number(product.unitPrice);
   const wholesalePrice = product.wholesalePrice !== null ? Number(product.wholesalePrice) : null;
+  const image = getAssistantProductImage(product);
 
   return {
     id: product.id,
@@ -172,6 +251,8 @@ function mapAssistantProduct(
     name: product.name,
     brand: product.brand,
     category: product.category,
+    imageUrl: image.imageUrl,
+    imageAlt: image.imageAlt,
     unitPrice: formatCurrency(unitPrice, currencySymbol),
     unitPriceValue: unitPrice,
     wholesalePrice: wholesalePrice ? formatCurrency(wholesalePrice, currencySymbol) : null,
@@ -184,6 +265,37 @@ function mapAssistantProduct(
     stockUnits: product.stockUnits,
   };
 }
+
+const ASSISTANT_PRODUCT_SELECT = {
+  id: true,
+  slug: true,
+  code: true,
+  externalCode: true,
+  externalId: true,
+  name: true,
+  description: true,
+  brand: true,
+  category: true,
+  categoryId: true,
+  imageUrl: true,
+  media: {
+    orderBy: { sortOrder: "asc" },
+    take: 4,
+    select: {
+      type: true,
+      url: true,
+      altText: true,
+      sortOrder: true,
+    },
+  },
+  unitPrice: true,
+  wholesalePrice: true,
+  wholesaleMinQty: true,
+  boxPrice: true,
+  unitsPerBox: true,
+  stockUnits: true,
+  isVisible: true,
+} satisfies Prisma.ProductSelect;
 
 function extractProductCode(message: string) {
   const normalized = message
@@ -230,9 +342,27 @@ function extractSearchTerms(message: string) {
     .map((token) => token.trim())
     .filter((token) => token.length >= 2 && !STOPWORDS.has(token));
 
-  const expandedTokens = tokens.flatMap((token) => SEARCH_SYNONYMS[token] ?? [token]);
+  const correctedTokens = tokens.map((token) => SEARCH_CORRECTIONS[token] ?? token);
+  const expandedTokens = correctedTokens.flatMap((token) => SEARCH_SYNONYMS[token] ?? [token]);
 
   return Array.from(new Set(expandedTokens)).join(" ").trim();
+}
+
+function getSearchCorrections(message: string) {
+  const normalized = normalizeAssistantText(removeBudgetText(message));
+  const corrections = normalized
+    .split(" ")
+    .map((token) => token.trim())
+    .filter((token) => token.length >= 2)
+    .map((token) => {
+      const correction = SEARCH_CORRECTIONS[token];
+      return correction && correction !== token ? { from: token, to: correction } : null;
+    })
+    .filter((item): item is { from: string; to: string } => Boolean(item));
+
+  return Array.from(
+    new Map(corrections.map((correction) => [correction.from, correction])).values(),
+  );
 }
 
 function removeBudgetText(message: string) {
@@ -645,25 +775,7 @@ function createRealRepository(): ShopAssistantRepository {
             })),
           ],
         },
-        select: {
-          id: true,
-          slug: true,
-          code: true,
-          externalCode: true,
-          externalId: true,
-          name: true,
-          description: true,
-          brand: true,
-          category: true,
-          categoryId: true,
-          unitPrice: true,
-          wholesalePrice: true,
-          wholesaleMinQty: true,
-          boxPrice: true,
-          unitsPerBox: true,
-          stockUnits: true,
-          isVisible: true,
-        },
+        select: ASSISTANT_PRODUCT_SELECT,
       });
     },
 
@@ -703,25 +815,7 @@ function createRealRepository(): ShopAssistantRepository {
         },
         orderBy: [{ isFeatured: "desc" }, { updatedAt: "desc" }],
         take: MAX_SEARCH_CANDIDATES,
-        select: {
-          id: true,
-          slug: true,
-          code: true,
-          externalCode: true,
-          externalId: true,
-          name: true,
-          description: true,
-          brand: true,
-          category: true,
-          categoryId: true,
-          unitPrice: true,
-          wholesalePrice: true,
-          wholesaleMinQty: true,
-          boxPrice: true,
-          unitsPerBox: true,
-          stockUnits: true,
-          isVisible: true,
-        },
+        select: ASSISTANT_PRODUCT_SELECT,
       });
 
       return products.sort(
@@ -739,25 +833,7 @@ function createRealRepository(): ShopAssistantRepository {
         },
         orderBy: [{ updatedAt: "desc" }],
         take: MAX_PRODUCTS,
-        select: {
-          id: true,
-          slug: true,
-          code: true,
-          externalCode: true,
-          externalId: true,
-          name: true,
-          description: true,
-          brand: true,
-          category: true,
-          categoryId: true,
-          unitPrice: true,
-          wholesalePrice: true,
-          wholesaleMinQty: true,
-          boxPrice: true,
-          unitsPerBox: true,
-          stockUnits: true,
-          isVisible: true,
-        },
+        select: ASSISTANT_PRODUCT_SELECT,
       });
     },
 
@@ -771,25 +847,7 @@ function createRealRepository(): ShopAssistantRepository {
         },
         orderBy: [{ isFeatured: "desc" }, { updatedAt: "desc" }],
         take: MAX_PRODUCTS,
-        select: {
-          id: true,
-          slug: true,
-          code: true,
-          externalCode: true,
-          externalId: true,
-          name: true,
-          description: true,
-          brand: true,
-          category: true,
-          categoryId: true,
-          unitPrice: true,
-          wholesalePrice: true,
-          wholesaleMinQty: true,
-          boxPrice: true,
-          unitsPerBox: true,
-          stockUnits: true,
-          isVisible: true,
-        },
+        select: ASSISTANT_PRODUCT_SELECT,
       });
     },
 
@@ -808,25 +866,7 @@ function createRealRepository(): ShopAssistantRepository {
         },
         orderBy: [{ isFeatured: "desc" }, { updatedAt: "desc" }],
         take: MAX_PRODUCTS,
-        select: {
-          id: true,
-          slug: true,
-          code: true,
-          externalCode: true,
-          externalId: true,
-          name: true,
-          description: true,
-          brand: true,
-          category: true,
-          categoryId: true,
-          unitPrice: true,
-          wholesalePrice: true,
-          wholesaleMinQty: true,
-          boxPrice: true,
-          unitsPerBox: true,
-          stockUnits: true,
-          isVisible: true,
-        },
+        select: ASSISTANT_PRODUCT_SELECT,
       });
     },
   };
@@ -897,6 +937,7 @@ export function createShopAssistantService(repository: ShopAssistantRepository) 
     );
     const code = extractProductCode(trimmedMessage) ?? input.productContextCode ?? null;
     const searchTerms = extractSearchTerms(trimmedMessage);
+    const searchCorrections = getSearchCorrections(trimmedMessage);
     const budget = extractBudget(trimmedMessage);
     const quantity = extractQuantity(trimmedMessage);
     const allowSensitiveProducts = isAdultIntent(`${trimmedMessage} ${recentConversation}`);
@@ -1322,6 +1363,9 @@ export function createShopAssistantService(repository: ShopAssistantRepository) 
     return {
       text:
         `No encontré una coincidencia clara para “${trimmedMessage}”. ` +
+        (searchCorrections.length
+          ? `Quizá quisiste decir: ${searchCorrections.map((correction) => correction.to).join(", ")}. `
+          : "") +
         "Prueba con un código, un nombre corto, una categoría o pídele ofertas activas.",
       quickActions: buildQuickActions([
         { label: "Buscar catálogo", href: "/?focus=search", accent: true },

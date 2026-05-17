@@ -147,6 +147,11 @@ export default async function AdminQuotesPage({ searchParams }: AdminQuotesPageP
                           {item.quantity} x {item.name}
                         </span>
                       ))}
+                      {quote.itemCount > quote.items.length ? (
+                        <span className="muted">
+                          y {quote.itemCount - quote.items.length} más
+                        </span>
+                      ) : null}
                     </div>
                     <p className="muted">{quote.itemCount} unidades en total</p>
                   </td>

@@ -9,6 +9,7 @@ import {
   rehydrateCartStore,
   useCartStore,
 } from "@/components/catalog/cart-store";
+import { getSafeMediaUrl } from "@/lib/media-url";
 import { getPublicProductName } from "@/lib/product-name";
 import { formatCurrency } from "@/lib/utils";
 import type {
@@ -180,6 +181,7 @@ function clearAssistantSnapshot(storageKey: string) {
 function AssistantProductCard({ product }: AssistantProductCardProps) {
   const addItem = useCartStore((state) => state.addItem);
   const displayName = getPublicProductName(product.name);
+  const safeImageUrl = getSafeMediaUrl(product.imageUrl);
   const [added, setAdded] = useState(false);
   const quantity = Math.max(1, Math.min(product.recommendedQuantity ?? 1, product.stockUnits));
 
@@ -198,9 +200,27 @@ function AssistantProductCard({ product }: AssistantProductCardProps) {
         brand: product.brand,
         category: product.category,
         categoryId: null,
-        imageUrl: null,
-        media: [],
-        primaryMedia: null,
+        imageUrl: product.imageUrl,
+        media: product.imageUrl
+          ? [
+              {
+                id: `${product.id}-assistant-image`,
+                type: "IMAGE",
+                url: product.imageUrl,
+                altText: product.imageAlt ?? displayName,
+                sortOrder: 0,
+              },
+            ]
+          : [],
+        primaryMedia: product.imageUrl
+          ? {
+              id: `${product.id}-assistant-image`,
+              type: "IMAGE",
+              url: product.imageUrl,
+              altText: product.imageAlt ?? displayName,
+              sortOrder: 0,
+            }
+          : null,
         unitLabel: "unidad",
         unitPrice: product.unitPriceValue,
         wholesalePrice: product.wholesalePriceValue,
@@ -227,6 +247,19 @@ function AssistantProductCard({ product }: AssistantProductCardProps) {
 
   return (
     <div className="store-assistant-product-card">
+      {safeImageUrl ? (
+        <div className="store-assistant-product-media">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            alt={product.imageAlt ?? displayName}
+            decoding="async"
+            loading="lazy"
+            referrerPolicy="no-referrer"
+            src={safeImageUrl}
+          />
+        </div>
+      ) : null}
+
       <div className="store-assistant-product-top">
         <span className="product-code">{product.code}</span>
         <span className="store-assistant-availability">
@@ -240,10 +273,10 @@ function AssistantProductCard({ product }: AssistantProductCardProps) {
       </span>
 
       <div className="store-assistant-product-prices">
-        <span>Unitario {formatCurrency(Number(product.unitPrice))}</span>
+        <span>Unitario {formatCurrency(product.unitPriceValue)}</span>
         {product.wholesalePrice ? (
           <span>
-            Mayorista {formatCurrency(Number(product.wholesalePrice))} desde {product.wholesaleMinQty}
+            Mayorista {formatCurrency(product.wholesalePriceValue ?? product.unitPriceValue)} desde {product.wholesaleMinQty}
           </span>
         ) : null}
       </div>

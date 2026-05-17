@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import type { DashboardComparisonMetric, DashboardPeriod, DashboardTrendProduct } from "@/lib/store";
 import { getAdminDashboardData } from "@/lib/store";
+import { CHANGE_CODES } from "@/lib/change-codes";
 import { cn, formatCompactNumber, formatCurrency } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -177,10 +178,23 @@ export default async function AdminHomePage({ searchParams }: AdminHomePageProps
             <strong>{data.totalProducts}</strong>
             <span>Total de productos</span>
           </Link>
-          <Link className="metric-panel metric-panel-link" href={buildProductsHref({ visibility: "visible" })}>
+          <Link
+            className="metric-panel metric-panel-link"
+            href={buildProductsHref({ visibility: "visible", photo: "with-photo" })}
+            data-change-code={CHANGE_CODES.ADMIN_VISIBLE_WITH_PHOTO}
+          >
             <Layers3 size={22} />
-            <strong>{data.visibleProducts}</strong>
-            <span>Visibles en catálogo</span>
+            <strong>{data.visibleWithPhotoProducts}</strong>
+            <span>Visibles con foto</span>
+          </Link>
+          <Link
+            className="metric-panel metric-panel-link"
+            href={buildProductsHref({ visibility: "visible", photo: "missing" })}
+            data-change-code={CHANGE_CODES.ADMIN_REVIEW_ALERTS}
+          >
+            <ImageOff size={22} />
+            <strong>{data.dataFreshness.visibleWithoutPhotoProducts}</strong>
+            <span>Visibles sin foto</span>
           </Link>
           <Link className="metric-panel metric-panel-link" href={buildProductsHref({ visibility: "hidden" })}>
             <EyeOff size={22} />
@@ -202,6 +216,15 @@ export default async function AdminHomePage({ searchParams }: AdminHomePageProps
             <ImageOff size={22} />
             <strong>{data.dataFreshness.hiddenWithoutPhotoProducts}</strong>
             <span>Ocultos por no tener foto</span>
+          </Link>
+          <Link
+            className="metric-panel metric-panel-link"
+            href={buildProductsHref({ issue: "review" })}
+            data-change-code={CHANGE_CODES.ADMIN_REVIEW_ALERTS}
+          >
+            <TriangleAlert size={22} />
+            <strong>{data.dataFreshness.needsReviewProducts}</strong>
+            <span>Productos a revisar</span>
           </Link>
           <Link className="metric-panel metric-panel-link" href={buildProductsHref({ stock: "low" })}>
             <TriangleAlert size={22} />

@@ -265,6 +265,7 @@ export type DashboardDataFreshness = {
   visibleOutOfStockProducts: number;
   hiddenWithoutPhotoProducts: number;
   visibleWithoutPhotoProducts: number;
+  needsReviewProducts: number;
   productsWithoutPhoto: number;
 };
 

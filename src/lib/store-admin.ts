@@ -6,6 +6,7 @@ import {
   buildWhere,
   buildMissingProductPhotoWhere,
   buildRealProductPhotoWhere,
+  buildSellableProductWhere,
   calculateDeltaPercent,
   mapCatalogMovementProduct,
   mapErpSyncLog,
@@ -157,7 +158,7 @@ function formatDashboardPeriodTitle(period: DashboardPeriod, range: { start: Dat
 
 export async function getRecentErpSyncLogs(limit = 5): Promise<ErpSyncLogView[]> {
   const logs = await prisma.erpSyncLog.findMany({
-    orderBy: { createdAt: "desc" },
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
     take: limit,
     select: {
       id: true,
@@ -190,6 +191,8 @@ export async function getAdminDashboardData(period: DashboardPeriod = "MONTH") {
   const [
     totalProducts,
     visibleProducts,
+    visibleWithPhotoProducts,
+    needsReviewProducts,
     hiddenProducts,
     lowStockProducts,
     outOfStockProducts,
@@ -211,7 +214,22 @@ export async function getAdminDashboardData(period: DashboardPeriod = "MONTH") {
   ] = await Promise.all([
     profileAdminStep("dashboard.total-products", () => prisma.product.count()),
     profileAdminStep("dashboard.visible-products", () =>
-      prisma.product.count({ where: { isVisible: true, stockUnits: { gt: 0 } } }),
+      prisma.product.count({ where: buildSellableProductWhere() }),
+    ),
+    profileAdminStep("dashboard.visible-with-photo-products", () =>
+      prisma.product.count({
+        where: {
+          AND: [{ isVisible: true }, buildRealProductPhotoWhere()],
+        },
+      }),
+    ),
+    profileAdminStep("dashboard.needs-review-products", () =>
+      prisma.product.count({
+        where: {
+          isVisible: true,
+          OR: [{ stockUnits: { lte: 0 } }, buildMissingProductPhotoWhere()],
+        },
+      }),
     ),
     profileAdminStep("dashboard.hidden-products", () => prisma.product.count({ where: { isVisible: false } })),
     profileAdminStep("dashboard.low-stock-products", () =>
@@ -347,6 +365,8 @@ export async function getAdminDashboardData(period: DashboardPeriod = "MONTH") {
   const payload = {
     totalProducts,
     visibleProducts,
+    visibleWithPhotoProducts,
+    needsReviewProducts,
     hiddenProducts,
     lowStockProducts,
     outOfStockProducts,
@@ -365,6 +385,7 @@ export async function getAdminDashboardData(period: DashboardPeriod = "MONTH") {
       visibleOutOfStockProducts,
       hiddenWithoutPhotoProducts,
       visibleWithoutPhotoProducts,
+      needsReviewProducts,
       productsWithoutPhoto,
     },
     trendAnalysis: {
@@ -414,10 +435,12 @@ export async function getAdminProducts(input: {
   visibility?: "all" | "visible" | "hidden";
   photo?: "all" | "missing" | "with-photo";
   stock?: "all" | "low";
+  issue?: "all" | "review";
   page?: number;
 }) {
   const startedAt = Date.now();
   const page = Math.max(1, input.page ?? 1);
+  // CHANGE-CODE: ADM-003
   const baseWhere = buildWhere(input.query, input.category, input.brand, false);
   const photoWhere =
     input.photo === "missing"
@@ -427,6 +450,14 @@ export async function getAdminProducts(input: {
         : undefined;
   const baseConditions: Prisma.ProductWhereInput[] = [
     baseWhere,
+    ...(input.issue === "review"
+      ? [
+          {
+            isVisible: true,
+            OR: [{ stockUnits: { lte: 0 } }, buildMissingProductPhotoWhere()],
+          },
+        ]
+      : []),
     ...(input.visibility === "visible"
       ? [{ isVisible: true }]
       : input.visibility === "hidden"
@@ -449,6 +480,7 @@ export async function getAdminProducts(input: {
     hiddenProductsCount,
     withPhotoProductsCount,
     withoutPhotoProductsCount,
+    needsReviewProductsCount,
     totalResults,
   ] = await Promise.all([
     profileAdminStep("products.page", () =>
@@ -475,7 +507,7 @@ export async function getAdminProducts(input: {
             },
           },
         },
-        orderBy: [{ updatedAt: "desc" }, { name: "asc" }],
+        orderBy: [{ updatedAt: "desc" }, { name: "asc" }, { id: "asc" }],
         skip: (page - 1) * ADMIN_PAGE_SIZE,
         take: ADMIN_PAGE_SIZE,
       }),
@@ -497,12 +529,19 @@ export async function getAdminProducts(input: {
         select: { brand: true },
       })),
     profileAdminStep("products.total", () => prisma.product.count()),
-    profileAdminStep("products.visible", () => prisma.product.count({ where: { isVisible: true } })),
+    profileAdminStep("products.visible", () => prisma.product.count({ where: buildSellableProductWhere() })),
     profileAdminStep("products.hidden", () => prisma.product.count({ where: { isVisible: false } })),
     profileAdminStep("products.with-photo", () =>
       prisma.product.count({ where: buildRealProductPhotoWhere() })),
     profileAdminStep("products.without-photo", () =>
       prisma.product.count({ where: buildMissingProductPhotoWhere() })),
+    profileAdminStep("products.needs-review", () =>
+      prisma.product.count({
+        where: {
+          isVisible: true,
+          OR: [{ stockUnits: { lte: 0 } }, buildMissingProductPhotoWhere()],
+        },
+      })),
     profileAdminStep("products.filtered", () => prisma.product.count({ where: filtersWhere })),
   ]);
 
@@ -542,13 +581,14 @@ export async function getAdminProducts(input: {
       .map((item) => item.brand?.trim())
       .filter((value): value is string => Boolean(value))
       .map((name) => ({ name })),
-    stats: {
-      totalProducts,
-      withPhotoProducts: withPhotoProductsCount,
-      withoutPhotoProducts: withoutPhotoProductsCount,
-      visibleProducts: visibleProductsCount,
-      hiddenProducts: hiddenProductsCount,
-    },
+      stats: {
+        totalProducts,
+        withPhotoProducts: withPhotoProductsCount,
+        withoutPhotoProducts: withoutPhotoProductsCount,
+        visibleProducts: visibleProductsCount,
+        hiddenProducts: hiddenProductsCount,
+        needsReviewProducts: needsReviewProductsCount,
+      },
     totalResults,
     totalPages: Math.max(1, Math.ceil(totalResults / ADMIN_PAGE_SIZE)),
     pageSize: ADMIN_PAGE_SIZE,
@@ -575,7 +615,7 @@ export async function getProductById(id: string) {
 
 export async function getAdminCategories(): Promise<AdminCategory[]> {
   const categories = await prisma.category.findMany({
-    orderBy: { name: "asc" },
+    orderBy: [{ name: "asc" }, { id: "asc" }],
     include: {
       _count: {
         select: {
@@ -740,7 +780,7 @@ export async function getAdminQuotes(input: {
     profileAdminStep("quotes.page", () =>
       prisma.quote.findMany({
         where,
-        orderBy: { createdAt: "desc" },
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
         take: ADMIN_QUOTES_PAGE_SIZE,
         skip: (page - 1) * ADMIN_QUOTES_PAGE_SIZE,
         select: {
@@ -761,12 +801,18 @@ export async function getAdminQuotes(input: {
             },
           },
           items: {
+            take: 4,
             orderBy: { createdAt: "asc" },
             select: {
               code: true,
               name: true,
               quantity: true,
               total: true,
+            },
+          },
+          _count: {
+            select: {
+              items: true,
             },
           },
         },
@@ -793,7 +839,7 @@ export async function getAdminQuotes(input: {
       customerEmail: quote.customerEmail,
       erpCustomerMode: quote.erpCustomerMode,
       createdAt: quote.createdAt.toISOString(),
-      itemCount: quote.items.reduce((sum, item) => sum + item.quantity, 0),
+      itemCount: quote._count.items,
       items: quote.items.slice(0, 4).map((item) => ({
         code: item.code,
         name: item.name,
@@ -835,7 +881,7 @@ export async function getAdminQuoteById(id: string): Promise<AdminQuoteDetailVie
         },
       },
       items: {
-        orderBy: { createdAt: "asc" },
+        orderBy: [{ createdAt: "asc" }, { id: "asc" }],
         select: {
           code: true,
           externalId: true,

@@ -26,6 +26,10 @@ export default async function AdminProductsPage({ searchParams }: AdminProductsP
     typeof params?.stock === "string" && ["all", "low"].includes(params.stock)
       ? (params.stock as "all" | "low")
       : "all";
+  const issue =
+    typeof params?.issue === "string" && ["all", "review"].includes(params.issue)
+      ? (params.issue as "all" | "review")
+      : "all";
   const page = Number(typeof params?.page === "string" ? params.page : "1");
   const data = await getAdminProducts({
     query: q,
@@ -34,6 +38,7 @@ export default async function AdminProductsPage({ searchParams }: AdminProductsP
     visibility,
     photo,
     stock,
+    issue,
     page: Number.isNaN(page) ? 1 : page,
   });
   const status = typeof params?.status === "string" ? params.status : "";
@@ -42,7 +47,7 @@ export default async function AdminProductsPage({ searchParams }: AdminProductsP
     <AdminProductsWorkspace
       brands={data.brands}
       categories={data.categories}
-      filters={{ q, category, brand, visibility, photo, stock }}
+      filters={{ q, category, brand, visibility, photo, stock, issue }}
       page={data.page}
       pageSize={data.pageSize}
       products={data.products}

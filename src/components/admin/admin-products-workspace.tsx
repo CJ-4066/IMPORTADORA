@@ -14,10 +14,12 @@ import {
   MoreHorizontal,
   Square,
   SquareCheckBig,
+  TriangleAlert,
   Trash2,
 } from "lucide-react";
 import { deleteProductAction } from "@/app/admin/actions";
 import type { AdminProductListItem, BrandOption, CategoryOption } from "@/lib/store";
+import { CHANGE_CODES } from "@/lib/change-codes";
 import { formatCurrency } from "@/lib/utils";
 
 type AdminProductsWorkspaceProps = {
@@ -35,6 +37,7 @@ type AdminProductsWorkspaceProps = {
     withoutPhotoProducts: number;
     visibleProducts: number;
     hiddenProducts: number;
+    needsReviewProducts: number;
   };
   filters: {
     q: string;
@@ -43,6 +46,7 @@ type AdminProductsWorkspaceProps = {
     visibility: "all" | "visible" | "hidden";
     photo: "all" | "missing" | "with-photo";
     stock: "all" | "low";
+    issue: "all" | "review";
   };
 };
 
@@ -89,6 +93,10 @@ function buildQuery(filters: AdminProductsWorkspaceProps["filters"], extra: Part
 
   if (filters.stock !== "all") {
     params.set("stock", filters.stock);
+  }
+
+  if (filters.issue !== "all") {
+    params.set("issue", filters.issue);
   }
 
   for (const [key, value] of Object.entries(extra)) {
@@ -162,7 +170,8 @@ export function AdminProductsWorkspace({
     filters.brand !== "all" ||
     filters.visibility !== "all" ||
     filters.photo !== "all" ||
-    filters.stock !== "all";
+    filters.stock !== "all" ||
+    filters.issue !== "all";
 
   function toggleSelection(productId: string) {
     setSelectedIds((current) =>
@@ -325,17 +334,29 @@ export function AdminProductsWorkspace({
       ) : null}
 
       <div className="admin-products-summary-grid">
-        <Link className="metric-panel metric-panel-link" href={currentHref}>
+        <Link
+          className="metric-panel metric-panel-link"
+          href={currentHref}
+          data-change-code={CHANGE_CODES.ADMIN_STABLE_PAGINATION}
+        >
           <Square size={22} />
           <strong>{stats.totalProducts}</strong>
           <span>Total productos</span>
         </Link>
-        <Link className="metric-panel metric-panel-link" href={`/admin/products?${buildQuery(filters, { photo: "with-photo" })}`}>
+        <Link
+          className="metric-panel metric-panel-link"
+          href={`/admin/products?${buildQuery(filters, { photo: "with-photo" })}`}
+          data-change-code={CHANGE_CODES.ADMIN_VISIBLE_WITH_PHOTO}
+        >
           <ImagePlus size={22} />
           <strong>{stats.withPhotoProducts}</strong>
           <span>Con foto</span>
         </Link>
-        <Link className="metric-panel metric-panel-link" href={`/admin/products?${buildQuery(filters, { photo: "missing" })}`}>
+        <Link
+          className="metric-panel metric-panel-link"
+          href={`/admin/products?${buildQuery(filters, { photo: "missing" })}`}
+          data-change-code={CHANGE_CODES.ADMIN_REVIEW_ALERTS}
+        >
           <ImageOff size={22} />
           <strong>{stats.withoutPhotoProducts}</strong>
           <span>Sin foto</span>
@@ -349,6 +370,15 @@ export function AdminProductsWorkspace({
           <EyeOff size={22} />
           <strong>{stats.hiddenProducts}</strong>
           <span>Ocultos</span>
+        </Link>
+        <Link
+          className="metric-panel metric-panel-link"
+          href={`/admin/products?${buildQuery(filters, { issue: "review" })}`}
+          data-change-code={CHANGE_CODES.ADMIN_REVIEW_ALERTS}
+        >
+          <TriangleAlert size={22} />
+          <strong>{stats.needsReviewProducts}</strong>
+          <span>Productos a revisar</span>
         </Link>
       </div>
 
@@ -388,6 +418,7 @@ export function AdminProductsWorkspace({
             <option value="all">Todo el stock</option>
             <option value="low">Solo stock bajo</option>
           </select>
+          <input name="issue" type="hidden" value={filters.issue} />
           <button className="button button-primary" type="submit">
             Buscar
           </button>
@@ -490,7 +521,9 @@ export function AdminProductsWorkspace({
             <tbody>
               {products.map((product) => {
                 const hasPhoto = product.hasPhoto;
-                const isEffectivelyVisible = product.isVisible && hasPhoto;
+                const hasStock = product.stockUnits > 0;
+                const isEffectivelyVisible = product.isVisible && hasPhoto && hasStock;
+                const needsReview = !hasPhoto || !hasStock;
 
                 return (
                   <tr key={product.id}>
@@ -543,6 +576,11 @@ export function AdminProductsWorkspace({
                       <span className={`status-badge ${isEffectivelyVisible ? "is-visible" : "is-hidden"}`}>
                         {isEffectivelyVisible ? "Visible" : "Oculto"}
                       </span>
+                      {needsReview ? (
+                        <span className="status-badge is-warning">
+                          {!hasPhoto && !hasStock ? "Sin foto y sin stock" : !hasPhoto ? "Sin foto" : "Sin stock"}
+                        </span>
+                      ) : null}
                       {product.isFeatured ? (
                         <span className="status-badge is-visible">Destacado</span>
                       ) : null}
@@ -552,7 +590,7 @@ export function AdminProductsWorkspace({
                         <Link className="icon-button" href={`/admin/products/${product.id}`}>
                           <PencilLine size={16} />
                         </Link>
-                        {!hasPhoto ? (
+                        {!hasPhoto || !hasStock ? (
                           <Link className="button button-secondary button-chip" href={`/admin/products/${product.id}#media`}>
                             Agregar foto
                           </Link>
@@ -636,7 +674,9 @@ export function AdminProductsWorkspace({
                   }}
                   type="button"
                 >
-                  {activeProduct.isVisible && activeProduct.hasPhoto ? "Ocultar" : "Mostrar"}
+                  {activeProduct.isVisible && activeProduct.hasPhoto && activeProduct.stockUnits > 0
+                    ? "Ocultar"
+                    : "Mostrar"}
                 </button>
                 <button
                   className="button button-secondary button-chip"
