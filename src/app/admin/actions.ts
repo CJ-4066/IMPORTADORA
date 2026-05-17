@@ -68,6 +68,7 @@ function getProductFormValues(formData: FormData): ProductFormValues {
     brand: String(formData.get("brand") ?? ""),
     categoryId: String(formData.get("categoryId") ?? ""),
     description: String(formData.get("description") ?? ""),
+    technicalSpecs: String(formData.get("technicalSpecs") ?? ""),
     imageUrl: String(formData.get("imageUrl") ?? ""),
     media: mediaTypes.map((type, index) => ({
       type: type === "VIDEO" ? "VIDEO" : "IMAGE",

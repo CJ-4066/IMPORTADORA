@@ -1,5 +1,6 @@
 export const CHANGE_CODES = {
   CATALOG_SELLABLE_RULE: "CAT-001",
+  CATALOG_TECHNICAL_SPECS: "CAT-002",
   ADMIN_REVIEW_ALERTS: "ADM-002",
   ADMIN_STABLE_PAGINATION: "ADM-003",
   ADMIN_VISIBLE_WITH_PHOTO: "ADM-004",
@@ -10,6 +11,7 @@ export type ChangeCode = (typeof CHANGE_CODES)[keyof typeof CHANGE_CODES];
 
 export const CHANGE_CODE_NOTES: Record<ChangeCode, string> = {
   [CHANGE_CODES.CATALOG_SELLABLE_RULE]: "Unifica publicación pública: foto real + stock > 0 + visible.",
+  [CHANGE_CODES.CATALOG_TECHNICAL_SPECS]: "Ficha técnica opcional separada de la descripción comercial.",
   [CHANGE_CODES.ADMIN_REVIEW_ALERTS]: "Alertas admin para productos sin foto o sin stock.",
   [CHANGE_CODES.ADMIN_STABLE_PAGINATION]: "Orden estable para paginación server-side.",
   [CHANGE_CODES.ADMIN_VISIBLE_WITH_PHOTO]: "Separa visibles con foto de visibles sin foto.",

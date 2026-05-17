@@ -12,6 +12,7 @@ export type CatalogProduct = {
   slug: string;
   name: string;
   description: string | null;
+  technicalSpecs: string | null;
   brand: string | null;
   category: string | null;
   categoryId: string | null;

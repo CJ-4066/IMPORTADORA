@@ -199,6 +199,7 @@ export function mapProduct(product: ProductWithMedia): CatalogProduct {
     slug: product.slug,
     name: product.name,
     description: product.description,
+    technicalSpecs: product.technicalSpecs,
     brand: product.brand,
     category: product.category,
     categoryId: product.categoryId,

@@ -66,6 +66,7 @@ model Product {
   slug            String         @unique @db.VarChar(140)
   name            String         @db.VarChar(180)
   description     String?        @db.Text
+  technicalSpecs  String?        @db.Text
   brand           String?        @db.VarChar(120)
   category        String?        @db.VarChar(120)
   categoryId      String?

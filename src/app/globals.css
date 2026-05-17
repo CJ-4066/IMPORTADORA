@@ -1248,6 +1248,18 @@ body {
   font-size: 0.82rem;
 }
 
+.store-assistant-product-specs {
+  display: block;
+  padding: 0.6rem 0.72rem;
+  border: 1px solid rgba(var(--brand-ink-rgb), 0.08);
+  border-radius: 14px;
+  background: rgba(var(--brand-ink-rgb), 0.04);
+  color: var(--foreground);
+  font-size: 0.76rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+
 .store-assistant-product-prices {
   display: grid;
   gap: 0.18rem;
@@ -2995,6 +3007,26 @@ body {
   color: var(--muted);
   font-size: 0.92rem;
   line-height: 1.55;
+}
+
+.product-detail-specs-card {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid rgba(var(--brand-ink-rgb), 0.08);
+  border-radius: 18px;
+  background: rgba(var(--brand-ink-rgb), 0.035);
+}
+
+.product-detail-specs-card .eyebrow {
+  margin-bottom: 0;
+}
+
+.product-detail-specs {
+  color: var(--foreground);
+  font-size: 0.92rem;
+  line-height: 1.6;
+  white-space: pre-wrap;
 }
 
 .product-detail-price-box,

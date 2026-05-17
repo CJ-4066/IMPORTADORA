@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { LoaderCircle, Send, ShoppingCart, Sparkles, X } from "lucide-react";
 import { STORE_CART_OPEN_EVENT } from "@/components/catalog/cart-events";
 import {
@@ -23,6 +23,10 @@ export type StoreAssistantPanelProps = {
   businessName: string;
   open: boolean;
   onClose: () => void;
+  initialPrompt?: string | null;
+  initialProductCode?: string | null;
+  initialCategorySlug?: string | null;
+  onInitialPromptHandled?: () => void;
 };
 
 type AssistantMessage = {
@@ -234,6 +238,7 @@ function AssistantProductCard({ product }: AssistantProductCardProps) {
         lastSyncedAt: null,
         updatedAt: new Date().toISOString(),
         hasPhoto: false,
+        technicalSpecs: product.technicalSpecs ?? null,
       },
       "unit",
       quantity,
@@ -271,6 +276,10 @@ function AssistantProductCard({ product }: AssistantProductCardProps) {
       <span className="store-assistant-product-meta">
         {product.brand ?? product.category ?? "Catálogo"}
       </span>
+
+      {product.technicalSpecs ? (
+        <span className="store-assistant-product-specs">{product.technicalSpecs}</span>
+      ) : null}
 
       <div className="store-assistant-product-prices">
         <span>Unitario {formatCurrency(product.unitPriceValue)}</span>
@@ -442,6 +451,10 @@ function AssistantFooter({
 
 export function StoreAssistantPanel({
   businessName,
+  initialPrompt = null,
+  initialProductCode = null,
+  initialCategorySlug = null,
+  onInitialPromptHandled,
   onClose,
   open,
 }: StoreAssistantPanelProps) {
@@ -452,9 +465,10 @@ export function StoreAssistantPanel({
     buildWelcomeMessage(businessName),
   ]);
   const [welcomeDismissed, setWelcomeDismissed] = useState(false);
+  const [isHydrated, setIsHydrated] = useState(false);
   const contextProductCodeRef = useRef<string | null>(null);
   const contextCategorySlugRef = useRef<string | null>(null);
-  const didHydrateRef = useRef(false);
+  const handledInitialRequestRef = useRef<string | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const bodyRef = useRef<HTMLDivElement | null>(null);
 
@@ -474,14 +488,14 @@ export function StoreAssistantPanel({
         contextCategorySlugRef.current = snapshot.contextCategorySlug;
       }
 
-      didHydrateRef.current = true;
+      setIsHydrated(true);
     }, 0);
 
     return () => window.clearTimeout(timer);
   }, [businessName, storageKey]);
 
   useEffect(() => {
-    if (!didHydrateRef.current) {
+    if (!isHydrated) {
       return;
     }
 
@@ -491,7 +505,7 @@ export function StoreAssistantPanel({
       contextCategorySlug: contextCategorySlugRef.current,
       welcomeDismissed,
     });
-  }, [messages, storageKey, welcomeDismissed]);
+  }, [isHydrated, messages, storageKey, welcomeDismissed]);
 
   useEffect(() => {
     if (!open) {
@@ -511,88 +525,117 @@ export function StoreAssistantPanel({
     bodyRef.current.scrollTop = bodyRef.current.scrollHeight;
   }, [messages, loading]);
 
+  const sendMessage = useCallback(
+    async (text: string) => {
+      const cleanText = text.trim();
+      if (!cleanText || loading) {
+        return;
+      }
+
+      setWelcomeDismissed(true);
+
+      const userMessage: AssistantMessage = {
+        id: getMessageId(),
+        role: "user",
+        text: cleanText,
+      };
+
+      setMessages((current) => [...current, userMessage]);
+      setDraft("");
+      setLoading(true);
+
+      try {
+        const recentMessages = [...messages.slice(-5), userMessage].map((message) => ({
+          role: message.role,
+          text: message.text,
+        }));
+
+        const payload: ShopAssistantRequest = {
+          message: cleanText,
+          productContextCode: contextProductCodeRef.current,
+          contextCategorySlug: contextCategorySlugRef.current,
+          recentMessages,
+        };
+
+        const response = await fetch("/api/shop-assistant", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+          throw new Error("Assistant request failed");
+        }
+
+        const reply = (await response.json()) as ShopAssistantReply;
+
+        contextProductCodeRef.current = reply.contextProductCode ?? null;
+        contextCategorySlugRef.current = reply.contextCategorySlug ?? null;
+        setMessages((current) => [
+          ...current,
+          {
+            id: getMessageId(),
+            role: "assistant",
+            text: reply.text,
+            products: reply.products,
+            quickActions: reply.quickActions,
+            suggestedPrompts: reply.suggestedPrompts,
+          },
+        ]);
+      } catch {
+        setMessages((current) => [
+          ...current,
+          {
+            id: getMessageId(),
+            role: "assistant",
+            text: "No pude responder en este momento. Intenta con un código, nombre o categoría.",
+            suggestedPrompts: [
+              "Busca por código",
+              "Muéstrame ofertas",
+              "¿Cómo envío mi pedido?",
+            ],
+          },
+        ]);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [loading, messages],
+  );
+
   const canSend = draft.trim().length > 0 && !loading;
   const suggestedPrompts = useMemo(() => {
     const latestAssistant = [...messages].reverse().find((message) => message.role === "assistant");
     return latestAssistant?.suggestedPrompts ?? [];
   }, [messages]);
 
-  const sendMessage = async (text: string) => {
-    const cleanText = text.trim();
-    if (!cleanText || loading) {
+  useEffect(() => {
+    if (!open || !isHydrated || !initialPrompt) {
       return;
     }
 
+    const requestKey = `${initialProductCode ?? ""}:${initialCategorySlug ?? ""}:${initialPrompt}`;
+    if (handledInitialRequestRef.current === requestKey) {
+      return;
+    }
+
+    handledInitialRequestRef.current = requestKey;
+    contextProductCodeRef.current = initialProductCode;
+    contextCategorySlugRef.current = initialCategorySlug;
     setWelcomeDismissed(true);
-
-    const userMessage: AssistantMessage = {
-      id: getMessageId(),
-      role: "user",
-      text: cleanText,
-    };
-
-    setMessages((current) => [...current, userMessage]);
-    setDraft("");
-    setLoading(true);
-
-    try {
-      const recentMessages = [...messages.slice(-5), userMessage].map((message) => ({
-        role: message.role,
-        text: message.text,
-      }));
-
-      const payload: ShopAssistantRequest = {
-        message: cleanText,
-        productContextCode: contextProductCodeRef.current,
-        contextCategorySlug: contextCategorySlugRef.current,
-        recentMessages,
-      };
-
-      const response = await fetch("/api/shop-assistant", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        throw new Error("Assistant request failed");
-      }
-
-      const reply = (await response.json()) as ShopAssistantReply;
-
-      contextProductCodeRef.current = reply.contextProductCode ?? null;
-      contextCategorySlugRef.current = reply.contextCategorySlug ?? null;
-      setMessages((current) => [
-        ...current,
-        {
-          id: getMessageId(),
-          role: "assistant",
-          text: reply.text,
-          products: reply.products,
-          quickActions: reply.quickActions,
-          suggestedPrompts: reply.suggestedPrompts,
-        },
-      ]);
-    } catch {
-      setMessages((current) => [
-        ...current,
-        {
-          id: getMessageId(),
-          role: "assistant",
-          text: "No pude responder en este momento. Intenta con un código, nombre o categoría.",
-          suggestedPrompts: [
-            "Busca por código",
-            "Muéstrame ofertas",
-            "¿Cómo envío mi pedido?",
-          ],
-        },
-      ]);
-      } finally {
-        setLoading(false);
-      }
-  };
+    void sendMessage(initialPrompt);
+    onInitialPromptHandled?.();
+  }, [
+    initialCategorySlug,
+    initialPrompt,
+    initialProductCode,
+    onInitialPromptHandled,
+    isHydrated,
+    open,
+    sendMessage,
+  ]);
 
   const clearHistory = () => {
     clearAssistantSnapshot(storageKey);

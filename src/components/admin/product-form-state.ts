@@ -10,6 +10,7 @@ export type ProductFormValues = {
   brand: string;
   categoryId: string;
   description: string;
+  technicalSpecs: string;
   imageUrl: string;
   media: ProductMediaFormValue[];
   unitLabel: string;
@@ -38,6 +39,7 @@ const emptyProductActionState: ProductActionState = {
     brand: "",
     categoryId: "",
     description: "",
+    technicalSpecs: "",
     imageUrl: "",
     media: [{ type: "IMAGE", url: "", altText: "" }],
     unitLabel: "unidad",

@@ -33,6 +33,7 @@ export default async function ProductEditPage({ params, searchParams }: ProductE
         brand: product.brand ?? "",
         categoryId: product.categoryId ?? "",
         description: product.description ?? "",
+        technicalSpecs: product.technicalSpecs ?? "",
         imageUrl: product.imageUrl ?? "",
         media: product.media.map((item) => ({
           type: item.type,

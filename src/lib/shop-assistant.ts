@@ -142,6 +142,7 @@ export type AssistantProductRecord = {
   externalId?: string | null;
   name: string;
   description: string | null;
+  technicalSpecs?: string | null;
   brand: string | null;
   category: string | null;
   categoryId?: string | null;
@@ -274,6 +275,7 @@ const ASSISTANT_PRODUCT_SELECT = {
   externalId: true,
   name: true,
   description: true,
+  technicalSpecs: true,
   brand: true,
   category: true,
   categoryId: true,
@@ -716,6 +718,11 @@ function formatProductAnswer(product: AssistantProductRecord, currencySymbol: st
     normalizeAssistantText(product.description) !== normalizeAssistantText(product.name)
       ? `Descripción: ${product.description}. `
       : "";
+  const technicalSpecs =
+    product.technicalSpecs &&
+    normalizeAssistantText(product.technicalSpecs) !== normalizeAssistantText(product.name)
+      ? `Especificaciones técnicas: ${product.technicalSpecs}. `
+      : "";
   const pricingLines = [
     `Precio unitario: ${formatCurrency(unitPrice, currencySymbol)}`,
     wholesalePrice
@@ -723,7 +730,7 @@ function formatProductAnswer(product: AssistantProductRecord, currencySymbol: st
       : "Mayorista: mantiene el precio unitario",
   ];
 
-  return `${product.name} (${product.code}). ${description}${pricingLines.join(". ")}. Stock sincronizado: ${product.stockUnits} unidades (${getAvailabilityLabel(product.stockUnits)}).`;
+  return `${product.name} (${product.code}). ${description}${technicalSpecs}${pricingLines.join(". ")}. Stock sincronizado: ${product.stockUnits} unidades (${getAvailabilityLabel(product.stockUnits)}).`;
 }
 
 function createRealRepository(): ShopAssistantRepository {

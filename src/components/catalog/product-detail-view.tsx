@@ -180,6 +180,14 @@ export function ProductDetailView({ product, settings }: ProductDetailViewProps)
             </div>
 
             {product.description ? <p className="product-detail-description">{product.description}</p> : null}
+
+            {/* CHANGE-CODE: CAT-002 */}
+            {product.technicalSpecs ? (
+              <section className="product-detail-specs-card">
+                <p className="eyebrow">Especificaciones técnicas</p>
+                <div className="product-detail-specs">{product.technicalSpecs}</div>
+              </section>
+            ) : null}
           </div>
 
           <div className="product-detail-price-box">

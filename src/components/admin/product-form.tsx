@@ -154,6 +154,21 @@ export function ProductForm({
                   ) : null}
                 </label>
 
+                {/* CHANGE-CODE: CAT-002 */}
+                <label className={cn("field field-wide", fieldErrors.technicalSpecs && "field-has-error")}>
+                  <span>Especificaciones técnicas</span>
+                  <textarea
+                    aria-invalid={Boolean(fieldErrors.technicalSpecs)}
+                    defaultValue={values.technicalSpecs}
+                    name="technicalSpecs"
+                    placeholder="Ej.: Pantalla 6.9'', batería 6000 mAh, 33W, Android 15..."
+                    rows={4}
+                  />
+                  {fieldErrors.technicalSpecs ? (
+                    <small className="field-error">{fieldErrors.technicalSpecs}</small>
+                  ) : null}
+                </label>
+
                 <label className={cn("field", fieldErrors.unitLabel && "field-has-error")}>
                   <span>Unidad</span>
                   <input
@@ -296,6 +311,7 @@ export function ProductForm({
               <span>{values.isVisible ? "Visible" : "Oculto"}</span>
               <span>{values.isFeatured ? "Destacado" : "Normal"}</span>
               <span>{values.imageUrl.trim() ? "Portada cargada" : "Sin portada"}</span>
+              <span>{values.technicalSpecs.trim() ? "Con especificaciones" : "Sin especificaciones"}</span>
               <span>{mediaCount} medios</span>
             </article>
           </aside>

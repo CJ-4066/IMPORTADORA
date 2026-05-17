@@ -2,13 +2,16 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { ImageIcon, Minus, MessageCircle, Plus, ShoppingCart } from "lucide-react";
+import { Bot, ImageIcon, Minus, Plus, ShoppingCart } from "lucide-react";
 import { STORE_CART_OPEN_EVENT } from "@/components/catalog/cart-events";
+import {
+  STORE_ASSISTANT_OPEN_EVENT,
+  type StoreAssistantOpenDetail,
+} from "@/components/catalog/assistant-events";
 import { isCartStoreHydrated, rehydrateCartStore, useCartStore } from "@/components/catalog/cart-store";
 import { getSafeMediaUrl } from "@/lib/media-url";
 import { getPublicProductName } from "@/lib/product-name";
 import type { CatalogProduct, StoreSettingsView } from "@/lib/store";
-import { buildPublicWhatsappHref } from "@/lib/utils";
 import { ProductPriceRows } from "@/components/catalog/product-display";
 
 type ProductCardProps = {
@@ -24,7 +27,6 @@ export function ProductCard({ product, settings }: ProductCardProps) {
   const [imageFailed, setImageFailed] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const shouldShowMedia = primaryMedia && primaryMediaUrl && !(primaryMedia.type === "IMAGE" && imageFailed);
-  const whatsappHref = buildPublicWhatsappHref(`Hola, quiero consultar por el producto ${displayName}.`);
   const handleAddToCart = async () => {
     if (!isCartStoreHydrated()) {
       await rehydrateCartStore();
@@ -35,6 +37,16 @@ export function ProductCard({ product, settings }: ProductCardProps) {
       window.dispatchEvent(new CustomEvent(STORE_CART_OPEN_EVENT));
     });
     setQuantity(1);
+  };
+
+  const openAssistantForProduct = () => {
+    const detail: StoreAssistantOpenDetail = {
+      prompt: `Dame todas las especificaciones y detalles de este producto: ${displayName}.`,
+      productContextCode: product.code,
+      contextCategorySlug: null,
+    };
+
+    window.dispatchEvent(new CustomEvent(STORE_ASSISTANT_OPEN_EVENT, { detail }));
   };
 
   return (
@@ -116,10 +128,10 @@ export function ProductCard({ product, settings }: ProductCardProps) {
             <ShoppingCart size={16} />
             {product.stockUnits <= 0 ? "Sin stock" : "Añadir al carrito"}
           </button>
-          <a className="button button-secondary" href={whatsappHref} rel="noreferrer" target="_blank">
-            <MessageCircle size={16} />
+          <button className="button button-secondary" onClick={openAssistantForProduct} type="button">
+            <Bot size={16} />
             Consultar
-          </a>
+          </button>
         </div>
       </div>
     </article>
