@@ -7,6 +7,7 @@ import type {
   ShopAssistantRepository,
 } from "@/lib/shop-assistant";
 import { createShopAssistantService } from "@/lib/shop-assistant";
+import { buildGiftReply, detectGiftIntent, getGiftKeywords } from "@/lib/shop-gift-intent";
 
 const settings: AssistantSettingsRecord = {
   businessName: "Importaciones Super",
@@ -318,4 +319,28 @@ test("da fallback claro cuando no entiende", async () => {
 
   assert.ok(containsNormalized(reply.text, "no encontré una coincidencia clara"));
   assert.ok(reply.suggestedPrompts?.length);
+});
+
+test("detecta regalos por temporada y perfil", () => {
+  const intent = detectGiftIntent("regalo para mi mama por el dia de la madre");
+
+  assert.equal(intent.isGiftIntent, true);
+  assert.equal(intent.season, "mothers_day");
+  assert.equal(intent.profile, "mother");
+  assert.ok(intent.keywords.includes("lampara"));
+});
+
+test("redacta respuesta de regalo con contexto", () => {
+  const intent = detectGiftIntent("regalo para mi novio gamer");
+  const reply = buildGiftReply(intent, [{ name: "Audifono Bluetooth Basico" }]);
+
+  assert.ok(containsNormalized(reply, "gamer"));
+  assert.ok(containsNormalized(reply, "regalo"));
+});
+
+test("devuelve palabras clave de regalo sin duplicados", () => {
+  const keywords = getGiftKeywords("mother", "mothers_day");
+
+  assert.ok(keywords.includes("lampara"));
+  assert.equal(new Set(keywords).size, keywords.length);
 });
