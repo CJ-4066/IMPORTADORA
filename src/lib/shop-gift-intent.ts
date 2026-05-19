@@ -36,51 +36,8 @@ function normalizeText(value: string) {
     .trim();
 }
 
-function getSecondSundayOfMay(year: number) {
-  const date = new Date(year, 4, 1);
-  let sundayCount = 0;
-
-  while (date.getMonth() === 4) {
-    if (date.getDay() === 0) {
-      sundayCount += 1;
-      if (sundayCount === 2) return new Date(date);
-    }
-    date.setDate(date.getDate() + 1);
-  }
-
-  return new Date(year, 4, 14);
-}
-
-function getThirdSundayOfJune(year: number) {
-  const date = new Date(year, 5, 1);
-  let sundayCount = 0;
-
-  while (date.getMonth() === 5) {
-    if (date.getDay() === 0) {
-      sundayCount += 1;
-      if (sundayCount === 3) return new Date(date);
-    }
-    date.setDate(date.getDate() + 1);
-  }
-
-  return new Date(year, 5, 21);
-}
-
-function daysBetween(a: Date, b: Date) {
-  const oneDay = 1000 * 60 * 60 * 24;
-  const start = new Date(a.getFullYear(), a.getMonth(), a.getDate());
-  const end = new Date(b.getFullYear(), b.getMonth(), b.getDate());
-  return Math.round((end.getTime() - start.getTime()) / oneDay);
-}
-
-function isNearDate(today: Date, target: Date, beforeDays = 35, afterDays = 3) {
-  const diff = daysBetween(today, target);
-  return diff >= -afterDays && diff <= beforeDays;
-}
-
-export function detectGiftSeason(message: string, now = new Date()): GiftSeason {
+export function detectGiftSeason(message: string): GiftSeason {
   const text = normalizeText(message);
-  const year = now.getFullYear();
 
   if (text.includes("navidad") || text.includes("papa noel")) {
     return "christmas";
@@ -98,24 +55,9 @@ export function detectGiftSeason(message: string, now = new Date()): GiftSeason 
     return "valentines";
   }
 
-  if (
-    text.includes("dia del niño") ||
-    text.includes("dia del nino") ||
-    text.includes("nino") ||
-    text.includes("niño")
-  ) {
+  if (text.includes("dia del niño") || text.includes("dia del nino")) {
     return "childrens_day";
   }
-
-  const christmas = new Date(year, 11, 25);
-  const mothersDay = getSecondSundayOfMay(year);
-  const fathersDay = getThirdSundayOfJune(year);
-  const valentines = new Date(year, 1, 14);
-
-  if (isNearDate(now, christmas, 45, 5)) return "christmas";
-  if (isNearDate(now, mothersDay, 35, 5)) return "mothers_day";
-  if (isNearDate(now, fathersDay, 35, 5)) return "fathers_day";
-  if (isNearDate(now, valentines, 25, 3)) return "valentines";
 
   return "none";
 }
