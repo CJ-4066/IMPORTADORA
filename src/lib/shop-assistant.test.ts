@@ -19,6 +19,7 @@ const categories: AssistantCategoryRecord[] = [
   { id: "cat-bebidas", name: "Bebidas", slug: "bebidas" },
   { id: "cat-limpieza", name: "Limpieza", slug: "limpieza" },
   { id: "cat-audio", name: "Auriculares", slug: "auriculares" },
+  { id: "cat-perifericos", name: "Periféricos", slug: "perifericos" },
 ];
 
 const products: AssistantProductRecord[] = [
@@ -101,6 +102,22 @@ const products: AssistantProductRecord[] = [
     boxPrice: null,
     unitsPerBox: null,
     stockUnits: 15,
+  },
+  {
+    id: "p6",
+    slug: "teclado-bluetooth-compacto-tec-111",
+    code: "TEC-111",
+    name: "Teclado Bluetooth Compacto",
+    description: "Teclado portátil para trabajo diario.",
+    brand: "Key Pro",
+    category: "Periféricos",
+    categoryId: "cat-perifericos",
+    unitPrice: 58.9,
+    wholesalePrice: 52.5,
+    wholesaleMinQty: 6,
+    boxPrice: null,
+    unitsPerBox: null,
+    stockUnits: 28,
   },
 ];
 
@@ -276,6 +293,16 @@ test("sugiere correcciones cuando la palabra mal escrita no tiene resultados", a
 
   assert.ok(containsNormalized(reply.text, "quizá quisiste decir"));
   assert.ok(containsNormalized(reply.text, "mouse"));
+});
+
+test("prioriza teclados y evita productos irrelevantes", async () => {
+  const reply = await answerShopAssistant({
+    message: "tienen teclados",
+  });
+
+  assert.ok(reply.products?.length);
+  assert.ok(reply.products?.every((product) => containsNormalized(product.name, "teclado")));
+  assert.ok(!reply.products?.some((product) => containsNormalized(product.name, "audifono")));
 });
 
 test("responde soporte y flujo de compra", async () => {

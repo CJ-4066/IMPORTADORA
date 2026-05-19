@@ -99,6 +99,14 @@ const SEARCH_SYNONYMS: Record<string, string[]> = {
   scooter: ["scooter", "scoter", "patineta"],
 };
 
+const CATEGORY_FOCUS_ALIASES: Record<string, string[]> = {
+  teclado: ["teclado", "teclados", "keyboard"],
+  mouse: ["mouse", "mause", "raton"],
+  audifonos: ["audifono", "audifonos", "auricular", "auriculares", "headset"],
+  auriculares: ["audifono", "audifonos", "auricular", "auriculares", "headset"],
+  scooter: ["scooter", "scoter", "scuter", "patineta"],
+};
+
 const SEARCH_CORRECTIONS: Record<string, string> = {
   acsesorio: "accesorio",
   acsesorios: "accesorios",
@@ -378,6 +386,45 @@ function getSearchCorrections(message: string) {
   );
 }
 
+type ProductFocus = {
+  canonical: string;
+  aliases: string[];
+};
+
+function detectProductFocus(query: string): ProductFocus | null {
+  const normalized = normalizeAssistantText(query);
+
+  for (const [canonical, aliases] of Object.entries(CATEGORY_FOCUS_ALIASES)) {
+    if (aliases.some((alias) => normalized.includes(alias))) {
+      return { canonical, aliases };
+    }
+  }
+
+  return null;
+}
+
+function normalizeProductSearchText(product: AssistantProductRecord) {
+  return normalizeAssistantText(
+    [
+      product.code,
+      product.externalCode,
+      product.externalId,
+      product.name,
+      product.description ?? "",
+      product.technicalSpecs ?? "",
+      product.brand ?? "",
+      product.category ?? "",
+    ]
+      .filter(Boolean)
+      .join(" "),
+  );
+}
+
+function productMatchesFocus(product: AssistantProductRecord, focus: ProductFocus) {
+  const text = normalizeProductSearchText(product);
+  return focus.aliases.some((alias) => text.includes(alias));
+}
+
 function removeBudgetText(message: string) {
   return message
     .replace(/\b(?:s\/|s\.\/|pen)\s*\d+(?:[.,]\d{1,2})?\b/gi, " ")
@@ -417,12 +464,17 @@ function extractQuantity(message: string) {
   return values[0] ?? null;
 }
 
-function scoreAssistantProduct(product: AssistantProductRecord, query: string) {
+function scoreAssistantProduct(
+  product: AssistantProductRecord,
+  query: string,
+  focus: ProductFocus | null = null,
+) {
   const normalizedQuery = normalizeAssistantText(query);
   const normalizedCode = normalizeAssistantText(product.code);
   const normalizedName = normalizeAssistantText(product.name);
   const normalizedBrand = normalizeAssistantText(product.brand ?? "");
   const normalizedCategory = normalizeAssistantText(product.category ?? "");
+  const normalizedSpecs = normalizeAssistantText(product.technicalSpecs ?? "");
   let score = 0;
 
   if (normalizedCode === normalizedQuery) score += 120;
@@ -431,8 +483,38 @@ function scoreAssistantProduct(product: AssistantProductRecord, query: string) {
   if (normalizedName.includes(normalizedQuery)) score += 48;
   if (normalizedBrand.includes(normalizedQuery)) score += 24;
   if (normalizedCategory.includes(normalizedQuery)) score += 20;
+  if (normalizedSpecs.includes(normalizedQuery)) score += 10;
   if (product.stockUnits > 0) score += 8;
   if (product.wholesalePrice !== null) score += 5;
+
+  if (focus) {
+    const focusMatch = focus.aliases.some((alias) => {
+      return (
+        normalizedCategory === alias ||
+        normalizedName === alias ||
+        normalizedName.includes(alias) ||
+        normalizedCategory.includes(alias)
+      );
+    });
+    const focusNameHit = focus.aliases.some((alias) => normalizedName.includes(alias));
+    const focusSpecsHit = focus.aliases.some((alias) => normalizedSpecs.includes(alias));
+
+    if (focusMatch) {
+      score += 100;
+    }
+
+    if (focusNameHit) {
+      score += 50;
+    }
+
+    if (focusSpecsHit) {
+      score += 10;
+    }
+
+    if (!focusMatch && !focusNameHit && !focusSpecsHit) {
+      score -= 100;
+    }
+  }
 
   return score;
 }
@@ -445,6 +527,7 @@ function sortProductsForBudget(
   products: AssistantProductRecord[],
   query: string,
   budget: number,
+  focus: ProductFocus | null = null,
 ) {
   return products.slice().sort((left, right) => {
     const leftPrice = getProductUnitPrice(left);
@@ -463,7 +546,7 @@ function sortProductsForBudget(
       return leftOverBudget - rightOverBudget;
     }
 
-    return scoreAssistantProduct(right, query) - scoreAssistantProduct(left, query);
+    return scoreAssistantProduct(right, query, focus) - scoreAssistantProduct(left, query, focus);
   });
 }
 
@@ -581,7 +664,12 @@ function applySalesRecommendations(
   );
 }
 
-function sortProductsForQuantity(products: AssistantProductRecord[], quantity: number) {
+function sortProductsForQuantity(
+  products: AssistantProductRecord[],
+  quantity: number,
+  query: string,
+  focus: ProductFocus | null = null,
+) {
   return products.slice().sort((left, right) => {
     const leftWholesaleApplies =
       left.wholesalePrice !== null && quantity >= left.wholesaleMinQty ? 1 : 0;
@@ -592,7 +680,12 @@ function sortProductsForQuantity(products: AssistantProductRecord[], quantity: n
       return rightWholesaleApplies - leftWholesaleApplies;
     }
 
-    return getEffectivePrice(left, quantity) - getEffectivePrice(right, quantity);
+    const priceDifference = getEffectivePrice(left, quantity) - getEffectivePrice(right, quantity);
+    if (priceDifference !== 0) {
+      return priceDifference;
+    }
+
+    return scoreAssistantProduct(right, query, focus) - scoreAssistantProduct(left, query, focus);
   });
 }
 
@@ -1089,7 +1182,7 @@ export function createShopAssistantService(repository: ShopAssistantRepository) 
       const sortedGiftProducts = budget
         ? sortProductsForBudget(giftProducts, giftQueries.join(" "), budget)
         : quantity
-          ? sortProductsForQuantity(giftProducts, quantity)
+          ? sortProductsForQuantity(giftProducts, quantity, giftQueries.join(" "))
           : giftProducts.slice(0, MAX_PRODUCTS);
       const visibleGiftProducts = sortedGiftProducts.slice(0, MAX_PRODUCTS);
       const occasion = detectGiftOccasion(`${trimmedMessage} ${recentConversation}`);
@@ -1298,15 +1391,22 @@ export function createShopAssistantService(repository: ShopAssistantRepository) 
     }
 
     if (searchTerms) {
+      const focus = detectProductFocus(`${trimmedMessage} ${searchTerms} ${recentConversation}`);
       const products = filterSensitiveProducts(
         await repository.searchVisibleProducts(searchTerms),
         allowSensitiveProducts,
       );
+      const focusedProducts =
+        focus && products.length
+          ? products.filter((product) => productMatchesFocus(product, focus))
+          : products;
+      const productsForRanking =
+        focus && focusedProducts.length ? focusedProducts : products;
       const sortedProducts = quantity
-        ? sortProductsForQuantity(products, quantity)
+        ? sortProductsForQuantity(productsForRanking, quantity, searchTerms, focus)
         : budget
-          ? sortProductsForBudget(products, searchTerms, budget)
-          : products.slice(0, MAX_PRODUCTS);
+          ? sortProductsForBudget(productsForRanking, searchTerms, budget, focus)
+          : productsForRanking.slice(0, MAX_PRODUCTS);
       const visibleProducts = sortedProducts.slice(0, MAX_PRODUCTS);
       const recommendedProducts = applySalesRecommendations(
         visibleProducts,
