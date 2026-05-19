@@ -1,6 +1,28 @@
 import "server-only";
 
-import type { ShopAssistantProductCard, ShopAssistantReply } from "@/lib/shop-assistant-types";
+type OllamaRewriteInput = {
+  userMessage: string;
+  baseReply: string;
+  products: Array<{
+    id: string;
+    name: string;
+    code?: string | null;
+    price?: number | null;
+    wholesalePrice?: number | null;
+    stock?: number | null;
+    category?: string | null;
+    specs?: string | null;
+  }>;
+  storeName?: string | null;
+  currency?: string | null;
+};
+
+type OllamaRewriteResult = {
+  text: string;
+  usedOllama: boolean;
+  latencyMs?: number;
+  error?: string;
+};
 
 type OllamaConfig = {
   enabled: boolean;
@@ -28,7 +50,7 @@ function parseTimeout(value: string | undefined) {
   return Number.isFinite(timeout) && timeout > 0 ? timeout : DEFAULT_OLLAMA_TIMEOUT_MS;
 }
 
-export function getOllamaConfig(): OllamaConfig {
+function getOllamaConfig(): OllamaConfig {
   const host = normalizeHost(process.env.OLLAMA_HOST ?? DEFAULT_OLLAMA_HOST);
   const model = process.env.OLLAMA_MODEL?.trim() || DEFAULT_OLLAMA_MODEL;
   const timeoutMs = parseTimeout(process.env.OLLAMA_TIMEOUT_MS);
@@ -42,42 +64,37 @@ export function getOllamaConfig(): OllamaConfig {
   };
 }
 
-function summarizeProducts(products: ShopAssistantProductCard[] | undefined) {
-  return (products ?? []).slice(0, 4).map((product) => ({
-    code: product.code,
+function summarizeProducts(products: OllamaRewriteInput["products"]) {
+  return products.slice(0, 6).map((product) => ({
+    id: product.id,
     name: product.name,
-    brand: product.brand,
-    category: product.category,
-    technicalSpecs: product.technicalSpecs ?? null,
-    unitPrice: product.unitPrice,
-    wholesalePrice: product.wholesalePrice,
-    stockUnits: product.stockUnits,
-    availabilityLabel: product.availabilityLabel,
+    code: product.code ?? null,
+    price: product.price ?? null,
+    wholesalePrice: product.wholesalePrice ?? null,
+    stock: product.stock ?? null,
+    category: product.category ?? null,
+    specs: product.specs ?? null,
   }));
 }
 
-function buildRewritePrompt(input: {
-  customerMessage: string;
-  baseText: string;
-  reply: ShopAssistantReply;
-}) {
+function buildRewritePrompt(input: OllamaRewriteInput) {
   const payload = {
-    customerMessage: input.customerMessage,
-    baseText: input.baseText,
-    products: summarizeProducts(input.reply.products),
-    quickActions: (input.reply.quickActions ?? []).map((action) => action.label),
-    suggestedPrompts: input.reply.suggestedPrompts ?? [],
+    userMessage: input.userMessage,
+    baseReply: input.baseReply,
+    storeName: input.storeName ?? "Tienda virtual",
+    currency: input.currency ?? "S/",
+    products: summarizeProducts(input.products),
   };
 
   return [
     "Eres el redactor de un asistente de ventas para una tienda de importaciones.",
     "Devuelve solo JSON válido con esta forma exacta: {\"text\":\"...\"}.",
-    "Reglas estrictas:",
+    "Reglas obligatorias:",
     "- No inventes productos, precios, stock, categorías ni especificaciones.",
-    "- No cambies los productos ni las acciones rápidas.",
-    "- No agregues promesas, links ni datos que no estén en el JSON de entrada.",
-    "- Usa español natural de Perú, claro y breve.",
-    "- Si falta información, sugiere revisar el catálogo o WhatsApp, sin alargar.",
+    "- No cambies los productos ni los enlaces.",
+    "- No agregues promesas ni datos que no estén en la entrada.",
+    "- Usa español natural, claro y breve.",
+    "- Si falta información, sugiere revisar el catálogo o WhatsApp.",
     "",
     "JSON de entrada:",
     JSON.stringify(payload, null, 2),
@@ -95,17 +112,20 @@ function extractJsonText(raw: string) {
   }
 }
 
-export async function rewriteAssistantTextWithOllama(input: {
-  customerMessage: string;
-  reply: ShopAssistantReply;
-}): Promise<ShopAssistantReply> {
+export async function rewriteAssistantReplyWithOllama(
+  input: OllamaRewriteInput,
+): Promise<OllamaRewriteResult> {
   const config = getOllamaConfig();
 
   if (!config.enabled) {
-    return input.reply;
+    return {
+      text: input.baseReply,
+      usedOllama: false,
+    };
   }
 
   const controller = new AbortController();
+  const startedAt = Date.now();
   const timeout = setTimeout(() => controller.abort(), config.timeoutMs);
 
   try {
@@ -119,6 +139,11 @@ export async function rewriteAssistantTextWithOllama(input: {
         model: config.model,
         stream: false,
         format: "json",
+        options: {
+          temperature: 0.2,
+          top_p: 0.8,
+          num_predict: 220,
+        },
         messages: [
           {
             role: "system",
@@ -127,18 +152,21 @@ export async function rewriteAssistantTextWithOllama(input: {
           },
           {
             role: "user",
-            content: buildRewritePrompt({
-              customerMessage: input.customerMessage,
-              baseText: input.reply.text,
-              reply: input.reply,
-            }),
+            content: buildRewritePrompt(input),
           },
         ],
       }),
     });
 
+    const latencyMs = Date.now() - startedAt;
+
     if (!response.ok) {
-      return input.reply;
+      return {
+        text: input.baseReply,
+        usedOllama: false,
+        latencyMs,
+        error: `Ollama HTTP ${response.status}`,
+      };
     }
 
     const data = (await response.json()) as OllamaChatResponse;
@@ -146,15 +174,26 @@ export async function rewriteAssistantTextWithOllama(input: {
     const text = extractJsonText(content);
 
     if (!text) {
-      return input.reply;
+      return {
+        text: input.baseReply,
+        usedOllama: false,
+        latencyMs,
+        error: "Respuesta vacía de Ollama",
+      };
     }
 
     return {
-      ...input.reply,
       text,
+      usedOllama: true,
+      latencyMs,
     };
-  } catch {
-    return input.reply;
+  } catch (error) {
+    return {
+      text: input.baseReply,
+      usedOllama: false,
+      latencyMs: Date.now() - startedAt,
+      error: error instanceof Error ? error.message : "Error desconocido",
+    };
   } finally {
     clearTimeout(timeout);
   }

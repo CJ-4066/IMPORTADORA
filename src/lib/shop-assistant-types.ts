@@ -33,12 +33,29 @@ export type ShopAssistantReply = {
   products?: ShopAssistantProductCard[];
   quickActions?: ShopAssistantQuickAction[];
   suggestedPrompts?: string[];
+  meta?: {
+    intent?: string | null;
+    usedOllama?: boolean;
+    ollamaModel?: string | null;
+    ollamaLatencyMs?: number | null;
+    error?: string | null;
+  };
+};
+
+export type ShopAssistantContext = {
+  sessionId?: string | null;
+  lastCategory?: string | null;
+  lastProductId?: string | null;
+  lastProductCode?: string | null;
+  lastIntent?: string | null;
+  budget?: number | null;
 };
 
 export type ShopAssistantRequest = {
   message: string;
   productContextCode?: string | null;
   contextCategorySlug?: string | null;
+  context?: ShopAssistantContext;
   recentMessages?: Array<{
     role: "assistant" | "user";
     text: string;

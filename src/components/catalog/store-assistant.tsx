@@ -42,6 +42,10 @@ type AssistantConversationSnapshot = {
   messages: AssistantMessage[];
   contextProductCode: string | null;
   contextCategorySlug: string | null;
+  lastProductId?: string | null;
+  lastProductCode?: string | null;
+  lastIntent?: string | null;
+  budget?: number | null;
   welcomeDismissed?: boolean;
 };
 
@@ -81,6 +85,85 @@ function getMessageId() {
 function getAssistantStorageKey(businessName: string) {
   const normalized = businessName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
   return `importadora-store-assistant:${normalized || "default"}`;
+}
+
+function getAssistantSessionStorageKey(businessName: string) {
+  const normalized = businessName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+  return `importadora-store-assistant-session:${normalized || "default"}`;
+}
+
+function getAssistantSessionId(storageKey: string) {
+  if (typeof window === "undefined") {
+    return "server-session";
+  }
+
+  try {
+    const existing = window.localStorage.getItem(storageKey)?.trim();
+    if (existing) {
+      return existing;
+    }
+
+    const sessionId = window.crypto?.randomUUID?.() ?? getMessageId();
+    window.localStorage.setItem(storageKey, sessionId);
+    return sessionId;
+  } catch {
+    return getMessageId();
+  }
+}
+
+function extractBudgetFromText(value: string) {
+  const normalized = value.toLowerCase();
+  const match =
+    normalized.match(/\b(?:s\/|s\.\/|pen)\s*(\d+(?:[.,]\d{1,2})?)\b/) ??
+    normalized.match(/\b(\d+(?:[.,]\d{1,2})?)\s*(?:soles?|s\/|s\.\/|pen)\b/) ??
+    normalized.match(
+      /\b(?:presupuesto|hasta|maximo|máximo|maxima|máxima|aprox|aproximado|alrededor|cerca de)\s*(?:de|es|unos|unas)?\s*(?:s\/|s\.\/|pen)?\s*(\d+(?:[.,]\d{1,2})?)\b/,
+    );
+
+  if (!match?.[1]) {
+    return null;
+  }
+
+  const budget = Number(match[1].replace(",", "."));
+  return Number.isFinite(budget) && budget > 0 ? budget : null;
+}
+
+function inferAssistantIntent(text: string) {
+  const normalized = text.toLowerCase();
+
+  if (/\b(oferta|ofertas|promo|promocion|promociones|destacado|destacados)\b/.test(normalized)) {
+    return "offers";
+  }
+
+  if (/\b(categoria|categorias|rubro|rubros|seccion|secciones)\b/.test(normalized)) {
+    return "categories";
+  }
+
+  if (/\b(whatsapp|contacto|horario|hora|pedido|comprar|compra|envio|entrega|delivery|pago|cotizacion|cotizar)\b/.test(normalized)) {
+    return "support";
+  }
+
+  if (/\b(similar|parecid|alternativ|relacionad)\b/.test(normalized)) {
+    return "similar";
+  }
+
+  if (/\b(barat|econom|menor precio|menos precio|mas barato|más barato)\b/.test(normalized)) {
+    return "cheaper";
+  }
+
+  if (/\b(stock|disponible|disponibilidad|queda|quedan|tienes|hay)\b/.test(normalized)) {
+    return "stock";
+  }
+
+  if (/\b(regal|cumple|anivers|detalle|sorpresa|navidad|amigo secreto|mama|papa|madre|padre)\b/.test(normalized)) {
+    return "gift";
+  }
+
+  if (/\b(\d{2,}[-\s]?\d{2,}|[a-z]{2,}\s*-\s*\d{2,})\b/i.test(text)) {
+    return "product-code";
+  }
+
+  return "search";
 }
 
 function isLegacyWelcomeMessage(message: AssistantMessage) {
@@ -150,6 +233,10 @@ function readAssistantSnapshot(storageKey: string) {
         typeof parsed.contextProductCode === "string" ? parsed.contextProductCode : null,
       contextCategorySlug:
         typeof parsed.contextCategorySlug === "string" ? parsed.contextCategorySlug : null,
+      lastProductId: typeof parsed.lastProductId === "string" ? parsed.lastProductId : null,
+      lastProductCode: typeof parsed.lastProductCode === "string" ? parsed.lastProductCode : null,
+      lastIntent: typeof parsed.lastIntent === "string" ? parsed.lastIntent : null,
+      budget: typeof parsed.budget === "number" && Number.isFinite(parsed.budget) ? parsed.budget : null,
       welcomeDismissed: parsed.welcomeDismissed === true,
     };
   } catch {
@@ -466,6 +553,10 @@ export function StoreAssistantPanel({
   open,
 }: StoreAssistantPanelProps) {
   const storageKey = useMemo(() => getAssistantStorageKey(businessName), [businessName]);
+  const sessionStorageKey = useMemo(
+    () => getAssistantSessionStorageKey(businessName),
+    [businessName],
+  );
   const [loading, setLoading] = useState(false);
   const [draft, setDraft] = useState("");
   const [messages, setMessages] = useState<AssistantMessage[]>(() => [
@@ -475,6 +566,10 @@ export function StoreAssistantPanel({
   const [isHydrated, setIsHydrated] = useState(false);
   const contextProductCodeRef = useRef<string | null>(null);
   const contextCategorySlugRef = useRef<string | null>(null);
+  const lastProductIdRef = useRef<string | null>(null);
+  const lastIntentRef = useRef<string | null>(null);
+  const lastBudgetRef = useRef<number | null>(null);
+  const sessionIdRef = useRef<string>("server-session");
   const handledInitialRequestRef = useRef<string | null>(null);
   const conversationVersionRef = useRef(0);
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -482,25 +577,37 @@ export function StoreAssistantPanel({
 
   useEffect(() => {
     const snapshot = readAssistantSnapshot(storageKey);
+    const sessionId = getAssistantSessionId(sessionStorageKey);
 
     const timer = window.setTimeout(() => {
+      sessionIdRef.current = sessionId;
+
       if (!snapshot) {
         setMessages([buildWelcomeMessage(businessName)]);
         setWelcomeDismissed(false);
         contextProductCodeRef.current = null;
         contextCategorySlugRef.current = null;
+        lastProductIdRef.current = null;
+        lastIntentRef.current = null;
+        lastBudgetRef.current = null;
       } else {
         setMessages(normalizeAssistantMessages(snapshot.messages, businessName));
         setWelcomeDismissed(snapshot.welcomeDismissed === true);
         contextProductCodeRef.current = snapshot.contextProductCode;
         contextCategorySlugRef.current = snapshot.contextCategorySlug;
+        lastProductIdRef.current = snapshot.lastProductId ?? null;
+        lastIntentRef.current = snapshot.lastIntent ?? null;
+        lastBudgetRef.current =
+          typeof snapshot.budget === "number" && Number.isFinite(snapshot.budget)
+            ? snapshot.budget
+            : null;
       }
 
       setIsHydrated(true);
     }, 0);
 
     return () => window.clearTimeout(timer);
-  }, [businessName, storageKey]);
+  }, [businessName, sessionStorageKey, storageKey]);
 
   useEffect(() => {
     if (!isHydrated) {
@@ -511,6 +618,10 @@ export function StoreAssistantPanel({
       messages,
       contextProductCode: contextProductCodeRef.current,
       contextCategorySlug: contextCategorySlugRef.current,
+      lastProductId: lastProductIdRef.current,
+      lastProductCode: contextProductCodeRef.current,
+      lastIntent: lastIntentRef.current,
+      budget: lastBudgetRef.current,
       welcomeDismissed,
     });
   }, [isHydrated, messages, storageKey, welcomeDismissed]);
@@ -550,6 +661,13 @@ export function StoreAssistantPanel({
         text: cleanText,
       };
 
+      const budgetFromMessage = extractBudgetFromText(cleanText);
+      const intentFromMessage = inferAssistantIntent(cleanText);
+      if (budgetFromMessage !== null) {
+        lastBudgetRef.current = budgetFromMessage;
+      }
+      lastIntentRef.current = intentFromMessage;
+
       setMessages((current) => [...current, userMessage]);
       setDraft("");
       setLoading(true);
@@ -560,10 +678,20 @@ export function StoreAssistantPanel({
           text: message.text,
         }));
 
+        const assistantContext = {
+          sessionId: sessionIdRef.current,
+          lastCategory: contextCategorySlugRef.current,
+          lastProductId: lastProductIdRef.current,
+          lastProductCode: contextProductCodeRef.current,
+          lastIntent: lastIntentRef.current,
+          budget: lastBudgetRef.current,
+        };
+
         const payload: ShopAssistantRequest = {
           message: cleanText,
           productContextCode: contextProductCodeRef.current,
           contextCategorySlug: contextCategorySlugRef.current,
+          context: assistantContext,
           recentMessages,
         };
 
@@ -587,6 +715,8 @@ export function StoreAssistantPanel({
 
         contextProductCodeRef.current = reply.contextProductCode ?? null;
         contextCategorySlugRef.current = reply.contextCategorySlug ?? null;
+        lastProductIdRef.current = reply.products?.[0]?.id ?? null;
+        lastIntentRef.current = reply.meta?.intent ?? intentFromMessage;
         setMessages((current) => [
           ...current,
           {
@@ -663,6 +793,9 @@ export function StoreAssistantPanel({
     setWelcomeDismissed(false);
     contextProductCodeRef.current = null;
     contextCategorySlugRef.current = null;
+    lastProductIdRef.current = null;
+    lastIntentRef.current = null;
+    lastBudgetRef.current = null;
     setDraft("");
     setMessages([buildWelcomeMessage(businessName)]);
     window.requestAnimationFrame(() => {

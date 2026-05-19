@@ -1,0 +1,1 @@
+-- Baseline migration for the existing database schema.
