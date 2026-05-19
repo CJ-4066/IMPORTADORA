@@ -121,6 +121,8 @@ const SEARCH_CORRECTIONS: Record<string, string> = {
   cosinas: "cocina",
   mause: "mouse",
   maus: "mouse",
+  teklado: "teclado",
+  teklados: "teclado",
   teclado: "teclado",
   teclados: "teclado",
   scuter: "scooter",
@@ -393,14 +395,20 @@ type ProductFocus = {
 
 function detectProductFocus(query: string): ProductFocus | null {
   const normalized = normalizeAssistantText(query);
+  let selectedFocus: ProductFocus | null = null;
+  let selectedIndex = Number.POSITIVE_INFINITY;
 
   for (const [canonical, aliases] of Object.entries(CATEGORY_FOCUS_ALIASES)) {
-    if (aliases.some((alias) => normalized.includes(alias))) {
-      return { canonical, aliases };
+    for (const alias of aliases) {
+      const aliasIndex = normalized.indexOf(alias);
+      if (aliasIndex >= 0 && aliasIndex < selectedIndex) {
+        selectedFocus = { canonical, aliases };
+        selectedIndex = aliasIndex;
+      }
     }
   }
 
-  return null;
+  return selectedFocus;
 }
 
 function normalizeProductSearchText(product: AssistantProductRecord) {
@@ -513,6 +521,86 @@ function scoreAssistantProduct(
 
     if (!focusMatch && !focusNameHit && !focusSpecsHit) {
       score -= 100;
+    }
+  }
+
+  return score;
+}
+
+function scoreGiftProduct(product: AssistantProductRecord, query: string) {
+  const normalizedQuery = normalizeAssistantText(query);
+  const normalizedText = normalizeProductSearchText(product);
+  let score = scoreAssistantProduct(product, query);
+
+  const positiveTerms = [
+    "audifono",
+    "audifonos",
+    "auricular",
+    "auriculares",
+    "headset",
+    "parlante",
+    "speaker",
+    "smart watch",
+    "watch",
+    "reloj",
+    "accesorio",
+    "accesorios",
+    "celular",
+    "tecnologia",
+    "beauty",
+    "cuidado personal",
+    "regalo",
+    "detalle",
+    "musica",
+    "bluetooth",
+  ];
+  const avoidTerms = [
+    "bolsa de agua",
+    "bolsa",
+    "agua",
+    "cocina",
+    "hogar",
+    "herramienta",
+    "repuesto",
+    "limpieza",
+    "cable",
+    "adaptador",
+    "organizador",
+  ];
+
+  for (const term of positiveTerms) {
+    if (normalizedText.includes(term)) {
+      score += 12;
+    }
+  }
+
+  for (const term of avoidTerms) {
+    if (normalizedText.includes(term)) {
+      score -= 18;
+    }
+  }
+
+  if (normalizedQuery.includes("ella") || normalizedQuery.includes("mujer")) {
+    if (
+      normalizedText.includes("audifono") ||
+      normalizedText.includes("auricular") ||
+      normalizedText.includes("smart watch") ||
+      normalizedText.includes("parlante") ||
+      normalizedText.includes("accesorio")
+    ) {
+      score += 10;
+    }
+  }
+
+  if (normalizedQuery.includes("el") || normalizedQuery.includes("hombre")) {
+    if (
+      normalizedText.includes("audifono") ||
+      normalizedText.includes("auricular") ||
+      normalizedText.includes("mouse") ||
+      normalizedText.includes("teclado") ||
+      normalizedText.includes("parlante")
+    ) {
+      score += 8;
     }
   }
 
@@ -707,11 +795,14 @@ function isGiftIntent(value: string) {
 
   return (
     text.includes("regal") ||
+    text.includes("bonit") ||
     text.includes("cumple") ||
     text.includes("anivers") ||
     text.includes("detalle") ||
     text.includes("sorpresa") ||
     text.includes("navidad") ||
+    text.includes("para ella") ||
+    text.includes("para el") ||
     text.includes("amigo secreto") ||
     text.includes("mama") ||
     text.includes("papa") ||
@@ -1024,6 +1115,7 @@ export function createShopAssistantService(repository: ShopAssistantRepository) 
       matchedCategory ??
       baseData.categories.find((category) => category.slug === input.contextCategorySlug) ??
       null;
+    const productFocus = detectProductFocus(`${trimmedMessage} ${recentConversation}`);
 
     const wantsOffers = /(oferta|ofertas|promo|promocion|promociones|destacado|destacados)/.test(
       normalized,
@@ -1032,10 +1124,11 @@ export function createShopAssistantService(repository: ShopAssistantRepository) 
       normalized,
     );
     const wantsSupport =
+      !productFocus &&
       /(whatsapp|contacto|horario|hora|pedido|comprar|compra|envio|entrega|delivery|pago|cotizacion|cotizar)/.test(
         normalized,
       );
-    const wantsGift = isGiftIntent(`${trimmedMessage} ${recentConversation}`);
+    const wantsGift = !productFocus && isGiftIntent(`${trimmedMessage} ${recentConversation}`);
     const wantsSimilar = /(similar|parecid|alternativ|relacionad)/.test(normalized);
     const wantsCheaper = /(barat|econom|menor precio|menos precio|mas barato|más barato)/.test(
       normalized,
@@ -1173,27 +1266,76 @@ export function createShopAssistantService(repository: ShopAssistantRepository) 
     }
 
     if (wantsGift) {
+      const giftHasUsefulSpecificity =
+        /(audif|auricular|parlante|watch|reloj|teclad|keyboard|mouse|mause|raton|celular|cargador|cable|smart|ilumin|accesor|beauty|cuidado|hogar|cocina|organizador|tecnolog)/.test(
+          normalized,
+        );
+
+      if (!budget && !quantity && !giftHasUsefulSpecificity) {
+        return {
+          text:
+            "Puedo afinar mejor el regalo si me dices presupuesto, para quién es o qué tipo de producto prefieres.",
+          quickActions: buildQuickActions([
+            { label: "Buscar ideas", href: "/?focus=search", accent: true },
+            { label: "Ver ofertas", href: "/?featured=1" },
+            { label: "WhatsApp", href: whatsappHref },
+          ]),
+          suggestedPrompts: [
+            "Regalo para ella con presupuesto",
+            "Regalo para él con presupuesto",
+            "Algo para regalar por cumpleaños",
+          ],
+        };
+      }
+
       const giftQueries = buildGiftSearchQueries(trimmedMessage, recentConversation);
       const giftProducts = await gatherProductsFromQueries(
         repository,
         giftQueries,
         allowSensitiveProducts,
       );
+      const rankedGiftProducts = giftProducts
+        .slice()
+        .sort(
+          (left, right) =>
+            scoreGiftProduct(right, giftQueries.join(" ")) -
+            scoreGiftProduct(left, giftQueries.join(" ")),
+        );
+      const bestGiftScore = rankedGiftProducts.length
+        ? scoreGiftProduct(rankedGiftProducts[0], giftQueries.join(" "))
+        : 0;
+
+      if (!budget && !quantity && bestGiftScore < 18) {
+        return {
+          text:
+            "Puedo afinarlo mejor si me dices presupuesto, para quién es o qué tipo de regalo buscas.",
+          quickActions: buildQuickActions([
+            { label: "Buscar ideas", href: "/?focus=search", accent: true },
+            { label: "Ver ofertas", href: "/?featured=1" },
+            { label: "WhatsApp", href: whatsappHref },
+          ]),
+          suggestedPrompts: [
+            "Algo para regalar por cumpleaños",
+            "Regalo para ella con presupuesto",
+            "Regalo para él con presupuesto",
+          ],
+        };
+      }
       const sortedGiftProducts = budget
-        ? sortProductsForBudget(giftProducts, giftQueries.join(" "), budget)
+        ? sortProductsForBudget(rankedGiftProducts, giftQueries.join(" "), budget)
         : quantity
-          ? sortProductsForQuantity(giftProducts, quantity, giftQueries.join(" "))
-          : giftProducts.slice(0, MAX_PRODUCTS);
+          ? sortProductsForQuantity(rankedGiftProducts, quantity, giftQueries.join(" "))
+          : rankedGiftProducts.slice(0, MAX_PRODUCTS);
       const visibleGiftProducts = sortedGiftProducts.slice(0, MAX_PRODUCTS);
       const occasion = detectGiftOccasion(`${trimmedMessage} ${recentConversation}`);
       const opening =
         visibleGiftProducts.length > 0
           ? occasion
-            ? `Para ${occasion} te dejo opciones que suelen funcionar bien como regalo.`
-            : "Te dejo opciones que suelen funcionar bien como regalo."
+            ? `Para ${occasion}, como regalo, te dejo opciones que suelen funcionar bien.`
+            : "Como regalo, te dejo opciones que suelen funcionar bien."
           : occasion
-            ? `Para ${occasion} no encontré una coincidencia exacta, pero sí puedo afinarlo si me dices presupuesto o para quién es.`
-            : "No encontré una coincidencia exacta, pero sí puedo afinarlo si me dices presupuesto o para quién es.";
+            ? `Para ${occasion}, como regalo, no encontré una coincidencia exacta, pero sí puedo afinarlo si me dices presupuesto o para quién es.`
+            : "Como regalo, no encontré una coincidencia exacta, pero sí puedo afinarlo si me dices presupuesto o para quién es.";
 
       return {
         text: budget
@@ -1391,21 +1533,44 @@ export function createShopAssistantService(repository: ShopAssistantRepository) 
     }
 
     if (searchTerms) {
-      const focus = detectProductFocus(`${trimmedMessage} ${searchTerms} ${recentConversation}`);
       const products = filterSensitiveProducts(
         await repository.searchVisibleProducts(searchTerms),
         allowSensitiveProducts,
       );
       const focusedProducts =
-        focus && products.length
-          ? products.filter((product) => productMatchesFocus(product, focus))
+        productFocus && products.length
+          ? products.filter((product) => productMatchesFocus(product, productFocus))
           : products;
-      const productsForRanking =
-        focus && focusedProducts.length ? focusedProducts : products;
+      if (productFocus && !focusedProducts.length) {
+        const correctionSuggestions = Array.from(
+          new Set(searchCorrections.map((correction) => correction.to)),
+        );
+        return {
+          text:
+            `No encontré una coincidencia clara para “${productFocus.canonical}”. ` +
+            (correctionSuggestions.length
+              ? `Quizá quisiste decir: ${correctionSuggestions.join(", ")}. `
+              : "") +
+            "Si quieres, puedo buscarte una alternativa cercana o ayudarte por WhatsApp.",
+          quickActions: buildQuickActions([
+            { label: "Buscar alternativa", href: "/?focus=search", accent: true },
+            { label: "WhatsApp", href: whatsappHref },
+            { label: "Ver ofertas", href: "/?featured=1" },
+          ]),
+          suggestedPrompts: [
+            `Busca ${productFocus.canonical} por código`,
+            "Muéstrame otro producto similar",
+            "¿Cómo compro por WhatsApp?",
+          ],
+        };
+      }
+
+      const productsForRanking = productFocus ? focusedProducts : products;
+
       const sortedProducts = quantity
-        ? sortProductsForQuantity(productsForRanking, quantity, searchTerms, focus)
+        ? sortProductsForQuantity(productsForRanking, quantity, searchTerms, productFocus)
         : budget
-          ? sortProductsForBudget(productsForRanking, searchTerms, budget, focus)
+          ? sortProductsForBudget(productsForRanking, searchTerms, budget, productFocus)
           : productsForRanking.slice(0, MAX_PRODUCTS);
       const visibleProducts = sortedProducts.slice(0, MAX_PRODUCTS);
       const recommendedProducts = applySalesRecommendations(
