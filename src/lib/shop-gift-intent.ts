@@ -153,7 +153,7 @@ export function getGiftKeywords(profile: GiftProfile, season: GiftSeason) {
   return Array.from(new Set([...byProfile[profile], ...bySeason[season], ...base]));
 }
 
-export function detectGiftIntent(message: string, now = new Date()): GiftIntentResult {
+export function detectGiftIntent(message: string): GiftIntentResult {
   const text = normalizeText(message);
 
   const giftWords = [
@@ -175,7 +175,7 @@ export function detectGiftIntent(message: string, now = new Date()): GiftIntentR
   ];
 
   const hasGiftSignal = giftWords.some((word) => text.includes(word));
-  const season = hasGiftSignal ? detectGiftSeason(message, now) : "none";
+  const season = hasGiftSignal ? detectGiftSeason(message) : "none";
   const isGiftIntent = hasGiftSignal || season !== "none";
   const profile = detectGiftProfile(message, season);
   const budget = detectBudget(message);
