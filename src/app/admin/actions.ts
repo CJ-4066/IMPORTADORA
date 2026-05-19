@@ -7,6 +7,7 @@ import { ZodError } from "zod";
 import { prisma } from "@/lib/prisma";
 import { clearSession, requireAdmin } from "@/lib/auth";
 import { parseFacturadorSyncMode, syncFacturadorProducts } from "@/lib/facturador/sync";
+import { sendComplaintResponseEmail } from "@/lib/complaints-email";
 import { slugify } from "@/lib/utils";
 import type {
   ProductActionState,
@@ -250,6 +251,69 @@ export async function updateProductFormAction(
 export async function logoutAction() {
   await clearSession();
   redirect("/");
+}
+
+function parseComplaintStatus(value: string) {
+  if (value === "NEW" || value === "IN_REVIEW" || value === "RESPONDED" || value === "CLOSED") {
+    return value;
+  }
+
+  return "IN_REVIEW";
+}
+
+export async function updateComplaintAction(formData: FormData) {
+  await requireAdmin();
+  const complaintId = String(formData.get("complaintId") ?? "");
+  const status = parseComplaintStatus(String(formData.get("status") ?? ""));
+  const responseText = String(formData.get("responseText") ?? "").trim();
+  const responseChannel = String(formData.get("responseChannel") ?? "").trim();
+  const claimCode = String(formData.get("claimCode") ?? "");
+
+  if (!complaintId) {
+    redirect("/admin/reclamos?status=error&error=No se encontró el reclamo.");
+  }
+
+  const complaint = await prisma.complaint.update({
+    where: { id: complaintId },
+    data: {
+      status,
+      responseText: responseText || null,
+      responseChannel: responseText ? (responseChannel || null) : null,
+      respondedAt: responseText && (status === "RESPONDED" || status === "CLOSED") ? new Date() : null,
+    },
+    select: {
+      claimCode: true,
+      customerName: true,
+      customerEmail: true,
+      customerPhone: true,
+      subject: true,
+    },
+  });
+
+  let emailNotice = "skipped";
+
+  if (responseText && (responseChannel === "EMAIL" || responseChannel === "BOTH")) {
+    const emailResult = await sendComplaintResponseEmail({
+      contact: {
+        claimCode: complaint.claimCode,
+        customerName: complaint.customerName,
+        customerEmail: complaint.customerEmail,
+        customerPhone: complaint.customerPhone,
+      },
+      responseText,
+      subject: complaint.subject,
+    });
+
+    emailNotice = emailResult.ok ? "sent" : `error-${encodeURIComponent(emailResult.message)}`;
+  }
+
+  revalidatePath("/");
+  revalidatePath("/admin");
+  revalidatePath("/admin/reclamos");
+  revalidatePath(`/admin/reclamos/${complaintId}`);
+  redirect(
+    `/admin/reclamos/${complaintId}?status=updated${claimCode ? `&claimCode=${encodeURIComponent(claimCode)}` : ""}&emailStatus=${emailNotice}`,
+  );
 }
 
 export async function toggleProductVisibilityAction(formData: FormData) {

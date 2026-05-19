@@ -92,6 +92,8 @@ const SEARCH_SYNONYMS: Record<string, string[]> = {
   alexa: ["alexa", "alexas", "echo"],
   cocina: ["cocina", "cocinas", "utensilios"],
   mouse: ["mouse", "mause", "raton"],
+  teclado: ["teclado", "teclados", "keyboard", "bluetooth"],
+  teclados: ["teclado", "teclados", "keyboard", "bluetooth"],
   scoter: ["scooter", "scoter", "patineta"],
   scuter: ["scooter", "scuter", "patineta"],
   scooter: ["scooter", "scoter", "patineta"],
@@ -111,6 +113,8 @@ const SEARCH_CORRECTIONS: Record<string, string> = {
   cosinas: "cocina",
   mause: "mouse",
   maus: "mouse",
+  teclado: "teclado",
+  teclados: "teclado",
   scuter: "scooter",
   scoter: "scooter",
   selular: "celular",
@@ -345,7 +349,14 @@ function extractSearchTerms(message: string) {
     .filter((token) => token.length >= 2 && !STOPWORDS.has(token));
 
   const correctedTokens = tokens.map((token) => SEARCH_CORRECTIONS[token] ?? token);
-  const expandedTokens = correctedTokens.flatMap((token) => SEARCH_SYNONYMS[token] ?? [token]);
+  const fallbackTokens = correctedTokens.flatMap((token) => {
+    if (token.endsWith("s") && token.length > 4) {
+      return [token, token.slice(0, -1)];
+    }
+
+    return [token];
+  });
+  const expandedTokens = fallbackTokens.flatMap((token) => SEARCH_SYNONYMS[token] ?? [token]);
 
   return Array.from(new Set(expandedTokens)).join(" ").trim();
 }

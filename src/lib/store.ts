@@ -9,6 +9,8 @@ export {
 } from "@/lib/store-catalog";
 export {
   getAdminCategories,
+  getAdminComplaintById,
+  getAdminComplaints,
   getAdminDashboardData,
   getAdminProducts,
   getAdminQuoteById,

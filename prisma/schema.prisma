@@ -48,6 +48,18 @@ enum QuoteStatus {
   ERROR
 }
 
+enum ComplaintType {
+  RECLAMO
+  QUEJA
+}
+
+enum ComplaintStatus {
+  NEW
+  IN_REVIEW
+  RESPONDED
+  CLOSED
+}
+
 model User {
   id           String   @id @default(cuid())
   email        String   @unique
@@ -198,6 +210,31 @@ model QuoteItem {
   @@index([quoteId])
   @@index([productId])
   @@index([code])
+}
+
+model Complaint {
+  id               String          @id @default(cuid())
+  claimCode        String          @unique @db.VarChar(40)
+  kind             ComplaintType   @default(RECLAMO)
+  subject          String          @db.VarChar(80)
+  customerName     String          @db.VarChar(180)
+  customerPhone    String?         @db.VarChar(32)
+  customerEmail    String?         @db.VarChar(180)
+  documentType     String?         @db.VarChar(20)
+  documentNumber   String?         @db.VarChar(40)
+  orderNumber      String?         @db.VarChar(80)
+  productReference String?         @db.VarChar(120)
+  detail           String          @db.Text
+  status           ComplaintStatus @default(NEW)
+  responseText     String?         @db.Text
+  responseChannel  String?         @db.VarChar(20)
+  respondedAt      DateTime?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  @@index([status, createdAt(sort: Desc)])
+  @@index([customerEmail])
+  @@index([customerPhone])
 }
 
 model SalesTrendSnapshot {

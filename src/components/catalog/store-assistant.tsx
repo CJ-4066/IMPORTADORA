@@ -72,6 +72,8 @@ function buildWelcomeMessage(businessName: string): AssistantMessage {
   };
 }
 
+const MAX_STORED_MESSAGES = 12;
+
 function getMessageId() {
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
@@ -103,7 +105,7 @@ function normalizeAssistantMessages(
     return [buildWelcomeMessage(businessName)];
   }
 
-  const normalized = [...messages];
+  const normalized = messages.slice(-MAX_STORED_MESSAGES);
 
   if (isLegacyWelcomeMessage(normalized[0])) {
     normalized[0] = buildWelcomeMessage(businessName);
@@ -164,7 +166,12 @@ function saveAssistantSnapshot(
   }
 
   try {
-    window.localStorage.setItem(storageKey, JSON.stringify(snapshot));
+    const compactSnapshot: AssistantConversationSnapshot = {
+      ...snapshot,
+      messages: snapshot.messages.slice(-MAX_STORED_MESSAGES),
+    };
+
+    window.localStorage.setItem(storageKey, JSON.stringify(compactSnapshot));
   } catch {
     // Ignore storage failures in private mode or quota-constrained browsers.
   }
@@ -469,6 +476,7 @@ export function StoreAssistantPanel({
   const contextProductCodeRef = useRef<string | null>(null);
   const contextCategorySlugRef = useRef<string | null>(null);
   const handledInitialRequestRef = useRef<string | null>(null);
+  const conversationVersionRef = useRef(0);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const bodyRef = useRef<HTMLDivElement | null>(null);
 
@@ -532,6 +540,8 @@ export function StoreAssistantPanel({
         return;
       }
 
+      const requestVersion = conversationVersionRef.current;
+
       setWelcomeDismissed(true);
 
       const userMessage: AssistantMessage = {
@@ -571,6 +581,10 @@ export function StoreAssistantPanel({
 
         const reply = (await response.json()) as ShopAssistantReply;
 
+        if (conversationVersionRef.current !== requestVersion) {
+          return;
+        }
+
         contextProductCodeRef.current = reply.contextProductCode ?? null;
         contextCategorySlugRef.current = reply.contextCategorySlug ?? null;
         setMessages((current) => [
@@ -585,6 +599,10 @@ export function StoreAssistantPanel({
           },
         ]);
       } catch {
+        if (conversationVersionRef.current !== requestVersion) {
+          return;
+        }
+
         setMessages((current) => [
           ...current,
           {
@@ -638,12 +656,18 @@ export function StoreAssistantPanel({
   ]);
 
   const clearHistory = () => {
+    conversationVersionRef.current += 1;
     clearAssistantSnapshot(storageKey);
+    handledInitialRequestRef.current = null;
+    setLoading(false);
     setWelcomeDismissed(false);
     contextProductCodeRef.current = null;
     contextCategorySlugRef.current = null;
     setDraft("");
     setMessages([buildWelcomeMessage(businessName)]);
+    window.requestAnimationFrame(() => {
+      inputRef.current?.focus();
+    });
   };
 
   const welcomeMessage = messages[0];
@@ -679,16 +703,15 @@ export function StoreAssistantPanel({
             <p>Dime presupuesto, categoría o uso y te muestro opciones.</p>
           </div>
 
-          <button className="icon-button" onClick={onClose} type="button">
-            <X size={18} />
-          </button>
+          <div className="store-assistant-head-actions">
+            <button className="button button-secondary button-chip" onClick={clearHistory} type="button">
+              Limpiar chat
+            </button>
+            <button className="icon-button" onClick={onClose} type="button">
+              <X size={18} />
+            </button>
+          </div>
         </header>
-
-        <div className="store-assistant-toolbar">
-          <button className="button button-secondary" onClick={clearHistory} type="button">
-            Limpiar chat
-          </button>
-        </div>
 
         <div className="store-assistant-body" ref={bodyRef}>
           {showWelcomeBanner ? (

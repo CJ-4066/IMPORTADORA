@@ -1,5 +1,6 @@
 import { answerShopAssistant } from "@/lib/shop-assistant";
 import type { ShopAssistantRequest } from "@/lib/shop-assistant-types";
+import { rewriteAssistantTextWithOllama } from "@/lib/ollama";
 
 export async function POST(request: Request) {
   try {
@@ -27,7 +28,12 @@ export async function POST(request: Request) {
       recentMessages,
     });
 
-    return Response.json(reply);
+    const enhancedReply = await rewriteAssistantTextWithOllama({
+      customerMessage: message,
+      reply,
+    });
+
+    return Response.json(enhancedReply);
   } catch {
     return Response.json(
       {

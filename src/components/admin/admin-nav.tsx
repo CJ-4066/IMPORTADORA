@@ -10,6 +10,7 @@ import {
   PackagePlus,
   PackageSearch,
   Settings2,
+  ShieldAlert,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -40,6 +41,10 @@ const sections: AdminNavSection[] = [
   {
     title: "Ventas",
     links: [{ href: "/admin/quotes", label: "Cotizaciones", icon: FileText }],
+  },
+  {
+    title: "Atención",
+    links: [{ href: "/admin/reclamos", label: "Reclamos", icon: ShieldAlert }],
   },
   {
     title: "ERP",

@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { startTransition, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Bot } from "lucide-react";
 import type { StoreAssistantPanelProps } from "@/components/catalog/store-assistant";
 import {
@@ -30,14 +30,24 @@ export function StoreAssistantLauncher({ businessName }: StoreAssistantLauncherP
 
   const preloadPanel = () => {
     setShouldLoadPanel(true);
+    void import("@/components/catalog/store-assistant");
   };
 
   const openAssistant = () => {
     preloadPanel();
-    startTransition(() => setOpen(true));
+    setOpen(true);
   };
 
   useEffect(() => {
+    const idleId =
+      typeof window.requestIdleCallback === "function"
+        ? window.requestIdleCallback(() => {
+            void import("@/components/catalog/store-assistant");
+          })
+        : window.setTimeout(() => {
+            void import("@/components/catalog/store-assistant");
+          }, 700);
+
     const handleOpen = (event: Event) => {
       const detail = (event as CustomEvent<StoreAssistantOpenDetail>).detail;
       if (!detail?.prompt) {
@@ -46,11 +56,19 @@ export function StoreAssistantLauncher({ businessName }: StoreAssistantLauncherP
 
       preloadPanel();
       setPendingRequest(detail);
-      startTransition(() => setOpen(true));
+      setOpen(true);
     };
 
     window.addEventListener(STORE_ASSISTANT_OPEN_EVENT, handleOpen);
-    return () => window.removeEventListener(STORE_ASSISTANT_OPEN_EVENT, handleOpen);
+    return () => {
+      if (typeof window.requestIdleCallback === "function") {
+        window.cancelIdleCallback(idleId as number);
+      } else {
+        window.clearTimeout(idleId as number);
+      }
+
+      window.removeEventListener(STORE_ASSISTANT_OPEN_EVENT, handleOpen);
+    };
   }, []);
 
   return (

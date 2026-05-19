@@ -1,4 +1,6 @@
 import type {
+  ComplaintStatus,
+  ComplaintType,
   ErpSyncStatus,
   ErpSyncTrigger,
   QuoteStatus,
@@ -288,4 +290,43 @@ export type ErpSyncLogView = {
   startedAt: string;
   finishedAt: string | null;
   durationMs: number | null;
+};
+
+export type AdminComplaintView = {
+  id: string;
+  claimCode: string;
+  kind: ComplaintType;
+  subject: string;
+  customerName: string;
+  customerPhone: string | null;
+  customerEmail: string | null;
+  status: ComplaintStatus;
+  createdAt: string;
+  respondedAt: string | null;
+  responseText: string | null;
+  responseChannel: string | null;
+};
+
+export type AdminComplaintDetailView = AdminComplaintView & {
+  documentType: string | null;
+  documentNumber: string | null;
+  orderNumber: string | null;
+  productReference: string | null;
+  detail: string;
+  updatedAt: string;
+};
+
+export type AdminComplaintsData = {
+  complaints: AdminComplaintView[];
+  page: number;
+  pageSize: number;
+  totalPages: number;
+  totalResults: number;
+  stats: {
+    all: number;
+    new: number;
+    inReview: number;
+    responded: number;
+    closed: number;
+  };
 };

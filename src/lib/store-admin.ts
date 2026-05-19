@@ -1,4 +1,4 @@
-import type { Prisma, QuoteStatus } from "@prisma/client";
+import type { ComplaintStatus, Prisma, QuoteStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import {
   ADMIN_PAGE_SIZE,
@@ -16,6 +16,9 @@ import {
 import type {
   AdminProductListItem,
   AdminCategory,
+  AdminComplaintDetailView,
+  AdminComplaintView,
+  AdminComplaintsData,
   AdminQuoteDetailView,
   AdminQuotePdfNotificationView,
   AdminQuotesData,
@@ -29,6 +32,7 @@ import type {
 } from "@/lib/store-types";
 
 const ADMIN_QUOTES_PAGE_SIZE = 10;
+const ADMIN_COMPLAINTS_PAGE_SIZE = 10;
 
 function shouldLogAdminPerf() {
   return process.env.NODE_ENV !== "production" || process.env.ADMIN_PERF_LOGS === "true";
@@ -181,6 +185,160 @@ export async function getRecentErpSyncLogs(limit = 5): Promise<ErpSyncLogView[]>
   });
 
   return logs.map((log) => mapErpSyncLog(log as Parameters<typeof mapErpSyncLog>[0]));
+}
+
+function mapComplaintView(
+  complaint: {
+    id: string;
+    claimCode: string;
+    kind: string;
+    subject: string;
+    customerName: string;
+    customerPhone: string | null;
+    customerEmail: string | null;
+    status: ComplaintStatus;
+    createdAt: Date;
+    respondedAt: Date | null;
+    responseText: string | null;
+    responseChannel: string | null;
+  },
+): AdminComplaintView {
+  return {
+    id: complaint.id,
+    claimCode: complaint.claimCode,
+    kind: complaint.kind as AdminComplaintView["kind"],
+    subject: complaint.subject,
+    customerName: complaint.customerName,
+    customerPhone: complaint.customerPhone,
+    customerEmail: complaint.customerEmail,
+    status: complaint.status,
+    createdAt: complaint.createdAt.toISOString(),
+    respondedAt: complaint.respondedAt?.toISOString() ?? null,
+    responseText: complaint.responseText,
+    responseChannel: complaint.responseChannel,
+  };
+}
+
+export async function getAdminComplaints(input: {
+  page?: number;
+  status?: ComplaintStatus | "all";
+} = {}): Promise<AdminComplaintsData> {
+  const startedAt = Date.now();
+  const page = Math.max(1, input.page ?? 1);
+  const where =
+    input.status && input.status !== "all"
+      ? {
+          status: input.status,
+        }
+      : undefined;
+
+  const [
+    complaints,
+    totalResults,
+    totalAll,
+    totalNew,
+    totalInReview,
+    totalResponded,
+    totalClosed,
+  ] = await Promise.all([
+    profileAdminStep("complaints.page", () =>
+      prisma.complaint.findMany({
+        where,
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        skip: (page - 1) * ADMIN_COMPLAINTS_PAGE_SIZE,
+        take: ADMIN_COMPLAINTS_PAGE_SIZE,
+        select: {
+          id: true,
+          claimCode: true,
+          kind: true,
+          subject: true,
+          customerName: true,
+          customerPhone: true,
+          customerEmail: true,
+          status: true,
+          createdAt: true,
+          respondedAt: true,
+          responseText: true,
+          responseChannel: true,
+        },
+      }),
+    ),
+    profileAdminStep("complaints.filtered", () => prisma.complaint.count({ where })),
+    profileAdminStep("complaints.total", () => prisma.complaint.count()),
+    profileAdminStep("complaints.new", () =>
+      prisma.complaint.count({ where: { status: "NEW" } }),
+    ),
+    profileAdminStep("complaints.in-review", () =>
+      prisma.complaint.count({ where: { status: "IN_REVIEW" } }),
+    ),
+    profileAdminStep("complaints.responded", () =>
+      prisma.complaint.count({ where: { status: "RESPONDED" } }),
+    ),
+    profileAdminStep("complaints.closed", () =>
+      prisma.complaint.count({ where: { status: "CLOSED" } }),
+    ),
+  ]);
+
+  const payload = {
+    complaints: complaints.map((complaint) => mapComplaintView(complaint)),
+    page,
+    pageSize: ADMIN_COMPLAINTS_PAGE_SIZE,
+    totalPages: Math.max(1, Math.ceil(totalResults / ADMIN_COMPLAINTS_PAGE_SIZE)),
+    totalResults,
+    stats: {
+      all: totalAll,
+      new: totalNew,
+      inReview: totalInReview,
+      responded: totalResponded,
+      closed: totalClosed,
+    },
+  };
+
+  logAdminPayload("complaints.payload", payload, startedAt, complaints.length);
+
+  return payload;
+}
+
+export async function getAdminComplaintById(
+  complaintId: string,
+): Promise<AdminComplaintDetailView | null> {
+  const complaint = await prisma.complaint.findFirst({
+    where: { id: complaintId },
+    select: {
+      id: true,
+      claimCode: true,
+      kind: true,
+      subject: true,
+      customerName: true,
+      customerPhone: true,
+      customerEmail: true,
+      documentType: true,
+      documentNumber: true,
+      orderNumber: true,
+      productReference: true,
+      detail: true,
+      status: true,
+      createdAt: true,
+      updatedAt: true,
+      respondedAt: true,
+      responseText: true,
+      responseChannel: true,
+    },
+  });
+
+  if (!complaint) {
+    return null;
+  }
+
+  return {
+    ...mapComplaintView(complaint),
+    documentType: complaint.documentType,
+    documentNumber: complaint.documentNumber,
+    orderNumber: complaint.orderNumber,
+    productReference: complaint.productReference,
+    detail: complaint.detail,
+    updatedAt: complaint.updatedAt.toISOString(),
+  };
 }
 
 export async function getAdminDashboardData(period: DashboardPeriod = "MONTH") {

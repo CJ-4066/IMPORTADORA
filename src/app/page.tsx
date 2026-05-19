@@ -7,6 +7,7 @@ import { HeroCarousel } from "@/components/catalog/hero-carousel";
 import { HeroProductCarousel } from "@/components/catalog/hero-product-carousel";
 import { PublicStoreHeader } from "@/components/catalog/public-store-header";
 import { StoreSideActions } from "@/components/catalog/store-side-actions";
+import { StoreFooter } from "@/components/catalog/store-footer";
 import { getQuoteDefaultsForSession } from "@/lib/quote-profile";
 
 type HomeProps = {
@@ -245,6 +246,8 @@ export default async function Home({ searchParams }: HomeProps) {
         sort={data.selectedSort}
         totalPages={data.totalPages}
       />
+
+      <StoreFooter />
     </main>
   );
 }
