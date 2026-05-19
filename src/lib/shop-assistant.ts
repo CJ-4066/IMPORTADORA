@@ -8,7 +8,14 @@ import type {
   ShopAssistantReply,
 } from "@/lib/shop-assistant-types";
 import { isGenericProductPhotoUrl } from "@/lib/store-shared";
-import { buildGiftReply, detectGiftIntent, type GiftIntentResult } from "@/lib/shop-gift-intent";
+import {
+  buildGiftReply,
+  detectGiftIntent,
+  getGiftAvoidTerms,
+  isFatherGiftProduct,
+  getStrictGiftTerms,
+  type GiftIntentResult,
+} from "@/lib/shop-gift-intent";
 
 const MAX_PRODUCTS = 4;
 const MAX_SEARCH_CANDIDATES = 80;
@@ -549,6 +556,18 @@ function scoreGiftProduct(
     "adaptador",
     "organizador",
   ];
+
+  for (const strictTerm of getStrictGiftTerms(giftIntent.profile)) {
+    if (normalizedText.includes(strictTerm)) {
+      score += 18;
+    }
+  }
+
+  for (const strictAvoidTerm of getGiftAvoidTerms(giftIntent.profile)) {
+    if (normalizedText.includes(strictAvoidTerm)) {
+      score -= 30;
+    }
+  }
 
   for (const term of positiveTerms) {
     if (normalizedText.includes(term)) {
@@ -1274,7 +1293,11 @@ export function createShopAssistantService(repository: ShopAssistantRepository) 
         giftQueries,
         allowSensitiveProducts,
       );
-      const rankedGiftProducts = giftProducts
+      const candidateProducts =
+        giftIntent.profile === "father"
+          ? giftProducts.filter((product) => isFatherGiftProduct(product))
+          : giftProducts;
+      const rankedGiftProducts = candidateProducts
         .slice()
         .sort(
           (left, right) =>
@@ -1284,6 +1307,25 @@ export function createShopAssistantService(repository: ShopAssistantRepository) 
       const bestGiftScore = rankedGiftProducts.length
         ? scoreGiftProduct(rankedGiftProducts[0], giftQueries.join(" "), giftIntent)
         : 0;
+
+      if (giftIntent.profile === "father" && rankedGiftProducts.length === 0) {
+        return {
+          text:
+            "No encontré una opción ideal para papá con esos filtros. Puedes probar con parlantes, relojes, audífonos, cargadores o herramientas.",
+          quickActions: buildQuickActions([
+            { label: "Parlantes", href: "/?q=parlante", accent: true },
+            { label: "Audífonos", href: "/?q=audifonos" },
+            { label: "Relojes", href: "/?q=reloj" },
+            { label: "WhatsApp", href: whatsappHref },
+          ]),
+          suggestedPrompts: [
+            "parlantes para papá",
+            "audífonos para papá",
+            "reloj para papá",
+            "hasta 100 soles",
+          ],
+        };
+      }
 
       if (!budget && !quantity && bestGiftScore < 18) {
         return {

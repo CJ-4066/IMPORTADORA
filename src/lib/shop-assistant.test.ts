@@ -344,3 +344,20 @@ test("devuelve palabras clave de regalo sin duplicados", () => {
   assert.ok(keywords.includes("lampara"));
   assert.equal(new Set(keywords).size, keywords.length);
 });
+
+test("filtra regalos para padre y evita cocina u hogar", async () => {
+  const reply = await answerShopAssistant({
+    message: "regalo para papá hasta 80 soles",
+  });
+
+  const texts = [
+    reply.text,
+    ...(reply.products ?? []).map((product) => `${product.name} ${product.code} ${product.category ?? ""}`),
+  ]
+    .join(" ")
+    .toLowerCase();
+
+  assert.ok(texts.includes("papá") || texts.includes("papa"));
+  assert.ok(!texts.includes("cocina"));
+  assert.ok(!texts.includes("hogar"));
+});

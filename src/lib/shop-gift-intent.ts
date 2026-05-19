@@ -227,3 +227,85 @@ export function buildGiftReply(
 
   return `Te recomiendo estas opciones ${context || "como regalo"}. Son productos con stock y buena salida para regalo.`;
 }
+
+export function getStrictGiftTerms(profile: GiftProfile) {
+  const strictProfiles: Partial<Record<GiftProfile, string[]>> = {
+    father: ["parlante", "audifono", "auricular", "reloj", "smartwatch", "cargador", "herramienta", "linterna", "auto", "mouse"],
+    gamer: ["mouse", "teclado", "audifono", "auricular", "headset", "pad", "rgb", "parlante", "silla"],
+  };
+
+  return strictProfiles[profile] ?? [];
+}
+
+export function getGiftAvoidTerms(profile: GiftProfile) {
+  const strictAvoid: Partial<Record<GiftProfile, string[]>> = {
+    father: ["cocina", "hogar", "decoracion", "belleza", "infantil"],
+    gamer: ["cocina", "hogar", "cable generico", "accesorios de celular", "celular", "cocina", "hogar"],
+  };
+
+  return strictAvoid[profile] ?? [];
+}
+
+export const FATHER_ALLOWED = [
+  "parlante",
+  "audifono",
+  "auricular",
+  "headset",
+  "reloj",
+  "smartwatch",
+  "cargador",
+  "linterna",
+  "herramienta",
+  "auto",
+  "carro",
+  "mouse",
+  "teclado",
+  "power bank",
+  "powerbank",
+];
+
+export const FATHER_BLOCKED = [
+  "cocina",
+  "olla",
+  "sarten",
+  "licuadora",
+  "hogar",
+  "decoracion",
+  "belleza",
+  "maquillaje",
+  "infantil",
+  "juguete",
+];
+
+export function productGiftText(product: {
+  name: string;
+  code?: string | null;
+  category?: string | null;
+  description?: string | null;
+}) {
+  return [
+    product.name,
+    product.code,
+    product.category,
+    product.description,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "");
+}
+
+export function isFatherGiftProduct(product: {
+  name: string;
+  code?: string | null;
+  category?: string | null;
+  description?: string | null;
+}) {
+  const text = productGiftText(product);
+
+  const blocked = FATHER_BLOCKED.some((word) => text.includes(word));
+  if (blocked) return false;
+
+  return FATHER_ALLOWED.some((word) => text.includes(word));
+}
