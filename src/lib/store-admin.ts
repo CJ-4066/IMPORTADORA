@@ -599,12 +599,15 @@ export async function getAdminProducts(input: {
   brand?: string;
   visibility?: "all" | "visible" | "hidden";
   photo?: "all" | "missing" | "with-photo";
-  stock?: "all" | "low";
+  stock?: "all" | "low" | "out";
+  featured?: "all" | "only";
+  sync?: "all" | "synced" | "unsynced" | "stale";
   issue?: "all" | "review";
   page?: number;
 }) {
   const startedAt = Date.now();
   const page = Math.max(1, input.page ?? 1);
+  const staleDate = new Date(Date.now() - 48 * 60 * 60 * 1000);
   // CHANGE-CODE: ADM-003
   const baseWhere = buildWhere(input.query, input.category, input.brand, false);
   const photoWhere =
@@ -629,6 +632,15 @@ export async function getAdminProducts(input: {
         ? [{ isVisible: false }]
         : []),
     ...(input.stock === "low" ? [{ stockUnits: { lte: 12 } }] : []),
+    ...(input.stock === "out" ? [{ stockUnits: { lte: 0 } }] : []),
+    ...(input.featured === "only" ? [{ isFeatured: true }] : []),
+    ...(input.sync === "synced"
+      ? [{ syncEnabled: true }]
+      : input.sync === "unsynced"
+        ? [{ syncEnabled: false }]
+        : input.sync === "stale"
+          ? [{ syncEnabled: true, lastSyncedAt: { lt: staleDate } }]
+          : []),
     ...(photoWhere ? [photoWhere] : []),
   ];
 
@@ -646,6 +658,13 @@ export async function getAdminProducts(input: {
     withPhotoProductsCount,
     withoutPhotoProductsCount,
     needsReviewProductsCount,
+    lowStockProductsCount,
+    outOfStockProductsCount,
+    syncedProductsCount,
+    unsyncedProductsCount,
+    staleSyncedProductsCount,
+    featuredProductsCount,
+    hiddenWithStockProductsCount,
     totalResults,
   ] = await Promise.all([
     profileAdminStep("products.page", () =>
@@ -707,6 +726,20 @@ export async function getAdminProducts(input: {
           OR: [{ stockUnits: { lte: 0 } }, buildMissingProductPhotoWhere()],
         },
       })),
+    profileAdminStep("products.low-stock", () =>
+      prisma.product.count({ where: { stockUnits: { gt: 0, lte: 12 } } })),
+    profileAdminStep("products.out-of-stock", () =>
+      prisma.product.count({ where: { stockUnits: { lte: 0 } } })),
+    profileAdminStep("products.synced", () =>
+      prisma.product.count({ where: { syncEnabled: true } })),
+    profileAdminStep("products.unsynced", () =>
+      prisma.product.count({ where: { syncEnabled: false } })),
+    profileAdminStep("products.stale-synced", () =>
+      prisma.product.count({ where: { syncEnabled: true, lastSyncedAt: { lt: staleDate } } })),
+    profileAdminStep("products.featured", () =>
+      prisma.product.count({ where: { isFeatured: true } })),
+    profileAdminStep("products.hidden-with-stock", () =>
+      prisma.product.count({ where: { isVisible: false, stockUnits: { gt: 0 } } })),
     profileAdminStep("products.filtered", () => prisma.product.count({ where: filtersWhere })),
   ]);
 
@@ -746,14 +779,21 @@ export async function getAdminProducts(input: {
       .map((item) => item.brand?.trim())
       .filter((value): value is string => Boolean(value))
       .map((name) => ({ name })),
-      stats: {
-        totalProducts,
-        withPhotoProducts: withPhotoProductsCount,
-        withoutPhotoProducts: withoutPhotoProductsCount,
-        visibleProducts: visibleProductsCount,
-        hiddenProducts: hiddenProductsCount,
-        needsReviewProducts: needsReviewProductsCount,
-      },
+    stats: {
+      totalProducts,
+      withPhotoProducts: withPhotoProductsCount,
+      withoutPhotoProducts: withoutPhotoProductsCount,
+      visibleProducts: visibleProductsCount,
+      hiddenProducts: hiddenProductsCount,
+      needsReviewProducts: needsReviewProductsCount,
+      lowStockProducts: lowStockProductsCount,
+      outOfStockProducts: outOfStockProductsCount,
+      syncedProducts: syncedProductsCount,
+      unsyncedProducts: unsyncedProductsCount,
+      staleSyncedProducts: staleSyncedProductsCount,
+      featuredProducts: featuredProductsCount,
+      hiddenWithStockProducts: hiddenWithStockProductsCount,
+    },
     totalResults,
     totalPages: Math.max(1, Math.ceil(totalResults / ADMIN_PAGE_SIZE)),
     pageSize: ADMIN_PAGE_SIZE,

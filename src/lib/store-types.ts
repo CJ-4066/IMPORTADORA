@@ -59,6 +59,22 @@ export type AdminProductListItem = {
   updatedAt: string;
 };
 
+export type AdminProductCatalogStats = {
+  totalProducts: number;
+  withPhotoProducts: number;
+  withoutPhotoProducts: number;
+  visibleProducts: number;
+  hiddenProducts: number;
+  needsReviewProducts: number;
+  lowStockProducts: number;
+  outOfStockProducts: number;
+  syncedProducts: number;
+  unsyncedProducts: number;
+  staleSyncedProducts: number;
+  featuredProducts: number;
+  hiddenWithStockProducts: number;
+};
+
 export type ProductMediaView = {
   id: string;
   type: "IMAGE" | "VIDEO";

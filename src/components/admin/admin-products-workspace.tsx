@@ -5,20 +5,34 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
+  AlertTriangle,
+  ArrowRight,
+  Boxes,
   Eye,
   EyeOff,
   Filter,
+  Gauge,
   ImageOff,
   ImagePlus,
+  PackageX,
   PencilLine,
   MoreHorizontal,
   Square,
   SquareCheckBig,
   TriangleAlert,
+  RefreshCw,
+  Sparkles,
+  Truck,
   Trash2,
+  Warehouse,
 } from "lucide-react";
 import { deleteProductAction } from "@/app/admin/actions";
-import type { AdminProductListItem, BrandOption, CategoryOption } from "@/lib/store";
+import type {
+  AdminProductCatalogStats,
+  AdminProductListItem,
+  BrandOption,
+  CategoryOption,
+} from "@/lib/store";
 import { CHANGE_CODES } from "@/lib/change-codes";
 import { formatCurrency } from "@/lib/utils";
 
@@ -31,21 +45,16 @@ type AdminProductsWorkspaceProps = {
   pageSize: number;
   totalPages: number;
   totalResults: number;
-  stats: {
-    totalProducts: number;
-    withPhotoProducts: number;
-    withoutPhotoProducts: number;
-    visibleProducts: number;
-    hiddenProducts: number;
-    needsReviewProducts: number;
-  };
+  stats: AdminProductCatalogStats;
   filters: {
     q: string;
     category: string;
     brand: string;
     visibility: "all" | "visible" | "hidden";
     photo: "all" | "missing" | "with-photo";
-    stock: "all" | "low";
+    stock: "all" | "low" | "out";
+    featured: "all" | "only";
+    sync: "all" | "synced" | "unsynced" | "stale";
     issue: "all" | "review";
   };
 };
@@ -95,6 +104,14 @@ function buildQuery(filters: AdminProductsWorkspaceProps["filters"], extra: Part
     params.set("stock", filters.stock);
   }
 
+  if (filters.featured !== "all") {
+    params.set("featured", filters.featured);
+  }
+
+  if (filters.sync !== "all") {
+    params.set("sync", filters.sync);
+  }
+
   if (filters.issue !== "all") {
     params.set("issue", filters.issue);
   }
@@ -108,6 +125,38 @@ function buildQuery(filters: AdminProductsWorkspaceProps["filters"], extra: Part
   }
 
   return params.toString();
+}
+
+function formatDateTime(value: string | null) {
+  if (!value) {
+    return "Sin registro";
+  }
+
+  return new Intl.DateTimeFormat("es-PE", {
+    timeZone: "America/Lima",
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value));
+}
+
+function formatRelativeFreshness(value: string | null) {
+  if (!value) {
+    return "Sin sincronización";
+  }
+
+  const diffMs = Date.now() - new Date(value).getTime();
+  const diffHours = Math.round(diffMs / (1000 * 60 * 60));
+
+  if (diffHours <= 0) {
+    return "Hace menos de 1 hora";
+  }
+
+  if (diffHours < 24) {
+    return `Hace ${diffHours} h`;
+  }
+
+  const diffDays = Math.round(diffHours / 24);
+  return `Hace ${diffDays} d`;
 }
 
 async function postBulkAction(action: BulkAction, productIds: string[]) {
@@ -151,6 +200,7 @@ export function AdminProductsWorkspace({
   const [openMenuProductId, setOpenMenuProductId] = useState<string | null>(null);
   const [openMenuPosition, setOpenMenuPosition] = useState<{ top: number; left: number } | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ productId: string; productName: string } | null>(null);
+  const [previewProductId, setPreviewProductId] = useState<string | null>(null);
   const menuButtonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const deleteFormRef = useRef<HTMLFormElement | null>(null);
   const [toast, setToast] = useState<ToastState>(status ? statusMessages[status] ?? {
@@ -309,6 +359,37 @@ export function AdminProductsWorkspace({
   const activeProduct = openMenuProductId
     ? products.find((product) => product.id === openMenuProductId) ?? null
     : null;
+  const previewProduct = previewProductId
+    ? products.find((product) => product.id === previewProductId) ?? null
+    : null;
+
+  const selectedVisibleCount = selectedIds.filter((id) => {
+    const product = products.find((item) => item.id === id);
+    return product ? product.isVisible : false;
+  }).length;
+  const selectedHiddenCount = selectedCount - selectedVisibleCount;
+  const selectedFeaturedCount = selectedIds.filter((id) => {
+    const product = products.find((item) => item.id === id);
+    return product ? product.isFeatured : false;
+  }).length;
+  const hasHardReview = stats.needsReviewProducts > 0;
+  const healthState =
+    stats.outOfStockProducts > 0
+      ? { tone: "sync-status-warning", label: "Atención", note: "Hay productos sin stock o para revisar." }
+      : stats.staleSyncedProducts > 0
+        ? { tone: "sync-status-running", label: "Conectado", note: "El catálogo está sincronizado, pero algunos productos están desactualizados." }
+        : { tone: "sync-status-success", label: "Saludable", note: "El catálogo está estable y listo para operar." };
+
+  const quickFilters = [
+    { label: "Sin stock", href: `/admin/products?${buildQuery(filters, { stock: "out" })}`, tone: stats.outOfStockProducts > 0 ? "warning" : "muted", count: stats.outOfStockProducts, icon: PackageX, active: filters.stock === "out" },
+    { label: "Stock bajo", href: `/admin/products?${buildQuery(filters, { stock: "low" })}`, tone: stats.lowStockProducts > 0 ? "warning" : "muted", count: stats.lowStockProducts, icon: AlertTriangle, active: filters.stock === "low" },
+    { label: "Sin imagen", href: `/admin/products?${buildQuery(filters, { photo: "missing" })}`, tone: stats.withoutPhotoProducts > 0 ? "danger" : "muted", count: stats.withoutPhotoProducts, icon: ImageOff, active: filters.photo === "missing" },
+    { label: "Ocultos", href: `/admin/products?${buildQuery(filters, { visibility: "hidden" })}`, tone: stats.hiddenProducts > 0 ? "neutral" : "muted", count: stats.hiddenProducts, icon: EyeOff, active: filters.visibility === "hidden" },
+    { label: "Destacados", href: `/admin/products?${buildQuery(filters, { featured: "only" })}`, tone: stats.featuredProducts > 0 ? "positive" : "muted", count: stats.featuredProducts, icon: Sparkles, active: filters.featured === "only" },
+    { label: "Sin sync reciente", href: `/admin/products?${buildQuery(filters, { sync: "stale" })}`, tone: stats.staleSyncedProducts > 0 ? "warning" : "muted", count: stats.staleSyncedProducts, icon: RefreshCw, active: filters.sync === "stale" },
+    { label: "ERP desconectado", href: `/admin/products?${buildQuery(filters, { sync: "unsynced" })}`, tone: stats.unsyncedProducts > 0 ? "danger" : "muted", count: stats.unsyncedProducts, icon: Truck, active: filters.sync === "unsynced" },
+    { label: "Productos a revisar", href: `/admin/products?${buildQuery(filters, { issue: "review" })}`, tone: hasHardReview ? "danger" : "muted", count: stats.needsReviewProducts, icon: TriangleAlert, active: filters.issue === "review" },
+  ] as const;
 
   return (
     <section className="panel admin-products-panel">
@@ -318,6 +399,62 @@ export function AdminProductsWorkspace({
           <h1>Listado optimizado para catálogo grande</h1>
         </div>
       </div>
+
+      <section className="admin-products-hero">
+        <div className="admin-products-hero-copy">
+          <div className="admin-products-hero-kicker">
+            <Gauge size={16} />
+            Centro operativo de catálogo
+          </div>
+          <p className="panel-copy">
+            Supervisa salud comercial, sincronización ERP y calidad del inventario desde una interfaz pensada para operar todos los días sin fricción.
+          </p>
+          <div className="admin-products-hero-actions">
+            <Link className="button button-primary button-chip" href="/admin/products/new">
+              <PencilLine size={16} />
+              Nuevo producto
+            </Link>
+            <Link className="button button-secondary button-chip" href="/admin/categories">
+              <Boxes size={16} />
+              Categorías
+            </Link>
+            <Link className="button button-secondary button-chip" href="/admin/erp">
+              <Truck size={16} />
+              Ver ERP
+            </Link>
+          </div>
+        </div>
+
+        <div className="admin-products-hero-health">
+          <div className="admin-products-health-pill">
+            <span>Salud del catálogo</span>
+            <strong>{healthState.label}</strong>
+            <p>{healthState.note}</p>
+          </div>
+          <div className="admin-products-health-grid">
+            <article>
+              <span>Activos</span>
+              <strong>{stats.visibleProducts}</strong>
+              <p>{stats.featuredProducts} destacados</p>
+            </article>
+            <article>
+              <span>Sin foto</span>
+              <strong>{stats.withoutPhotoProducts}</strong>
+              <p>{stats.needsReviewProducts} a revisar</p>
+            </article>
+            <article>
+              <span>Sin stock</span>
+              <strong>{stats.outOfStockProducts}</strong>
+              <p>{stats.lowStockProducts} con stock bajo</p>
+            </article>
+            <article>
+              <span>Sync ERP</span>
+              <strong>{stats.syncedProducts}</strong>
+              <p>{stats.staleSyncedProducts} sin sync reciente</p>
+            </article>
+          </div>
+        </div>
+      </section>
 
       {toast ? (
         <div className={`admin-toast admin-toast-${toast.tone}`}>
@@ -382,6 +519,29 @@ export function AdminProductsWorkspace({
         </Link>
       </div>
 
+      <section className="admin-products-sanity-rail">
+        <div className="panel-header admin-products-sanity-head">
+          <div>
+            <p className="eyebrow">Filtros rápidos</p>
+            <h2>Refina el catálogo</h2>
+          </div>
+          <span className="muted">{selectedCount ? `${selectedCount} seleccionados` : "Sin selección"}</span>
+        </div>
+        <div className="admin-products-sanity-chips">
+          {quickFilters.map((filter) => (
+            <Link
+              className={`admin-chip admin-chip-filter ${filter.active ? "is-active" : ""} is-${filter.tone}`}
+              href={filter.href}
+              key={filter.label}
+            >
+              <filter.icon size={14} />
+              <span>{filter.label}</span>
+              <strong>{filter.count}</strong>
+            </Link>
+          ))}
+        </div>
+      </section>
+
       <div className="admin-products-toolbar">
         <form className="filters-form admin-filters" method="GET">
           <label className="search-field">
@@ -417,6 +577,17 @@ export function AdminProductsWorkspace({
           <select defaultValue={filters.stock} name="stock">
             <option value="all">Todo el stock</option>
             <option value="low">Solo stock bajo</option>
+            <option value="out">Sin stock</option>
+          </select>
+          <select defaultValue={filters.featured} name="featured">
+            <option value="all">Todos los destacados</option>
+            <option value="only">Solo destacados</option>
+          </select>
+          <select defaultValue={filters.sync} name="sync">
+            <option value="all">Toda la sync</option>
+            <option value="synced">Sincronizados</option>
+            <option value="unsynced">Sin sync</option>
+            <option value="stale">Sin sync reciente</option>
           </select>
           <input name="issue" type="hidden" value={filters.issue} />
           <button className="button button-primary" type="submit">
@@ -453,6 +624,9 @@ export function AdminProductsWorkspace({
       {selectedCount > 0 ? (
         <div className="admin-products-selection-bar">
           <strong>{selectedCount} seleccionados</strong>
+          <span className="muted">
+            {selectedVisibleCount} visibles · {selectedHiddenCount} ocultos · {selectedFeaturedCount} destacados
+          </span>
           <div className="actions-row admin-products-bulk-actions">
             <button
               className="button button-secondary"
@@ -590,6 +764,14 @@ export function AdminProductsWorkspace({
                         <Link className="icon-button" href={`/admin/products/${product.id}`}>
                           <PencilLine size={16} />
                         </Link>
+                        <button
+                          className="icon-button"
+                          aria-label={`Vista rápida de ${product.name}`}
+                          onClick={() => setPreviewProductId(product.id)}
+                          type="button"
+                        >
+                          <Eye size={16} />
+                        </button>
                         {!hasPhoto || !hasStock ? (
                           <Link className="button button-secondary button-chip" href={`/admin/products/${product.id}#media`}>
                             Agregar foto
@@ -624,9 +806,27 @@ export function AdminProductsWorkspace({
           </table>
         </div>
         ) : (
-          <article className="panel panel-slim empty-state">
-            <p className="eyebrow">Sin coincidencias</p>
-            <h2>No hay productos con ese filtro</h2>
+          <article className="panel panel-slim empty-state admin-products-empty-state">
+            <div className="admin-products-empty-icon">
+              <Warehouse size={22} />
+            </div>
+            <div className="admin-products-empty-copy">
+              <p className="eyebrow">Sin coincidencias</p>
+              <h2>No hay productos con ese filtro</h2>
+              <p className="panel-copy">
+                Ajusta los filtros o crea un producto nuevo para seguir operando sin romper el ritmo del catálogo.
+              </p>
+            </div>
+            <div className="admin-products-empty-actions">
+              <Link className="button button-primary" href="/admin/products/new">
+                <PencilLine size={16} />
+                Crear producto
+              </Link>
+              <Link className="button button-secondary" href="/admin/products">
+                <ArrowRight size={16} />
+                Limpiar filtros
+              </Link>
+            </div>
           </article>
         )}
 
@@ -699,6 +899,103 @@ export function AdminProductsWorkspace({
                   Eliminar
                 </button>
               </div>
+            </div>,
+            document.body,
+          )
+        : null}
+
+      {previewProduct && typeof document !== "undefined"
+        ? createPortal(
+            <div className="admin-preview-backdrop" role="presentation" onClick={() => setPreviewProductId(null)}>
+              <aside
+                aria-label={`Vista rápida de ${previewProduct.name}`}
+                className="admin-preview-drawer"
+                role="dialog"
+                onClick={(event) => event.stopPropagation()}
+              >
+                <div className="admin-preview-head">
+                  <div>
+                    <p className="eyebrow">Vista rápida</p>
+                    <h2>{previewProduct.name}</h2>
+                    <p className="muted">{previewProduct.code} · {previewProduct.brand ?? "Sin marca"}</p>
+                  </div>
+                  <button className="icon-button" onClick={() => setPreviewProductId(null)} type="button">
+                    <SquareCheckBig size={16} />
+                  </button>
+                </div>
+
+                <div className="admin-preview-media">
+                  {previewProduct.thumbnailUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      alt={previewProduct.name}
+                      className="admin-preview-image"
+                      src={previewProduct.thumbnailUrl}
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  ) : (
+                    <div className="admin-preview-empty-media">
+                      <ImageOff size={26} />
+                      <span>Sin imagen principal</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="admin-preview-metrics">
+                  <article>
+                    <span>Precio</span>
+                    <strong>{formatCurrency(previewProduct.unitPrice)}</strong>
+                  </article>
+                  <article>
+                    <span>Stock</span>
+                    <strong>{previewProduct.stockUnits}</strong>
+                  </article>
+                  <article>
+                    <span>Sync</span>
+                    <strong>{formatRelativeFreshness(previewProduct.lastSyncedAt)}</strong>
+                  </article>
+                  <article>
+                    <span>Estado</span>
+                    <strong>{previewProduct.isVisible ? "Visible" : "Oculto"}</strong>
+                  </article>
+                </div>
+
+                <div className="admin-preview-badges">
+                  <span className={`status-badge ${previewProduct.isVisible ? "is-visible" : "is-hidden"}`}>
+                    {previewProduct.isVisible ? "Publicado" : "Oculto"}
+                  </span>
+                  <span className={`status-badge ${previewProduct.hasPhoto ? "is-visible" : "is-warning"}`}>
+                    {previewProduct.hasPhoto ? "Con foto" : "Sin foto"}
+                  </span>
+                  {previewProduct.isFeatured ? <span className="status-badge is-visible">Destacado</span> : null}
+                  {previewProduct.stockUnits <= 12 ? (
+                    <span className="status-badge is-warning">{previewProduct.stockUnits <= 0 ? "Sin stock" : "Stock bajo"}</span>
+                  ) : null}
+                </div>
+
+                <div className="admin-preview-copy">
+                  <div>
+                    <span>Descripción</span>
+                    <p>{previewProduct.name}</p>
+                  </div>
+                  <div>
+                    <span>Última sincronización</span>
+                    <p>{previewProduct.lastSyncedAt ? formatDateTime(previewProduct.lastSyncedAt) : "Sin sync reciente"}</p>
+                  </div>
+                </div>
+
+                <div className="admin-preview-actions">
+                  <Link className="button button-primary" href={`/admin/products/${previewProduct.id}`}>
+                    <PencilLine size={16} />
+                    Editar producto
+                  </Link>
+                  <Link className="button button-secondary" href={`/admin/products/${previewProduct.id}#media`}>
+                    <ArrowRight size={16} />
+                    Ir a media
+                  </Link>
+                </div>
+              </aside>
             </div>,
             document.body,
           )

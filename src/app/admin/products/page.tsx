@@ -23,8 +23,17 @@ export default async function AdminProductsPage({ searchParams }: AdminProductsP
       ? (params.photo as "all" | "missing" | "with-photo")
       : "all";
   const stock =
-    typeof params?.stock === "string" && ["all", "low"].includes(params.stock)
-      ? (params.stock as "all" | "low")
+    typeof params?.stock === "string" && ["all", "low", "out"].includes(params.stock)
+      ? (params.stock as "all" | "low" | "out")
+      : "all";
+  const featured =
+    typeof params?.featured === "string" && ["all", "only"].includes(params.featured)
+      ? (params.featured as "all" | "only")
+      : "all";
+  const sync =
+    typeof params?.sync === "string" &&
+    ["all", "synced", "unsynced", "stale"].includes(params.sync)
+      ? (params.sync as "all" | "synced" | "unsynced" | "stale")
       : "all";
   const issue =
     typeof params?.issue === "string" && ["all", "review"].includes(params.issue)
@@ -38,6 +47,8 @@ export default async function AdminProductsPage({ searchParams }: AdminProductsP
     visibility,
     photo,
     stock,
+    featured,
+    sync,
     issue,
     page: Number.isNaN(page) ? 1 : page,
   });
@@ -47,7 +58,7 @@ export default async function AdminProductsPage({ searchParams }: AdminProductsP
     <AdminProductsWorkspace
       brands={data.brands}
       categories={data.categories}
-      filters={{ q, category, brand, visibility, photo, stock, issue }}
+      filters={{ q, category, brand, visibility, photo, stock, featured, sync, issue }}
       page={data.page}
       pageSize={data.pageSize}
       products={data.products}
