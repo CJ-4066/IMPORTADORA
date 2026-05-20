@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useMemo, useRef, useState } from "react";
+import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
 import {
   Copy,
@@ -303,6 +303,7 @@ export function HeroBannerCmsManager({
   const [items, setItems] = useState<HeroBannerView[]>(banners);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const reorderFormRef = useRef<HTMLFormElement | null>(null);
+  const shouldSubmitReorderRef = useRef(false);
   const [orderIds, setOrderIds] = useState<string[]>(() => banners.map((item) => item.id));
   const selectedBanner = useMemo(
     () => items.find((item) => item.id === selectedBannerId) ?? null,
@@ -335,14 +336,20 @@ export function HeroBannerCmsManager({
       const [moved] = next.splice(fromIndex, 1);
       next.splice(toIndex, 0, moved);
       setOrderIds(next.map((item) => item.id));
-
-      window.setTimeout(() => {
-        reorderFormRef.current?.requestSubmit();
-      }, 0);
+      shouldSubmitReorderRef.current = true;
 
       return next;
     });
   }
+
+  useEffect(() => {
+    if (!shouldSubmitReorderRef.current) {
+      return;
+    }
+
+    shouldSubmitReorderRef.current = false;
+    reorderFormRef.current?.requestSubmit();
+  }, [orderIds]);
 
   return (
     <section className="panel hero-banner-cms">
