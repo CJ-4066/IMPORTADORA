@@ -414,6 +414,8 @@ export function HeroBannerCmsManager({
               <Plus size={16} />
               Nuevo banner
             </Link>
+          </div>
+          <div className="hero-banner-cms-links">
             <form action={importLegacyHeroSlidesAction}>
               <button className="button button-ghost button-chip" type="submit">
                 <ImagePlus size={16} />

@@ -410,15 +410,17 @@ export function AdminProductsWorkspace({
             Supervisa salud comercial, sincronización ERP y calidad del inventario desde una interfaz pensada para operar todos los días sin fricción.
           </p>
           <div className="admin-products-hero-actions">
-            <Link className="button button-primary button-chip" href="/admin/products/new">
+            <Link className="button button-primary button-chip admin-products-hero-primary" href="/admin/products/new">
               <PencilLine size={16} />
               Nuevo producto
             </Link>
-            <Link className="button button-ghost button-chip" href="/admin/categories">
+          </div>
+          <div className="admin-products-hero-links">
+            <Link className="button button-ghost button-chip admin-products-hero-secondary" href="/admin/categories">
               <Boxes size={16} />
               Categorías
             </Link>
-            <Link className="button button-ghost button-chip" href="/admin/erp">
+            <Link className="button button-ghost button-chip admin-products-hero-secondary" href="/admin/erp">
               <Truck size={16} />
               Ver ERP
             </Link>
