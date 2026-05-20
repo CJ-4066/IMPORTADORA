@@ -409,24 +409,6 @@ export function HeroBannerCmsManager({
           <p className="field-caption">
             Administra banners, campañas programadas, variantes responsive y métricas de interacción desde una sola vista.
           </p>
-          <div className="hero-banner-cms-actions">
-            <Link className="button button-primary button-chip hero-banner-primary-action" href="/admin/banners">
-              <Plus size={16} />
-              Nuevo banner
-            </Link>
-          </div>
-          <div className="hero-banner-cms-links">
-            <Link className="hero-banner-cms-link" href="/#hero">
-              <ArrowRight size={16} />
-              Ver hero público
-            </Link>
-            <form action={importLegacyHeroSlidesAction}>
-              <button className="hero-banner-cms-link" type="submit">
-                <ImagePlus size={16} />
-                Importar slides
-              </button>
-            </form>
-          </div>
         </div>
 
         <div className="hero-banner-hero-health">
@@ -531,10 +513,26 @@ export function HeroBannerCmsManager({
               <p className="eyebrow">Listado</p>
               <h2>Orden y estado</h2>
             </div>
-            <span className="pill">
-              <GripVertical size={14} />
-              Arrastra para reordenar
-            </span>
+            <div className="hero-banner-list-head-actions">
+              <span className="pill">
+                <GripVertical size={14} />
+                Arrastra para reordenar
+              </span>
+              <Link className="button button-primary button-chip hero-banner-primary-action" href="/admin/banners">
+                <Plus size={16} />
+                Nuevo banner
+              </Link>
+              <Link className="hero-banner-cms-link" href="/#hero">
+                <ArrowRight size={16} />
+                Ver hero público
+              </Link>
+              <form action={importLegacyHeroSlidesAction}>
+                <button className="hero-banner-cms-link" type="submit">
+                  <ImagePlus size={16} />
+                  Importar slides
+                </button>
+              </form>
+            </div>
           </div>
 
           <form ref={reorderFormRef} action={reorderHeroBannersAction}>
