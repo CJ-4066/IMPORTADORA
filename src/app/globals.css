@@ -2133,6 +2133,15 @@ body[data-admin-theme="dark"] .admin-chip-filter.is-neutral {
     width: 100%;
   }
 
+  .hero-banner-list-card-top {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .hero-banner-list-card-top-right {
+    grid-column: 1 / -1;
+    justify-items: start;
+  }
+
   .admin-products-table tbody {
     gap: 0.7rem;
   }
@@ -2649,6 +2658,12 @@ body[data-admin-theme="dark"] .admin-chip-filter.is-neutral {
   align-items: start;
 }
 
+.hero-banner-list-card-top-right {
+  display: grid;
+  justify-items: end;
+  gap: 0.45rem;
+}
+
 .hero-banner-drag-handle {
   display: inline-flex;
   align-items: center;
@@ -2708,6 +2723,40 @@ body[data-admin-theme="dark"] .admin-chip-filter.is-neutral {
 .hero-banner-state.is-muted {
   color: var(--muted);
   background: rgba(var(--brand-ink-rgb), 0.06);
+}
+
+.hero-banner-reorder-controls {
+  display: inline-flex;
+  gap: 0.35rem;
+}
+
+.hero-banner-reorder-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid rgba(var(--brand-ink-rgb), 0.08);
+  border-radius: 10px;
+  background: rgba(var(--brand-ink-rgb), 0.04);
+  color: var(--muted);
+  transition:
+    transform 120ms ease,
+    background 120ms ease,
+    color 120ms ease,
+    border-color 120ms ease;
+}
+
+.hero-banner-reorder-button:hover:not(:disabled) {
+  color: var(--foreground);
+  border-color: rgba(var(--brand-rgb), 0.18);
+  background: rgba(var(--brand-rgb), 0.08);
+  transform: translateY(-1px);
+}
+
+.hero-banner-reorder-button:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
 }
 
 .hero-banner-list-card-body {

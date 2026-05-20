@@ -17,6 +17,8 @@ import {
   Trash2,
   Upload,
   ArrowRight,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -342,6 +344,25 @@ export function HeroBannerCmsManager({
     });
   }
 
+  function moveBanner(sourceId: string, direction: -1 | 1) {
+    setItems((current) => {
+      const fromIndex = current.findIndex((item) => item.id === sourceId);
+      const toIndex = fromIndex + direction;
+
+      if (fromIndex < 0 || toIndex < 0 || toIndex >= current.length) {
+        return current;
+      }
+
+      const next = current.slice();
+      const [moved] = next.splice(fromIndex, 1);
+      next.splice(toIndex, 0, moved);
+      setOrderIds(next.map((item) => item.id));
+      shouldSubmitReorderRef.current = true;
+
+      return next;
+    });
+  }
+
   useEffect(() => {
     if (!shouldSubmitReorderRef.current) {
       return;
@@ -415,6 +436,8 @@ export function HeroBannerCmsManager({
                       onDragStart={() => setDraggingId(banner.id)}
                       onClick={(event) => event.preventDefault()}
                       type="button"
+                      aria-label={`Arrastrar banner ${banner.title || index + 1}`}
+                      title="Arrastra para reordenar"
                     >
                       <GripVertical size={16} />
                     </button>
@@ -425,9 +448,33 @@ export function HeroBannerCmsManager({
                       </div>
                       <p>{banner.subtitle || banner.description || "Sin descripción"}</p>
                     </div>
-                    <span className={`hero-banner-state is-${getStatusTone(banner.statusLabel)}`}>
-                      {banner.statusLabel}
-                    </span>
+                    <div className="hero-banner-list-card-top-right">
+                      <span className={`hero-banner-state is-${getStatusTone(banner.statusLabel)}`}>
+                        {banner.statusLabel}
+                      </span>
+                      <div className="hero-banner-reorder-controls" aria-label="Reordenar banner">
+                        <button
+                          className="hero-banner-reorder-button"
+                          disabled={index === 0}
+                          onClick={() => moveBanner(banner.id, -1)}
+                          type="button"
+                          aria-label="Mover banner hacia arriba"
+                          title="Mover hacia arriba"
+                        >
+                          <ChevronUp size={14} />
+                        </button>
+                        <button
+                          className="hero-banner-reorder-button"
+                          disabled={index === items.length - 1}
+                          onClick={() => moveBanner(banner.id, 1)}
+                          type="button"
+                          aria-label="Mover banner hacia abajo"
+                          title="Mover hacia abajo"
+                        >
+                          <ChevronDown size={14} />
+                        </button>
+                      </div>
+                    </div>
                   </div>
 
                   <div className="hero-banner-list-card-body">
