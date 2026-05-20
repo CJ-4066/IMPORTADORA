@@ -6668,12 +6668,6 @@ body[data-admin-theme="dark"] .auth-panel {
   min-width: 0;
 }
 
-.admin-profile-copy {
-  color: var(--muted);
-  font-size: 0.88rem;
-  line-height: 1.45;
-}
-
 .admin-profile-actions {
   display: flex;
   flex-wrap: wrap;

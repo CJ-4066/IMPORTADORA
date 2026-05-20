@@ -44,7 +44,6 @@ export default async function AdminLayout({
               <div className="stack-xs">
                 <p className="eyebrow">Control center</p>
                 <h2>{session.name}</h2>
-                <p className="admin-profile-copy">Operación, campañas, ERP y atención en una sola vista.</p>
               </div>
               <div className="admin-profile-actions">
                 <Link className="button button-secondary button-chip" href="/">
