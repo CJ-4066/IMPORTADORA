@@ -7,11 +7,9 @@ import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
   ArrowRight,
-  Boxes,
   Eye,
   EyeOff,
   Filter,
-  Gauge,
   ImageOff,
   ImagePlus,
   PackageX,
@@ -402,29 +400,11 @@ export function AdminProductsWorkspace({
 
       <section className="admin-products-hero">
         <div className="admin-products-hero-copy">
-          <div className="admin-products-hero-kicker">
-            <Gauge size={16} />
-            Centro operativo de catálogo
-          </div>
-          <p className="panel-copy">
-            Supervisa salud comercial, sincronización ERP y calidad del inventario desde una interfaz pensada para operar todos los días sin fricción.
+          <p className="eyebrow">Catálogo</p>
+          <h2>Listado optimizado para catálogo grande</h2>
+          <p className="admin-products-hero-meta">
+            {stats.visibleProducts} activos · {stats.withPhotoProducts} con foto · {stats.syncedProducts} sincronizados con ERP
           </p>
-          <div className="admin-products-hero-actions">
-            <Link className="button button-primary button-chip admin-products-hero-primary" href="/admin/products/new">
-              <PencilLine size={16} />
-              Nuevo producto
-            </Link>
-          </div>
-          <div className="admin-products-hero-links">
-            <Link className="admin-products-hero-link" href="/admin/categories">
-              <Boxes size={16} />
-              Categorías
-            </Link>
-            <Link className="admin-products-hero-link" href="/admin/erp">
-              <Truck size={16} />
-              Ver ERP
-            </Link>
-          </div>
         </div>
 
         <div className="admin-products-hero-health">
