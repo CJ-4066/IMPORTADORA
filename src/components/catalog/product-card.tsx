@@ -137,3 +137,5 @@ export function ProductCard({ product, settings }: ProductCardProps) {
     </article>
   );
 }
+
+

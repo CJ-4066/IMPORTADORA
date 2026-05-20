@@ -14,11 +14,17 @@ import type {
   CategoryOption,
   DashboardComparisonMetric,
   DashboardTrendProduct,
+  HeroBannerView,
   ErpSyncLogView,
   HeroSlideView,
   ProductMediaView,
   StoreSettingsView,
 } from "@/lib/store-types";
+import {
+  buildHeroBannerOrderBy,
+  buildHeroBannerWhere,
+  mapHeroBanner,
+} from "@/lib/hero-banners";
 
 export const PUBLIC_PAGE_SIZE = 24;
 export const ADMIN_PAGE_SIZE = 10;
@@ -230,6 +236,19 @@ export function mapCategory(category: Category): CategoryOption {
   };
 }
 
+export async function getHeroBannerViews(input: {
+  activeOnly?: boolean;
+  slot?: "HERO" | "CATEGORY" | "PROMO" | "LANDING" | "WIDGET";
+} = {}): Promise<HeroBannerView[]> {
+  const now = new Date();
+  const banners = await prisma.heroBanner.findMany({
+    where: buildHeroBannerWhere(input.slot, input.activeOnly !== false, now),
+    orderBy: buildHeroBannerOrderBy(),
+  });
+
+  return banners.map((banner) => mapHeroBanner(banner, now));
+}
+
 const readStoreSettingsRecord = cache(async () =>
   prisma.storeSettings.findUnique({ where: { id: 1 } }),
 );
@@ -323,16 +342,27 @@ export function buildComparisonMetric(
 
 export function mapErpSyncLog(log: ErpSyncLog): ErpSyncLogView {
   const finishedAt = log.finishedAt?.toISOString() ?? null;
+  const updatedAt = log.updatedAt.toISOString();
+  const progressPercent =
+    log.progressTotalCount > 0
+      ? Math.min(100, Math.round((log.processedCount / log.progressTotalCount) * 100))
+      : null;
 
   return {
     id: log.id,
     source: log.source,
     trigger: log.trigger,
+    syncMode: log.syncMode,
     status: log.status,
     fetchedCount: log.fetchedCount,
+    progressTotalCount: log.progressTotalCount,
+    processedCount: log.processedCount,
     createdCount: log.createdCount,
     updatedCount: log.updatedCount,
     skippedCount: log.skippedCount,
+    errorCount: log.errorCount,
+    failedPage: log.failedPage,
+    failedPageMessage: log.failedPageMessage,
     errorMessage: log.errorMessage,
     cancelRequestedAt: log.cancelRequestedAt?.toISOString() ?? null,
     initiatedByName: log.initiatedByName,
@@ -341,7 +371,9 @@ export function mapErpSyncLog(log: ErpSyncLog): ErpSyncLogView {
     canceledByEmail: log.canceledByEmail,
     startedAt: log.startedAt.toISOString(),
     finishedAt,
+    updatedAt,
     durationMs: log.finishedAt ? log.finishedAt.getTime() - log.startedAt.getTime() : null,
+    progressPercent,
   };
 }
 

@@ -7,6 +7,7 @@ import {
   DatabaseZap,
   FileText,
   FolderTree,
+  ImagePlus,
   PackagePlus,
   PackageSearch,
   Settings2,
@@ -41,6 +42,10 @@ const sections: AdminNavSection[] = [
   {
     title: "Ventas",
     links: [{ href: "/admin/quotes", label: "Cotizaciones", icon: FileText }],
+  },
+  {
+    title: "Marketing",
+    links: [{ href: "/admin/banners", label: "Banners y campañas", icon: ImagePlus }],
   },
   {
     title: "Atención",

@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { NextResponse } from "next/server";
+import sharp from "sharp";
 import { requireAdmin } from "@/lib/auth";
 
 export const runtime = "nodejs";
@@ -44,6 +45,36 @@ function getExtension(file: File) {
   return ".bin";
 }
 
+function isImageFile(file: File) {
+  return file.type.startsWith("image/");
+}
+
+async function writeOptimizedImageVariants(
+  inputBuffer: Buffer,
+  outputDir: string,
+  fileBase: string,
+) {
+  const image = sharp(inputBuffer, { animated: true }).rotate();
+  const metadata = await image.metadata();
+  const optimizedPath = path.join(outputDir, `${fileBase}.webp`);
+  const mobilePath = path.join(outputDir, `${fileBase}-mobile.webp`);
+  const thumbPath = path.join(outputDir, `${fileBase}-thumb.webp`);
+
+  await Promise.all([
+    image.clone().resize({ width: 1920, withoutEnlargement: true }).webp({ quality: 84 }).toFile(optimizedPath),
+    image.clone().resize({ width: 1080, withoutEnlargement: true }).webp({ quality: 82 }).toFile(mobilePath),
+    image.clone().resize({ width: 640, withoutEnlargement: true }).webp({ quality: 78 }).toFile(thumbPath),
+  ]);
+
+  return {
+    desktopUrl: `/uploads/${path.basename(outputDir)}/${path.basename(optimizedPath)}`,
+    mobileUrl: `/uploads/${path.basename(outputDir)}/${path.basename(mobilePath)}`,
+    thumbUrl: `/uploads/${path.basename(outputDir)}/${path.basename(thumbPath)}`,
+    width: metadata.width ?? null,
+    height: metadata.height ?? null,
+  };
+}
+
 export async function POST(request: Request) {
   await requireAdmin();
 
@@ -71,11 +102,28 @@ export async function POST(request: Request) {
 
   const uploadedAt = Date.now();
   const baseName = sanitizeBaseName(fileEntry.name) || "archivo";
-  const fileName = `${uploadedAt}-${randomUUID().slice(0, 8)}-${baseName}${getExtension(fileEntry)}`;
+  const fileBase = `${uploadedAt}-${randomUUID().slice(0, 8)}-${baseName}`;
   const uploadDir = path.join(process.cwd(), "public", "uploads", folder);
   const buffer = Buffer.from(await fileEntry.arrayBuffer());
 
   await mkdir(uploadDir, { recursive: true });
+
+  if (isImageFile(fileEntry)) {
+    const optimized = await writeOptimizedImageVariants(buffer, uploadDir, fileBase);
+
+    return NextResponse.json({
+      fileName: `${fileBase}.webp`,
+      folder,
+      url: optimized.desktopUrl,
+      desktopUrl: optimized.desktopUrl,
+      mobileUrl: optimized.mobileUrl,
+      thumbUrl: optimized.thumbUrl,
+      width: optimized.width,
+      height: optimized.height,
+    });
+  }
+
+  const fileName = `${fileBase}${getExtension(fileEntry)}`;
   await writeFile(path.join(uploadDir, fileName), buffer);
 
   return NextResponse.json({

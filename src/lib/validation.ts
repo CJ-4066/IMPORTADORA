@@ -1,4 +1,10 @@
 import { z } from "zod";
+import {
+  HERO_BANNER_CONTENT_POSITION_VALUES,
+  HERO_BANNER_LAYOUT_VALUES,
+  HERO_BANNER_SLOT_VALUES,
+  HERO_BANNER_TEXT_ALIGN_VALUES,
+} from "@/lib/hero-banners";
 import { isTruthy } from "@/lib/utils";
 
 const optionalText = z
@@ -42,6 +48,41 @@ export const heroSlideEntrySchema = z.object({
 export const heroSlidesSchema = z
   .array(heroSlideEntrySchema)
   .max(6, "Puedes configurar hasta 6 slides en el hero.");
+
+const optionalDateTime = z.preprocess((value) => {
+  if (value === "" || value === null || value === undefined) {
+    return undefined;
+  }
+
+  const parsed = new Date(String(value));
+
+  return Number.isNaN(parsed.getTime()) ? value : parsed;
+}, z.date().optional());
+
+export const heroBannerSchema = z.object({
+  bannerId: z.string().trim().optional().default(""),
+  slot: z.enum(HERO_BANNER_SLOT_VALUES).default("HERO"),
+  layout: z.enum(HERO_BANNER_LAYOUT_VALUES).default("HERO_DESKTOP_FULL"),
+  title: optionalText,
+  subtitle: optionalText,
+  description: optionalText,
+  ctaLabel: optionalText,
+  ctaHref: optionalText,
+  desktopImageUrl: z.string().trim().min(1, "La imagen desktop es obligatoria."),
+  mobileImageUrl: optionalText,
+  altText: optionalText,
+  overlayColor: z.string().trim().regex(/^#[0-9A-Fa-f]{6}$/),
+  overlayOpacity: z.coerce.number().min(0).max(1),
+  textAlign: z.enum(HERO_BANNER_TEXT_ALIGN_VALUES).default("LEFT"),
+  contentPosition: z.enum(HERO_BANNER_CONTENT_POSITION_VALUES).default("LEFT"),
+  priority: z.coerce.number().int(),
+  sortOrder: z.coerce.number().int(),
+  campaignName: optionalText,
+  analyticsKey: optionalText,
+  startsAt: optionalDateTime,
+  endsAt: optionalDateTime,
+  isActive: z.boolean().default(true),
+});
 
 export const loginSchema = z.object({
   email: z.string().trim().email("Correo inválido."),
@@ -198,5 +239,32 @@ export function parseSettingsForm(formData: FormData) {
     supportHours: formData.get("supportHours"),
     primaryColor,
     accentColor: primaryColor,
+  });
+}
+
+export function parseHeroBannerForm(formData: FormData) {
+  return heroBannerSchema.parse({
+    bannerId: formData.get("bannerId"),
+    slot: formData.get("slot"),
+    layout: formData.get("layout"),
+    title: formData.get("title"),
+    subtitle: formData.get("subtitle"),
+    description: formData.get("description"),
+    ctaLabel: formData.get("ctaLabel"),
+    ctaHref: formData.get("ctaHref"),
+    desktopImageUrl: formData.get("desktopImageUrl"),
+    mobileImageUrl: formData.get("mobileImageUrl"),
+    altText: formData.get("altText"),
+    overlayColor: formData.get("overlayColor"),
+    overlayOpacity: formData.get("overlayOpacity"),
+    textAlign: formData.get("textAlign"),
+    contentPosition: formData.get("contentPosition"),
+    priority: formData.get("priority"),
+    sortOrder: formData.get("sortOrder"),
+    campaignName: formData.get("campaignName"),
+    analyticsKey: formData.get("analyticsKey"),
+    startsAt: formData.get("startsAt"),
+    endsAt: formData.get("endsAt"),
+    isActive: isTruthy(formData.get("isActive")),
   });
 }

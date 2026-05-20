@@ -1,5 +1,5 @@
+import Link from "next/link";
 import { updateSettingsAction } from "@/app/admin/actions";
-import { HeroSlidesManager } from "@/components/admin/hero-slides-manager";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { getStoreSettings } from "@/lib/store";
 
@@ -82,9 +82,10 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
           </label>
         </div>
 
-        <HeroSlidesManager initialItems={settings.heroSlides} />
-
         <div className="actions-row">
+          <Link className="button button-secondary" href="/admin/banners">
+            Administrar banners
+          </Link>
           <SubmitButton>Guardar configuración</SubmitButton>
         </div>
       </form>

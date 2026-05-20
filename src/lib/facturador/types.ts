@@ -78,6 +78,8 @@ export type SyncableProduct = {
   externalCode: string | null;
   syncEnabled: boolean;
   lastSyncedAt: Date;
+  syncHash?: string | null;
+  syncQuickHash?: string | null;
 };
 
 export type ProductMapResult =

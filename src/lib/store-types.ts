@@ -7,6 +7,12 @@ import type {
   TrendDirection,
   TrendPeriod,
 } from "@prisma/client";
+import type {
+  HeroBannerContentPosition,
+  HeroBannerLayout,
+  HeroBannerSlot,
+  HeroBannerTextAlign,
+} from "@/lib/hero-banners";
 
 export type CatalogProduct = {
   id: string;
@@ -88,6 +94,40 @@ export type HeroSlideView = {
   imageUrl: string;
   title: string | null;
   text: string | null;
+};
+
+export type HeroBannerView = {
+  id: string;
+  slot: HeroBannerSlot;
+  layout: HeroBannerLayout;
+  title: string | null;
+  subtitle: string | null;
+  description: string | null;
+  ctaLabel: string | null;
+  ctaHref: string | null;
+  desktopImageUrl: string;
+  mobileImageUrl: string | null;
+  altText: string | null;
+  overlayColor: string;
+  overlayOpacity: number;
+  textAlign: HeroBannerTextAlign;
+  contentPosition: HeroBannerContentPosition;
+  priority: number;
+  sortOrder: number;
+  isActive: boolean;
+  startsAt: string | null;
+  endsAt: string | null;
+  campaignName: string | null;
+  analyticsKey: string | null;
+  impressionCount: number;
+  clickCount: number;
+  createdAt: string;
+  updatedAt: string;
+  statusLabel: "Activo" | "Programado" | "Expirado" | "Borrador";
+  isLive: boolean;
+  recommendedDesktopSize: string;
+  recommendedMobileSize: string;
+  ratioLabel: string;
 };
 
 export type StoreSettingsView = {
@@ -276,11 +316,17 @@ export type ErpSyncLogView = {
   id: string;
   source: string;
   trigger: ErpSyncTrigger;
+  syncMode: string;
   status: ErpSyncStatus;
   fetchedCount: number;
+  progressTotalCount: number;
+  processedCount: number;
   createdCount: number;
   updatedCount: number;
   skippedCount: number;
+  errorCount: number;
+  failedPage: number | null;
+  failedPageMessage: string | null;
   errorMessage: string | null;
   cancelRequestedAt: string | null;
   initiatedByName: string | null;
@@ -289,7 +335,9 @@ export type ErpSyncLogView = {
   canceledByEmail: string | null;
   startedAt: string;
   finishedAt: string | null;
+  updatedAt: string;
   durationMs: number | null;
+  progressPercent: number | null;
 };
 
 export type AdminComplaintView = {

@@ -4,6 +4,7 @@ import { getCatalogPageData } from "@/lib/store";
 import type { CatalogProduct } from "@/lib/store";
 import { CatalogExperience } from "@/components/catalog/catalog-experience";
 import { HeroCarousel } from "@/components/catalog/hero-carousel";
+import { HeroBannerCarousel } from "@/components/catalog/hero-banner-carousel";
 import { HeroProductCarousel } from "@/components/catalog/hero-product-carousel";
 import { PublicStoreHeader } from "@/components/catalog/public-store-header";
 import { StoreSideActions } from "@/components/catalog/store-side-actions";
@@ -203,7 +204,12 @@ export default async function Home({ searchParams }: HomeProps) {
         <section className="hero" data-hero>
           <div className="hero-grid hero-grid-centered">
             <div className="hero-panel hero-panel-fixed">
-              {heroProducts.length >= 2 ? (
+              {data.heroBanners.length ? (
+                <HeroBannerCarousel
+                  banners={data.heroBanners}
+                  intervalSeconds={data.settings.heroAutoplaySeconds}
+                />
+              ) : heroProducts.length >= 2 ? (
                 <HeroProductCarousel intervalSeconds={data.settings.heroAutoplaySeconds} products={heroProducts} />
               ) : data.settings.heroSlides.length ? (
                 <HeroCarousel

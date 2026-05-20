@@ -6,6 +6,7 @@ import {
   buildWhere,
   buildRealProductPhotoWhere,
   buildSellableProductWhere,
+  getHeroBannerViews,
   getStoreSettings,
   mapCategory,
   mapProduct,
@@ -46,7 +47,7 @@ export async function getCatalogPageData(input: {
   const bestSellerCodes = bestSellerSnapshot.codes;
   const shouldRankBestSellers = collection === "mas-vendidos" && bestSellerCodes.length > 0;
   const where = buildCatalogWhere(input, shouldRankBestSellers ? bestSellerCodes : []);
-  const [queriedProducts, bestSellerRows, totalResults, categoryRows, brandRows, visibleCount, featuredCount, settings] =
+  const [queriedProducts, bestSellerRows, totalResults, categoryRows, brandRows, visibleCount, featuredCount, settings, heroBanners] =
     await Promise.all([
       prisma.product.findMany({
         where,
@@ -97,6 +98,7 @@ export async function getCatalogPageData(input: {
         where: { AND: [buildSellableProductWhere(), { isFeatured: true }] },
       }),
       getStoreSettings(),
+      getHeroBannerViews({ slot: "HERO" }),
     ]);
   const orderedProducts =
     shouldRankBestSellers ? rankProductsByCode(queriedProducts, bestSellerCodes) : queriedProducts;
@@ -129,6 +131,7 @@ export async function getCatalogPageData(input: {
       featuredCount,
     },
     settings,
+    heroBanners,
   };
 }
 

@@ -13,6 +13,7 @@ import {
   TrendingDown,
   TrendingUp,
 } from "lucide-react";
+import { AdminKpiChart } from "@/components/admin/admin-kpi-chart";
 import type { DashboardComparisonMetric, DashboardPeriod, DashboardTrendProduct } from "@/lib/store";
 import { getAdminDashboardData } from "@/lib/store";
 import { CHANGE_CODES } from "@/lib/change-codes";
@@ -164,15 +165,42 @@ export default async function AdminHomePage({ searchParams }: AdminHomePageProps
 
   return (
     <div className="stack-lg">
-      <section className="panel">
-        <div className="panel-header">
-          <div>
-            <p className="eyebrow">Dashboard operativo</p>
-            <h1>Dashboard del catálogo</h1>
-          </div>
+      <section className="panel admin-hero-panel">
+        <div className="admin-hero-copy">
+          <p className="eyebrow">Dashboard operativo</p>
+          <h1>Control center del catálogo</h1>
+          <p className="panel-copy">
+            Estado comercial, sincronización ERP, campañas y atención al cliente en una sola superficie.
+          </p>
         </div>
 
-        <div className="admin-metrics">
+        <div className="admin-hero-actions">
+          <Link className="button button-secondary button-chip" href="/admin/erp">
+            <DatabaseZap size={16} />
+            Sincronizar ERP
+          </Link>
+          <Link className="button button-secondary button-chip" href="/admin/banners">
+            <Boxes size={16} />
+            Marketing
+          </Link>
+          <Link className="button button-secondary button-chip" href={buildProductsHref({ issue: "review" })}>
+            <TriangleAlert size={16} />
+            Revisar productos
+          </Link>
+          <Link className="button button-ghost button-chip" href={buildProductsHref({ visibility: "visible", photo: "missing" })}>
+            <ImageOff size={16} />
+            Visibles sin foto
+          </Link>
+        </div>
+
+        <div className="admin-hero-status">
+          <span className="admin-status-pill is-positive">{data.dataFreshness.syncedProducts} sincronizados</span>
+          <span className="admin-status-pill is-warning">{data.dataFreshness.needsReviewProducts} por revisar</span>
+          <span className="admin-status-pill is-negative">{data.dataFreshness.visibleOutOfStockProducts} sin stock visible</span>
+          <span className="admin-status-pill">{lastSyncDate}</span>
+        </div>
+
+        <div className="admin-metrics admin-metrics-promoted">
           <Link className="metric-panel metric-panel-link" href="/admin/products">
             <Boxes size={22} />
             <strong>{data.totalProducts}</strong>
@@ -252,10 +280,12 @@ export default async function AdminHomePage({ searchParams }: AdminHomePageProps
         </div>
       </section>
 
+      <AdminKpiChart currencySymbol={data.currencySymbol} metrics={data.trendAnalysis.comparisonMetrics} />
+
       <section className="panel trend-dashboard-panel">
         <div className="panel-header">
           <div>
-            <p className="eyebrow">10. Análisis de tendencias</p>
+            <p className="eyebrow">Análisis</p>
             <h2>Sincronización ERP y movimiento del catálogo</h2>
           </div>
         </div>

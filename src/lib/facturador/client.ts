@@ -24,7 +24,10 @@ type RequestOptions = {
   body?: unknown;
   method?: "GET" | "POST";
   query?: Record<string, string | number | boolean | null | undefined>;
+  retry?: boolean;
 };
+
+const PAGE_RETRY_DELAYS_MS = [1000, 3000, 7000] as const;
 
 type ProductSyncOptions = {
   updatedSince?: Date | null;
@@ -38,6 +41,19 @@ export class FacturadorApiError extends Error {
   ) {
     super(message);
     this.name = "FacturadorApiError";
+  }
+}
+
+export class FacturadorPageFetchError extends Error {
+  constructor(
+    message: string,
+    public readonly page: number,
+    public readonly status: number | null,
+    public readonly payload: unknown,
+    public readonly retryable: boolean,
+  ) {
+    super(message);
+    this.name = "FacturadorPageFetchError";
   }
 }
 
@@ -225,6 +241,7 @@ export class FacturadorClient {
 
   async request<T = unknown>(path: string, options: RequestOptions = {}): Promise<T> {
     let attempt = 0;
+    const allowRetry = options.retry !== false;
 
     while (true) {
       const controller = new AbortController();
@@ -250,7 +267,7 @@ export class FacturadorClient {
               ? payload.message
               : `La API externa respondio HTTP ${response.status}.`;
 
-          if (shouldRetry(response.status, message) && attempt < this.config.maxRetries) {
+          if (allowRetry && shouldRetry(response.status, message) && attempt < this.config.maxRetries) {
             attempt += 1;
             await sleep(this.config.retryDelayMs * attempt);
             continue;
@@ -265,7 +282,7 @@ export class FacturadorClient {
           throw error;
         }
 
-        if (attempt < this.config.maxRetries) {
+        if (allowRetry && attempt < this.config.maxRetries) {
           attempt += 1;
           await sleep(this.config.retryDelayMs * attempt);
           continue;
@@ -284,9 +301,7 @@ export class FacturadorClient {
       options.updatedSince && this.config.productUpdatedSinceParam
         ? formatUpdatedSinceValue(options.updatedSince, this.config.productUpdatedSinceFormat)
         : null;
-    const query: Record<string, string | number | boolean | null | undefined> = {
-      page: startPage,
-    };
+    const query: Record<string, string | number | boolean | null | undefined> = {};
 
     if (updatedSinceQueryValue) {
       if (!this.config.productUpdatedSinceParam) {
@@ -298,9 +313,7 @@ export class FacturadorClient {
       query[this.config.productUpdatedSinceParam] = updatedSinceQueryValue;
     }
 
-    const firstPayload = await this.request("/items/records", {
-      query,
-    });
+    const firstPayload = await this.requestItemsPage(startPage, query);
     const products = extractRecords(firstPayload) as FacturadorProduct[];
     const lastPage = getLastPage(firstPayload) ?? 1;
     const maxPage = this.config.maxProductPages
@@ -324,19 +337,7 @@ export class FacturadorClient {
         await sleep(this.config.productPageDelayMs);
       }
 
-      const payloads = await Promise.all(
-        chunk.map((page) =>
-          this.request("/items/records", {
-            query:
-              updatedSinceQueryValue && this.config.productUpdatedSinceParam
-                ? {
-                    page,
-                    [this.config.productUpdatedSinceParam]: updatedSinceQueryValue,
-                  }
-                : { page },
-          }),
-        ),
-      );
+      const payloads = await Promise.all(chunk.map((page) => this.requestItemsPage(page, query)));
 
       for (const payload of payloads) {
         products.push(...(extractRecords(payload) as FacturadorProduct[]));
@@ -344,6 +345,36 @@ export class FacturadorClient {
     }
 
     return products;
+  }
+
+  private async requestItemsPage(page: number, baseQuery: Record<string, string | number | boolean | null | undefined>) {
+    let lastError: unknown = null;
+
+    for (let attempt = 0; attempt <= PAGE_RETRY_DELAYS_MS.length; attempt += 1) {
+      try {
+        return await this.request("/items/records", {
+          query: {
+            page,
+            ...baseQuery,
+          },
+          retry: false,
+        });
+      } catch (error) {
+        lastError = error;
+
+        if (!isPageRetryableError(error)) {
+          throw annotatePageError(error, page);
+        }
+
+        if (attempt >= PAGE_RETRY_DELAYS_MS.length) {
+          throw annotatePageError(error, page);
+        }
+
+        await sleep(PAGE_RETRY_DELAYS_MS[attempt]);
+      }
+    }
+
+    throw annotatePageError(lastError, page);
   }
 
   async searchProducts(input = "") {
@@ -860,6 +891,47 @@ function buildQuotationLine(item: FacturadorQuoteItem, erpItem: FacturadorRecord
 
 function round2(value: number) {
   return Math.round((value + Number.EPSILON) * 100) / 100;
+}
+
+function isPageRetryableError(error: unknown) {
+  if (error instanceof FacturadorApiError) {
+    return [408, 429, 500, 502, 503, 504].includes(error.status);
+  }
+
+  if (error instanceof FacturadorPageFetchError) {
+    return error.retryable;
+  }
+
+  return true;
+}
+
+function annotatePageError(error: unknown, page: number) {
+  if (error instanceof FacturadorPageFetchError) {
+    return error;
+  }
+
+  if (error instanceof FacturadorApiError) {
+    return new FacturadorPageFetchError(
+      `Fallo al leer la página ${page} del ERP: ${error.message}`,
+      page,
+      error.status,
+      error.payload,
+      [408, 429, 500, 502, 503, 504].includes(error.status),
+    );
+  }
+
+  const message =
+    error instanceof Error && error.message.trim()
+      ? error.message
+      : "Error de conexión al leer la página del ERP.";
+
+  return new FacturadorPageFetchError(
+    `Fallo al leer la página ${page} del ERP: ${message}`,
+    page,
+    null,
+    null,
+    true,
+  );
 }
 
 function getWarehouseId(item: FacturadorRecord) {

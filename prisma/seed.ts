@@ -1,5 +1,5 @@
 import bcrypt from "bcryptjs";
-import { PrismaClient, TrendDirection, TrendPeriod } from "@prisma/client";
+import { Prisma, PrismaClient, TrendDirection, TrendPeriod } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -428,6 +428,84 @@ const heroSlidesSeed = [
   },
 ];
 
+const heroBannerSeed: Prisma.HeroBannerCreateManyInput[] = [
+  {
+    slot: "HERO",
+    layout: "HERO_DESKTOP_FULL",
+    title: "Importación directa desde China",
+    subtitle: "Campaña base del catálogo",
+    description: "Contenedores, lotes mayoristas y stock listo para distribuir en tienda.",
+    ctaLabel: "Ver catálogo",
+    ctaHref: "/",
+    desktopImageUrl:
+      "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=2400&h=760&q=88",
+    mobileImageUrl:
+      "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=1080&h=1400&q=88",
+    altText: "Importación directa desde China",
+    overlayColor: "#000000",
+    overlayOpacity: 0.36,
+    textAlign: "LEFT",
+    contentPosition: "LEFT",
+    priority: 10,
+    sortOrder: 0,
+    isActive: true,
+    startsAt: null,
+    endsAt: null,
+    campaignName: "Campaña base",
+    analyticsKey: "seed-hero-1",
+  },
+  {
+    slot: "HERO",
+    layout: "HERO_DESKTOP_FULL",
+    title: "Almacén con productos por campaña",
+    subtitle: "Listo para rotación comercial",
+    description: "Tecnología, hogar, juguetería y descartables organizados para venta por caja.",
+    ctaLabel: "Ofertas",
+    ctaHref: "/?featured=1",
+    desktopImageUrl:
+      "https://images.unsplash.com/photo-1578575437130-527eed3abbec?auto=format&fit=crop&w=2400&h=760&q=88",
+    mobileImageUrl:
+      "https://images.unsplash.com/photo-1578575437130-527eed3abbec?auto=format&fit=crop&w=1080&h=1400&q=88",
+    altText: "Almacén con productos por campaña",
+    overlayColor: "#000000",
+    overlayOpacity: 0.34,
+    textAlign: "LEFT",
+    contentPosition: "LEFT",
+    priority: 8,
+    sortOrder: 1,
+    isActive: true,
+    startsAt: null,
+    endsAt: null,
+    campaignName: "Rotación",
+    analyticsKey: "seed-hero-2",
+  },
+  {
+    slot: "HERO",
+    layout: "HERO_DESKTOP_FULL",
+    title: "Despacho rápido para distribuidores",
+    subtitle: "Más velocidad, menos fricción",
+    description: "Pedidos armados para bodegas, bazares y clientes mayoristas.",
+    ctaLabel: "Cotizar",
+    ctaHref: "/?focus=search",
+    desktopImageUrl:
+      "https://images.unsplash.com/photo-1566576721346-d4a3b4eaeb55?auto=format&fit=crop&w=2400&h=760&q=88",
+    mobileImageUrl:
+      "https://images.unsplash.com/photo-1566576721346-d4a3b4eaeb55?auto=format&fit=crop&w=1080&h=1400&q=88",
+    altText: "Despacho rápido para distribuidores",
+    overlayColor: "#000000",
+    overlayOpacity: 0.34,
+    textAlign: "LEFT",
+    contentPosition: "LEFT",
+    priority: 6,
+    sortOrder: 2,
+    isActive: true,
+    startsAt: null,
+    endsAt: null,
+    campaignName: "Distribuidores",
+    analyticsKey: "seed-hero-3",
+  },
+];
+
 async function main() {
   const email = process.env.ADMIN_EMAIL ?? "admin@importadora.local";
   const name = process.env.ADMIN_NAME ?? "Administrador";
@@ -485,6 +563,12 @@ async function main() {
         "Stock importado de China con precios por unidad, por mayor desde cantidades mínimas y precio especial por caja.",
     },
   });
+
+  if ((await prisma.heroBanner.count({ where: { slot: "HERO" } })) === 0) {
+    await prisma.heroBanner.createMany({
+      data: heroBannerSeed,
+    });
+  }
 
   const categoryMap = new Map<string, string>();
   const demoProductCodes = demoProducts.map((product) => product.code);

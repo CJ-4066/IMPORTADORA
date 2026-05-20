@@ -5,9 +5,9 @@ import { BrandLogo } from "@/components/brand/brand-logo";
 const WHATSAPP_URL = "https://wa.me/51955252609?text=Hola%20quiero%20hacer%20una%20consulta";
 
 const SOCIAL_LINKS = [
-  { label: "Facebook", href: "https://www.facebook.com/importacionesSUPERSAC", short: "FB" },
+  { label: "Facebook", href: "https://www.facebook.com/importacionessuperoficial/?locale=es_LA", short: "FB" },
   { label: "Instagram", href: "https://www.instagram.com/importsupersac/", short: "IG" },
-  { label: "YouTube", href: "https://www.youtube.com/@importacionessupersac4571/videos", short: "YT" },
+  { label: "TikTok", href: "https://www.tiktok.com/@super_importaciones", short: "TT" },
 ];
 
 type ContactRow =
@@ -15,6 +15,7 @@ type ContactRow =
   | { label: string; value: string; href?: undefined; icon?: LucideIcon };
 
 const CONTACT_ROWS: ContactRow[] = [
+  { label: "Dirección", value: "Avenida Abancay 752, Centro de Lima", icon: Clock3 },
   { label: "Email", value: "supereimportaciones@gmail.com", href: "mailto:supereimportaciones@gmail.com", icon: Mail },
   { label: "Lun-Sáb", value: "08:00 am - 08:00 pm", icon: Clock3 },
   { label: "Domingo", value: "09:00 am - 08:00 pm" },
@@ -78,23 +79,25 @@ export function StoreFooter() {
             </div>
           </div>
 
-          <a className="store-footer-whatsapp" href={WHATSAPP_URL} rel="noreferrer" target="_blank">
-            <MessageCircle size={16} />
-            Comprar por WhatsApp
-          </a>
+          <div className="store-footer-complaints-actions">
+            <a className="store-footer-whatsapp" href={WHATSAPP_URL} rel="noreferrer" target="_blank">
+              <MessageCircle size={16} />
+              Comprar por WhatsApp
+            </a>
 
-          <a
-            className="store-footer-complaints-row"
-            href="/libro-reclamaciones"
-          >
-            <span className="store-footer-complaints-icon">
-              <BookOpenText size={16} />
-            </span>
-            <span className="store-footer-complaints-row-copy">
-              <strong>Libro de reclamaciones</strong>
-              <small>Accede al formulario virtual</small>
-            </span>
-          </a>
+            <a
+              className="store-footer-complaints-row"
+              href="/libro-reclamaciones"
+            >
+              <span className="store-footer-complaints-icon">
+                <BookOpenText size={16} />
+              </span>
+              <span className="store-footer-complaints-row-copy">
+                <strong>Libro de reclamaciones</strong>
+                <small>Accede al formulario virtual</small>
+              </span>
+            </a>
+          </div>
         </section>
       </div>
     </footer>
