@@ -410,17 +410,17 @@ export function HeroBannerCmsManager({
             Administra banners, campañas programadas, variantes responsive y métricas de interacción desde una sola vista.
           </p>
           <div className="hero-banner-cms-actions">
-            <Link className="button button-primary" href="/admin/banners">
+            <Link className="button button-primary button-chip" href="/admin/banners">
               <Plus size={16} />
               Nuevo banner
             </Link>
             <form action={importLegacyHeroSlidesAction}>
-              <button className="button button-secondary" type="submit">
+              <button className="button button-secondary button-chip" type="submit">
                 <ImagePlus size={16} />
                 Importar slides heredados
               </button>
             </form>
-            <Link className="button button-ghost" href="/#hero">
+            <Link className="button button-ghost button-chip" href="/#hero">
               <ArrowRight size={16} />
               Ver hero público
             </Link>
@@ -540,8 +540,8 @@ export function HeroBannerCmsManager({
           </form>
 
           <div className="hero-banner-list">
-            {items.length ? (
-              items.map((banner, index) => (
+              {items.length ? (
+                items.map((banner, index) => (
                 <article
                   aria-current={selectedBanner?.id === banner.id ? "true" : undefined}
                   className={cn(
@@ -598,19 +598,19 @@ export function HeroBannerCmsManager({
                   </div>
 
                   <div className="hero-banner-list-actions">
-                    <Link className="button button-secondary button-chip" href={`/admin/banners?banner=${banner.id}`}>
+                    <Link className="button button-ghost button-chip" href={`/admin/banners?banner=${banner.id}`}>
                       Editar
                     </Link>
                     <form action={duplicateHeroBannerAction}>
                       <input name="bannerId" type="hidden" value={banner.id} />
-                      <button className="button button-secondary button-chip" type="submit">
+                      <button className="button button-ghost button-chip" type="submit">
                         <Copy size={16} />
                         Duplicar
                       </button>
                     </form>
                     <form action={toggleHeroBannerAction}>
                       <input name="bannerId" type="hidden" value={banner.id} />
-                      <button className="button button-secondary button-chip" type="submit">
+                      <button className="button button-ghost button-chip" type="submit">
                         {banner.isActive ? <EyeOff size={16} /> : <Eye size={16} />}
                         {banner.isActive ? "Desactivar" : "Activar"}
                       </button>
@@ -631,12 +631,12 @@ export function HeroBannerCmsManager({
                 <strong>No hay banners creados</strong>
                 <p>Empieza con una campaña nueva o importa los slides heredados del hero anterior.</p>
                 <div className="hero-banner-empty-actions">
-                  <Link className="button button-primary" href="/admin/banners">
+                  <Link className="button button-primary button-chip" href="/admin/banners">
                     <Plus size={16} />
                     Crear banner
                   </Link>
                   <form action={importLegacyHeroSlidesAction}>
-                    <button className="button button-secondary" type="submit">
+                    <button className="button button-secondary button-chip" type="submit">
                       <ImagePlus size={16} />
                       Importar slides
                     </button>

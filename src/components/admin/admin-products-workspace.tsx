@@ -414,11 +414,11 @@ export function AdminProductsWorkspace({
               <PencilLine size={16} />
               Nuevo producto
             </Link>
-            <Link className="button button-secondary button-chip" href="/admin/categories">
+            <Link className="button button-ghost button-chip" href="/admin/categories">
               <Boxes size={16} />
               Categorías
             </Link>
-            <Link className="button button-secondary button-chip" href="/admin/erp">
+            <Link className="button button-ghost button-chip" href="/admin/erp">
               <Truck size={16} />
               Ver ERP
             </Link>
@@ -438,9 +438,9 @@ export function AdminProductsWorkspace({
               <p>{stats.featuredProducts} destacados</p>
             </article>
             <article>
-              <span>Sin foto</span>
-              <strong>{stats.withoutPhotoProducts}</strong>
-              <p>{stats.needsReviewProducts} a revisar</p>
+              <span>Calidad visual</span>
+              <strong>{stats.withPhotoProducts}</strong>
+              <p>{stats.withoutPhotoProducts} sin foto · {stats.needsReviewProducts} a revisar</p>
             </article>
             <article>
               <span>Sin stock</span>
@@ -491,31 +491,20 @@ export function AdminProductsWorkspace({
         </Link>
         <Link
           className="metric-panel metric-panel-link"
-          href={`/admin/products?${buildQuery(filters, { photo: "missing" })}`}
-          data-change-code={CHANGE_CODES.ADMIN_REVIEW_ALERTS}
-        >
-          <ImageOff size={22} />
-          <strong>{stats.withoutPhotoProducts}</strong>
-          <span>Sin foto</span>
-        </Link>
-        <Link className="metric-panel metric-panel-link" href={`/admin/products?${buildQuery(filters, { visibility: "visible" })}`}>
-          <Eye size={22} />
-          <strong>{stats.visibleProducts}</strong>
-          <span>Visibles</span>
-        </Link>
-        <Link className="metric-panel metric-panel-link" href={`/admin/products?${buildQuery(filters, { visibility: "hidden" })}`}>
-          <EyeOff size={22} />
-          <strong>{stats.hiddenProducts}</strong>
-          <span>Ocultos</span>
-        </Link>
-        <Link
-          className="metric-panel metric-panel-link"
           href={`/admin/products?${buildQuery(filters, { issue: "review" })}`}
           data-change-code={CHANGE_CODES.ADMIN_REVIEW_ALERTS}
         >
           <TriangleAlert size={22} />
           <strong>{stats.needsReviewProducts}</strong>
           <span>Productos a revisar</span>
+        </Link>
+        <Link
+          className="metric-panel metric-panel-link"
+          href={`/admin/products?${buildQuery(filters, { stock: "low" })}`}
+        >
+          <AlertTriangle size={22} />
+          <strong>{stats.lowStockProducts}</strong>
+          <span>Stock bajo</span>
         </Link>
       </div>
 

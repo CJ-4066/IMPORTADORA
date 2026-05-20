@@ -106,14 +106,13 @@ export function AdminKpiChart({ currencySymbol, metrics }: AdminKpiChartProps) {
           <div className="admin-chart-legend-item" key={row.label}>
             <div>
               <strong>{row.label}</strong>
-              <span>
-                Actual {formatChartValue(row.current, row.isCurrency, currencySymbol)} · previo{" "}
-                {formatChartValue(row.previous, row.isCurrency, currencySymbol)}
+              <span>Actual {formatChartValue(row.current, row.isCurrency, currencySymbol)} · previo en tooltip</span>
+            </div>
+            <div className="admin-chart-legend-meta">
+              <span className={row.deltaPercent === null ? "is-neutral" : row.deltaPercent >= 0 ? "is-positive" : "is-negative"}>
+                {row.deltaPercent === null ? "Sin base" : `${row.deltaPercent > 0 ? "+" : ""}${row.deltaPercent.toFixed(1)}%`}
               </span>
             </div>
-            <span className={row.deltaPercent === null ? "is-neutral" : row.deltaPercent >= 0 ? "is-positive" : "is-negative"}>
-              {row.deltaPercent === null ? "Sin base" : `${row.deltaPercent > 0 ? "+" : ""}${row.deltaPercent.toFixed(1)}%`}
-            </span>
           </div>
         ))}
       </div>

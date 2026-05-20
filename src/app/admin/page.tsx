@@ -1,7 +1,5 @@
 import Link from "next/link";
 import {
-  ArrowDownRight,
-  ArrowUpRight,
   Boxes,
   CalendarClock,
   DatabaseZap,
@@ -13,10 +11,10 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { AdminKpiChart } from "@/components/admin/admin-kpi-chart";
-import type { DashboardComparisonMetric, DashboardPeriod, DashboardTrendProduct } from "@/lib/store";
+import type { DashboardPeriod, DashboardTrendProduct } from "@/lib/store";
 import { getAdminDashboardData } from "@/lib/store";
 import { CHANGE_CODES } from "@/lib/change-codes";
-import { cn, formatCompactNumber, formatCurrency } from "@/lib/utils";
+import { cn, formatCompactNumber } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -43,26 +41,6 @@ function parsePeriod(value: string | string[] | undefined): DashboardPeriod {
   }
 
   return "MONTH";
-}
-
-function formatMetricValue(metric: DashboardComparisonMetric, currencySymbol: string) {
-  if (metric.label === "Ventas") {
-    return formatCurrency(metric.currentValue, currencySymbol);
-  }
-
-  return formatCompactNumber(metric.currentValue);
-}
-
-function formatPreviousValue(metric: DashboardComparisonMetric, currencySymbol: string) {
-  if (metric.previousValue === null) {
-    return "Sin histórico";
-  }
-
-  if (metric.label === "Ventas") {
-    return formatCurrency(metric.previousValue, currencySymbol);
-  }
-
-  return formatCompactNumber(metric.previousValue);
 }
 
 function formatDelta(deltaPercent: number | null) {
@@ -331,40 +309,6 @@ export default async function AdminHomePage({ searchParams }: AdminHomePageProps
               {data.dataFreshness.visibleOutOfStockProducts} visibles sin stock
             </span>
           </article>
-        </div>
-
-        <div className="trend-comparison-grid">
-          {data.trendAnalysis.comparisonMetrics.map((metric) => (
-            <article className="trend-compare-card" key={metric.label}>
-              <div className="trend-card-head">
-                <div>
-                  <p className="eyebrow">Comparativa</p>
-                  <h3>{metric.label}</h3>
-                </div>
-                <span
-                  className={cn(
-                    "trend-icon-chip",
-                    getDeltaTone(metric.deltaPercent),
-                  )}
-                >
-                  {(metric.deltaPercent ?? 0) >= 0 ? <ArrowUpRight size={18} /> : <ArrowDownRight size={18} />}
-                </span>
-              </div>
-
-              <strong>{formatMetricValue(metric, data.currencySymbol)}</strong>
-              <div className="trend-compare-meta">
-                <span>Previo: {formatPreviousValue(metric, data.currencySymbol)}</span>
-                <span
-                  className={cn(
-                    "trend-delta-chip",
-                    getDeltaTone(metric.deltaPercent),
-                  )}
-                >
-                  {formatDelta(metric.deltaPercent)}
-                </span>
-              </div>
-            </article>
-          ))}
         </div>
 
         <div className="trend-lists-grid">
