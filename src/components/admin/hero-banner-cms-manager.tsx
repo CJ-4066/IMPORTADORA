@@ -386,7 +386,7 @@ export function HeroBannerCmsManager({
             <div className="hero-banner-list-head-actions">
               <span className="pill">
                 <GripVertical size={14} />
-                Arrastra para reordenar
+                Arrastra la tarjeta o usa las flechas
               </span>
               <Link className="button button-primary button-chip hero-banner-primary-action" href="/admin/banners">
                 <Plus size={16} />
@@ -420,6 +420,11 @@ export function HeroBannerCmsManager({
                     draggingId === banner.id && "is-dragging",
                   )}
                   key={banner.id}
+                  draggable
+                  onDragStart={(event) => {
+                    event.dataTransfer.effectAllowed = "move";
+                    setDraggingId(banner.id);
+                  }}
                   onDragEnd={() => setDraggingId(null)}
                   onDragOver={(event) => event.preventDefault()}
                   onDrop={() => {
@@ -428,19 +433,16 @@ export function HeroBannerCmsManager({
                       setDraggingId(null);
                     }
                   }}
+                  title="Arrastra la tarjeta para reordenar"
                 >
                   <div className="hero-banner-list-card-top">
-                    <button
+                    <span
                       className="hero-banner-drag-handle"
-                      draggable
-                      onDragStart={() => setDraggingId(banner.id)}
-                      onClick={(event) => event.preventDefault()}
-                      type="button"
-                      aria-label={`Arrastrar banner ${banner.title || index + 1}`}
+                      aria-hidden="true"
                       title="Arrastra para reordenar"
                     >
                       <GripVertical size={16} />
-                    </button>
+                    </span>
                     <div className="hero-banner-list-card-main">
                       <div className="hero-banner-list-card-title">
                         <strong>{banner.title || "Banner sin título"}</strong>
