@@ -4,10 +4,12 @@ import Link from "next/link";
 import { useActionState, useMemo, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
 import {
+  AlertTriangle,
   Copy,
   Eye,
   EyeOff,
   GripVertical,
+  Gauge,
   ImagePlus,
   LayoutGrid,
   MonitorSmartphone,
@@ -16,6 +18,11 @@ import {
   Sparkles,
   Trash2,
   Upload,
+  WandSparkles,
+  CalendarClock,
+  Image as ImageIcon,
+  Layers3,
+  ArrowRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -294,6 +301,48 @@ function BannerPreviewPane({ draft }: { draft: HeroBannerFormValues }) {
   );
 }
 
+function getHeroBannerHealthSummary(items: HeroBannerView[]) {
+  const active = items.filter((item) => item.statusLabel === "Activo");
+  const scheduled = items.filter((item) => item.statusLabel === "Programado");
+  const drafts = items.filter((item) => item.statusLabel === "Borrador");
+  const expired = items.filter((item) => item.statusLabel === "Expirado");
+  const withMobile = items.filter((item) => Boolean(item.mobileImageUrl));
+  const withAnalytics = items.filter((item) => Boolean(item.analyticsKey));
+  const withCampaign = items.filter((item) => Boolean(item.campaignName));
+  const live = items.filter((item) => item.isLive);
+
+  const primaryLabel =
+    active.length > 0
+      ? "Campañas activas"
+      : scheduled.length > 0
+        ? "Programación lista"
+        : drafts.length > 0
+          ? "Borradores en preparación"
+          : "Sin campañas activas";
+
+  const healthTone =
+    expired.length > 0
+      ? "warning"
+      : active.length > 0
+        ? "success"
+        : scheduled.length > 0
+          ? "warning"
+          : "muted";
+
+  return {
+    active,
+    scheduled,
+    drafts,
+    expired,
+    withMobile,
+    withAnalytics,
+    withCampaign,
+    live,
+    primaryLabel,
+    healthTone,
+  };
+}
+
 export function HeroBannerCmsManager({
   banners,
   selectedBannerId,
@@ -307,6 +356,7 @@ export function HeroBannerCmsManager({
     () => items.find((item) => item.id === selectedBannerId) ?? null,
     [items, selectedBannerId],
   );
+  const heroSummary = useMemo(() => getHeroBannerHealthSummary(items), [items]);
   const [editorState, formAction] = useActionState(upsertHeroBannerAction, initialState);
   const [draft, setDraft] = useState<HeroBannerFormValues>(editorState.values);
 
@@ -349,27 +399,64 @@ export function HeroBannerCmsManager({
 
   return (
     <section className="panel hero-banner-cms">
-      <div className="panel-header hero-banner-cms-header">
-        <div>
-          <p className="eyebrow">CMS visual</p>
+      <section className="hero-banner-hero">
+        <div className="hero-banner-hero-copy">
+          <div className="hero-banner-hero-kicker">
+            <WandSparkles size={16} />
+            Campaign studio
+          </div>
           <h1>Hero y campañas</h1>
           <p className="field-caption">
-            Administra banners, campañas programadas y variantes responsive sin tocar código.
+            Administra banners, campañas programadas, variantes responsive y métricas de interacción desde una sola vista.
           </p>
+          <div className="hero-banner-cms-actions">
+            <Link className="button button-primary" href="/admin/banners">
+              <Plus size={16} />
+              Nuevo banner
+            </Link>
+            <form action={importLegacyHeroSlidesAction}>
+              <button className="button button-secondary" type="submit">
+                <ImagePlus size={16} />
+                Importar slides heredados
+              </button>
+            </form>
+            <Link className="button button-ghost" href="/#hero">
+              <ArrowRight size={16} />
+              Ver hero público
+            </Link>
+          </div>
         </div>
-        <div className="hero-banner-cms-actions">
-          <Link className="button button-secondary" href="/admin/banners">
-            <Plus size={16} />
-            Nuevo banner
-          </Link>
-          <form action={importLegacyHeroSlidesAction}>
-            <button className="button button-ghost" type="submit">
-              <ImagePlus size={16} />
-              Importar slides heredados
-            </button>
-          </form>
+
+        <div className="hero-banner-hero-health">
+          <div className={`hero-banner-health-pill is-${heroSummary.healthTone}`}>
+            <span>Salud de campañas</span>
+            <strong>{heroSummary.primaryLabel}</strong>
+            <p>{heroSummary.live.length} banners activos en tienda ahora mismo.</p>
+          </div>
+          <div className="hero-banner-hero-stats">
+            <article>
+              <span>Activos</span>
+              <strong>{heroSummary.active.length}</strong>
+              <p>{heroSummary.scheduled.length} programados</p>
+            </article>
+            <article>
+              <span>Borradores</span>
+              <strong>{heroSummary.drafts.length}</strong>
+              <p>{heroSummary.expired.length} expirados</p>
+            </article>
+            <article>
+              <span>Mobile ready</span>
+              <strong>{heroSummary.withMobile.length}</strong>
+              <p>{items.length - heroSummary.withMobile.length} con fallback</p>
+            </article>
+            <article>
+              <span>Analytics</span>
+              <strong>{heroSummary.withAnalytics.length}</strong>
+              <p>{heroSummary.withCampaign.length} con campaña</p>
+            </article>
+          </div>
         </div>
-      </div>
+      </section>
 
       {editorState.message ? <p className="error-text auth-error">{editorState.message}</p> : null}
 
@@ -391,6 +478,49 @@ export function HeroBannerCmsManager({
           <span>Borradores</span>
         </article>
       </div>
+
+      <section className="hero-banner-sanity-rail">
+        <div className="panel-header hero-banner-sanity-head">
+          <div>
+            <p className="eyebrow">Lectura rápida</p>
+            <h2>Estado operativo</h2>
+          </div>
+          <span className="pill">
+            <Gauge size={14} />
+            {items.length ? "Operando" : "Sin banners"}
+          </span>
+        </div>
+        <div className="hero-banner-sanity-grid">
+          <article>
+            <CalendarClock size={18} />
+            <div>
+              <strong>Programación</strong>
+              <span>{scheduledCount} campañas listas para activarse solas.</span>
+            </div>
+          </article>
+          <article>
+            <ImageIcon size={18} />
+            <div>
+              <strong>Media responsive</strong>
+              <span>{heroSummary.withMobile.length} banners con versión mobile.</span>
+            </div>
+          </article>
+          <article>
+            <Layers3 size={18} />
+            <div>
+              <strong>Layouts</strong>
+              <span>{banners.length ? "Hero, promo, landing y widget disponibles." : "Crea un banner para empezar."}</span>
+            </div>
+          </article>
+          <article>
+            <AlertTriangle size={18} />
+            <div>
+              <strong>Alertas</strong>
+              <span>{heroSummary.expired.length} campañas expiradas requieren revisión.</span>
+            </div>
+          </article>
+        </div>
+      </section>
 
       <div className="hero-banner-cms-grid">
         <section className="hero-banner-list-panel">
@@ -457,12 +587,13 @@ export function HeroBannerCmsManager({
                     </div>
                     <div className="hero-banner-list-metrics">
                       <p>{banner.campaignName || "Sin campaña"}</p>
-                      <span>{banner.recommendedDesktopSize}</span>
+                      <span>{banner.recommendedDesktopSize} · {banner.recommendedMobileSize}</span>
                       <small>
                         Orden {banner.sortOrder} · Prioridad {banner.priority} ·{" "}
                         {formatSchedule(banner.startsAt)}
                       </small>
                       <small>Clicks {banner.clickCount} · Impresiones {banner.impressionCount}</small>
+                      <small>{banner.mobileImageUrl ? "Mobile ready" : "Fallback desktop en mobile"}</small>
                     </div>
                   </div>
 
@@ -499,6 +630,18 @@ export function HeroBannerCmsManager({
                 <Sparkles size={24} />
                 <strong>No hay banners creados</strong>
                 <p>Empieza con una campaña nueva o importa los slides heredados del hero anterior.</p>
+                <div className="hero-banner-empty-actions">
+                  <Link className="button button-primary" href="/admin/banners">
+                    <Plus size={16} />
+                    Crear banner
+                  </Link>
+                  <form action={importLegacyHeroSlidesAction}>
+                    <button className="button button-secondary" type="submit">
+                      <ImagePlus size={16} />
+                      Importar slides
+                    </button>
+                  </form>
+                </div>
               </article>
             )}
           </div>

@@ -2156,6 +2156,14 @@ body[data-admin-theme="dark"] .admin-chip-filter.is-neutral {
     grid-template-columns: 1fr;
   }
 
+  .hero-banner-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .hero-banner-sanity-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .admin-products-summary-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -2179,6 +2187,15 @@ body[data-admin-theme="dark"] .admin-chip-filter.is-neutral {
     gap: 0.55rem;
   }
 
+  .hero-banner-hero-actions {
+    width: 100%;
+  }
+
+  .hero-banner-hero-actions .button,
+  .hero-banner-cms-actions .button {
+    width: 100%;
+  }
+
   .admin-products-health-grid {
     grid-template-columns: 1fr 1fr;
   }
@@ -2198,6 +2215,10 @@ body[data-admin-theme="dark"] .admin-chip-filter.is-neutral {
 }
 
 @media (max-width: 760px) {
+  .hero-banner-kpis {
+    grid-template-columns: 1fr 1fr;
+  }
+
   .admin-products-summary-grid {
     grid-template-columns: 1fr;
   }
@@ -2244,6 +2265,14 @@ body[data-admin-theme="dark"] .admin-chip-filter.is-neutral {
 
   .product-editor-actions .button {
     width: 100%;
+  }
+
+  .hero-banner-sanity-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .hero-banner-list-card-body {
+    grid-template-columns: 1fr;
   }
 
   .admin-products-table tbody {
@@ -2302,6 +2331,14 @@ body[data-admin-theme="dark"] .admin-chip-filter.is-neutral {
   .admin-preview-metrics {
     grid-template-columns: 1fr 1fr;
   }
+
+  .hero-banner-preview-grid.is-split {
+    grid-template-columns: 1fr;
+  }
+
+  .hero-banner-guidance {
+    flex-direction: column;
+  }
 }
 
 @media (max-width: 520px) {
@@ -2325,6 +2362,13 @@ body[data-admin-theme="dark"] .admin-chip-filter.is-neutral {
   .admin-chip-filter {
     width: 100%;
     justify-content: space-between;
+  }
+
+  .hero-banner-cms,
+  .hero-banner-list-panel,
+  .hero-banner-editor-panel,
+  .hero-banner-preview-panel {
+    padding: 0.9rem;
   }
 
   .admin-products-hero {
@@ -2677,6 +2721,157 @@ body[data-admin-theme="dark"] .admin-chip-filter.is-neutral {
 
 .hero-banner-cms {
   gap: 1rem;
+}
+
+.hero-banner-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(320px, 0.95fr);
+  gap: 1rem;
+  padding: 1.15rem;
+  border: 1px solid rgba(var(--brand-rgb), 0.1);
+  border-radius: 30px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(255, 255, 255, 0.72)),
+    radial-gradient(circle at top right, rgba(var(--brand-rgb), 0.09), transparent 36%);
+}
+
+.hero-banner-hero-copy {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.hero-banner-hero-copy h1 {
+  margin: 0;
+  font-family: var(--font-display), sans-serif;
+  font-size: clamp(2rem, 4vw, 3rem);
+  line-height: 0.98;
+}
+
+.hero-banner-hero-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  width: fit-content;
+  min-height: 2rem;
+  padding: 0.34rem 0.72rem;
+  border-radius: 999px;
+  background: rgba(var(--brand-rgb), 0.1);
+  color: var(--brand-accent);
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.hero-banner-hero-health {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.hero-banner-health-pill {
+  display: grid;
+  gap: 0.35rem;
+  padding: 1rem;
+  border: 1px solid rgba(var(--brand-rgb), 0.12);
+  border-radius: 24px;
+  background: rgba(var(--brand-rgb), 0.06);
+}
+
+.hero-banner-health-pill span,
+.hero-banner-hero-stats span,
+.hero-banner-sanity-head .eyebrow {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.hero-banner-health-pill strong {
+  font-family: var(--font-display), sans-serif;
+  font-size: 1.1rem;
+}
+
+.hero-banner-health-pill p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.hero-banner-health-pill.is-success {
+  border-color: rgba(15, 157, 108, 0.18);
+  background: rgba(15, 157, 108, 0.08);
+}
+
+.hero-banner-health-pill.is-warning {
+  border-color: rgba(245, 158, 11, 0.18);
+  background: rgba(245, 158, 11, 0.08);
+}
+
+.hero-banner-health-pill.is-muted {
+  border-color: rgba(var(--brand-ink-rgb), 0.08);
+  background: rgba(var(--brand-ink-rgb), 0.03);
+}
+
+.hero-banner-hero-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.hero-banner-hero-stats article,
+.hero-banner-sanity-grid article {
+  display: grid;
+  gap: 0.22rem;
+  padding: 0.9rem;
+  border: 1px solid rgba(var(--brand-ink-rgb), 0.08);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.hero-banner-hero-stats strong {
+  font-family: var(--font-display), sans-serif;
+  font-size: 1.45rem;
+}
+
+.hero-banner-hero-stats p,
+.hero-banner-sanity-grid span {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+.hero-banner-sanity-rail {
+  display: grid;
+  gap: 0.8rem;
+  padding: 1rem;
+  border: 1px solid rgba(var(--brand-ink-rgb), 0.08);
+  border-radius: 24px;
+  background: rgba(var(--brand-ink-rgb), 0.025);
+}
+
+.hero-banner-sanity-head {
+  align-items: center;
+}
+
+.hero-banner-sanity-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.hero-banner-sanity-grid article {
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 0.7rem;
+}
+
+.hero-banner-sanity-grid strong {
+  display: block;
+  margin-bottom: 0.15rem;
+  font-size: 0.92rem;
 }
 
 .hero-banner-cms-header {
@@ -3048,6 +3243,41 @@ body[data-admin-theme="dark"] .admin-chip-filter.is-neutral {
   }
 }
 
+body[data-admin-theme="dark"] .hero-banner-hero {
+  border-color: rgba(148, 163, 184, 0.12);
+  background:
+    linear-gradient(180deg, rgba(18, 24, 39, 0.94), rgba(15, 20, 33, 0.88)),
+    radial-gradient(circle at top right, rgba(var(--brand-rgb), 0.12), transparent 36%);
+}
+
+body[data-admin-theme="dark"] .hero-banner-health-pill,
+body[data-admin-theme="dark"] .hero-banner-hero-stats article,
+body[data-admin-theme="dark"] .hero-banner-sanity-rail,
+body[data-admin-theme="dark"] .hero-banner-list-panel,
+body[data-admin-theme="dark"] .hero-banner-editor-panel,
+body[data-admin-theme="dark"] .hero-banner-preview-panel,
+body[data-admin-theme="dark"] .hero-banner-upload-field {
+  border-color: rgba(148, 163, 184, 0.12);
+  background:
+    linear-gradient(180deg, rgba(18, 24, 39, 0.94), rgba(15, 20, 33, 0.88)),
+    radial-gradient(circle at top right, rgba(var(--brand-rgb), 0.1), transparent 36%);
+}
+
+body[data-admin-theme="dark"] .hero-banner-sanity-grid article {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+body[data-admin-theme="dark"] .hero-banner-preview-switcher {
+  border-color: rgba(148, 163, 184, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+body[data-admin-theme="dark"] .hero-banner-hero-copy h1,
+body[data-admin-theme="dark"] .hero-banner-health-pill strong,
+body[data-admin-theme="dark"] .hero-banner-hero-stats strong {
+  color: var(--foreground);
+}
+
 .hero-banner-editor-note {
   display: inline-flex;
   align-items: center;
@@ -3066,6 +3296,13 @@ body[data-admin-theme="dark"] .admin-chip-filter.is-neutral {
   text-align: center;
   color: var(--muted);
   padding: 1rem;
+}
+
+.hero-banner-empty-actions {
+  display: flex;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
 .hero-banner-empty-state strong {
