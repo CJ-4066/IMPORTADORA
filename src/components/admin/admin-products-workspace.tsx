@@ -405,6 +405,23 @@ export function AdminProductsWorkspace({
           <p className="admin-products-hero-meta">
             {stats.visibleProducts} activos · {stats.withPhotoProducts} con foto · {stats.syncedProducts} sincronizados con ERP
           </p>
+          <div className="admin-products-hero-signals">
+            <article className="admin-products-signal">
+              <span>Cobertura visual</span>
+              <strong>{stats.withPhotoProducts}</strong>
+              <p>{stats.withoutPhotoProducts} sin foto</p>
+            </article>
+            <article className="admin-products-signal">
+              <span>Riesgo de stock</span>
+              <strong>{stats.outOfStockProducts}</strong>
+              <p>{stats.lowStockProducts} con stock bajo</p>
+            </article>
+            <article className="admin-products-signal">
+              <span>Frescura ERP</span>
+              <strong>{stats.syncedProducts}</strong>
+              <p>{stats.staleSyncedProducts} sin sync reciente</p>
+            </article>
+          </div>
         </div>
 
         <div className="admin-products-hero-health">
