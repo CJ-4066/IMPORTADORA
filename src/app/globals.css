@@ -1618,15 +1618,15 @@ body {
 .admin-products-hero-actions .button,
 .admin-erp-hero-actions .button,
 .hero-banner-cms-actions .button {
-  min-height: 1.95rem;
-  padding: 0 0.68rem;
-  font-size: 0.72rem;
+  min-height: 2rem;
+  padding: 0 0.72rem;
+  font-size: 0.74rem;
 }
 
 .admin-products-hero-primary,
 .hero-banner-primary-action {
-  min-height: 2.2rem;
-  padding-inline: 0.82rem;
+  min-height: 2.05rem;
+  padding-inline: 0.85rem;
 }
 
 .admin-products-hero-secondary {
@@ -1635,17 +1635,19 @@ body {
 
 .admin-products-hero-links .button,
 .hero-banner-cms-links .button {
-  min-height: 1.8rem;
-  padding: 0 0.6rem;
-  font-size: 0.7rem;
-  border-color: rgba(var(--line-rgb), 0.7);
-  background: rgba(var(--panel-rgb), 0.55);
+  min-height: 1.7rem;
+  padding: 0 0.56rem;
+  font-size: 0.68rem;
+  border-color: rgba(var(--line-rgb), 0.64);
+  background: transparent;
+  color: var(--muted);
 }
 
 .admin-products-hero-links .button:hover,
 .hero-banner-cms-links .button:hover {
-  background: rgba(var(--brand-rgb), 0.08);
-  border-color: rgba(var(--brand-rgb), 0.24);
+  color: var(--foreground);
+  background: rgba(var(--brand-rgb), 0.06);
+  border-color: rgba(var(--brand-rgb), 0.18);
 }
 
 .admin-products-hero-health {
