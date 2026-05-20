@@ -5,7 +5,6 @@ import {
   Boxes,
   CalendarClock,
   DatabaseZap,
-  EyeOff,
   ImageOff,
   FolderTree,
   Layers3,
@@ -175,21 +174,21 @@ export default async function AdminHomePage({ searchParams }: AdminHomePageProps
         </div>
 
         <div className="admin-hero-actions">
-          <Link className="button button-secondary button-chip" href="/admin/erp">
+          <Link className="button button-primary button-chip" href="/admin/erp">
             <DatabaseZap size={16} />
             Sincronizar ERP
           </Link>
           <Link className="button button-secondary button-chip" href="/admin/banners">
             <Boxes size={16} />
-            Marketing
+            Banners
           </Link>
-          <Link className="button button-secondary button-chip" href={buildProductsHref({ issue: "review" })}>
+          <Link className="button button-ghost button-chip" href={buildProductsHref({ issue: "review" })}>
             <TriangleAlert size={16} />
             Revisar productos
           </Link>
           <Link className="button button-ghost button-chip" href={buildProductsHref({ visibility: "visible", photo: "missing" })}>
             <ImageOff size={16} />
-            Visibles sin foto
+            Sin foto visible
           </Link>
         </div>
 
@@ -197,7 +196,7 @@ export default async function AdminHomePage({ searchParams }: AdminHomePageProps
           <span className="admin-status-pill is-positive">{data.dataFreshness.syncedProducts} sincronizados</span>
           <span className="admin-status-pill is-warning">{data.dataFreshness.needsReviewProducts} por revisar</span>
           <span className="admin-status-pill is-negative">{data.dataFreshness.visibleOutOfStockProducts} sin stock visible</span>
-          <span className="admin-status-pill">{lastSyncDate}</span>
+          <span className="admin-hero-meta">{lastSyncDate}</span>
         </div>
 
         <div className="admin-metrics admin-metrics-promoted">
@@ -224,58 +223,25 @@ export default async function AdminHomePage({ searchParams }: AdminHomePageProps
             <strong>{data.dataFreshness.visibleWithoutPhotoProducts}</strong>
             <span>Visibles sin foto</span>
           </Link>
-          <Link className="metric-panel metric-panel-link" href={buildProductsHref({ visibility: "hidden" })}>
-            <EyeOff size={22} />
-            <strong>{data.hiddenProducts}</strong>
-            <span>Ocultos</span>
-          </Link>
-          <Link
-            className="metric-panel metric-panel-link"
-            href={buildProductsHref({ visibility: "hidden", stock: "low" })}
-          >
-            <EyeOff size={22} />
-            <strong>{data.dataFreshness.hiddenOutOfStockProducts}</strong>
-            <span>Ocultos sin stock ERP</span>
-          </Link>
-          <Link
-            className="metric-panel metric-panel-link"
-            href={buildProductsHref({ visibility: "hidden", photo: "missing" })}
-          >
-            <ImageOff size={22} />
-            <strong>{data.dataFreshness.hiddenWithoutPhotoProducts}</strong>
-            <span>Ocultos por no tener foto</span>
-          </Link>
-          <Link
-            className="metric-panel metric-panel-link"
-            href={buildProductsHref({ issue: "review" })}
-            data-change-code={CHANGE_CODES.ADMIN_REVIEW_ALERTS}
-          >
-            <TriangleAlert size={22} />
-            <strong>{data.dataFreshness.needsReviewProducts}</strong>
-            <span>Productos a revisar</span>
-          </Link>
           <Link className="metric-panel metric-panel-link" href={buildProductsHref({ stock: "low" })}>
             <TriangleAlert size={22} />
             <strong>{data.lowStockProducts}</strong>
             <span>Con stock bajo</span>
           </Link>
-          <Link
-            className="metric-panel metric-panel-link"
-            href={buildProductsHref({ visibility: "visible", stock: "low" })}
-          >
-            <TriangleAlert size={22} />
-            <strong>{data.dataFreshness.visibleOutOfStockProducts}</strong>
-            <span>Alerta: visibles sin stock</span>
-          </Link>
-          <Link className="metric-panel metric-panel-link" href="/admin/categories">
-            <FolderTree size={22} />
-            <strong>{data.totalCategories}</strong>
-            <span>Categorías activas</span>
-          </Link>
           <Link className="metric-panel metric-panel-link" href="/admin/erp">
             <DatabaseZap size={22} />
             <strong>{data.dataFreshness.syncedProducts}</strong>
             <span>Sincronizados ERP</span>
+          </Link>
+        </div>
+
+        <div className="admin-hero-footnote">
+          <span>
+            {data.hiddenProducts} ocultos · {data.totalCategories} categorías · {data.dataFreshness.visibleOutOfStockProducts} visibles sin stock
+          </span>
+          <Link href="/admin/categories">
+            <FolderTree size={14} />
+            Ver categorías
           </Link>
         </div>
       </section>
