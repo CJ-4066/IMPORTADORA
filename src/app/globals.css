@@ -1801,10 +1801,10 @@ body {
 }
 
 .button-chip {
-  min-height: 2.45rem;
-  padding-inline: 0.8rem;
+  min-height: 2.2rem;
+  padding-inline: 0.72rem;
   border-radius: 999px;
-  font-size: 0.8rem;
+  font-size: 0.76rem;
 }
 
 .admin-select-all {
@@ -4387,8 +4387,8 @@ body[data-admin-theme="dark"] .hero-banner-hero-stats strong {
 }
 
 .button {
-  min-height: 48px;
-  padding: 0 1.2rem;
+  min-height: 44px;
+  padding: 0 1rem;
   text-align: center;
 }
 
@@ -7015,11 +7015,11 @@ body[data-admin-theme="dark"] .auth-panel {
 .admin-profile-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.55rem;
+  gap: 0.45rem;
 }
 
 .admin-profile-actions .button-chip {
-  min-height: 2.5rem;
+  min-height: 2.2rem;
 }
 
 .admin-profile-badge {
@@ -7055,16 +7055,16 @@ body[data-admin-theme="dark"] .auth-panel {
 
 .admin-nav-links {
   display: grid;
-  gap: 0.55rem;
+  gap: 0.4rem;
 }
 
 .admin-nav-link {
   display: grid;
   grid-template-columns: auto 1fr;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.85rem 1rem;
-  border-radius: 18px;
+  gap: 0.65rem;
+  padding: 0.72rem 0.88rem;
+  border-radius: 16px;
   color: var(--muted);
   transition:
     transform 160ms ease,
@@ -7088,9 +7088,9 @@ body[data-admin-theme="dark"] .admin-nav-link:hover {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2.2rem;
-  height: 2.2rem;
-  border-radius: 14px;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 12px;
   background: rgba(var(--brand-ink-rgb), 0.06);
 }
 
@@ -7112,13 +7112,13 @@ body[data-admin-theme="dark"] .admin-nav-link:hover {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  min-height: 2.4rem;
-  padding: 0.45rem 0.75rem;
+  min-height: 2.15rem;
+  padding: 0.35rem 0.68rem;
   border: 1px solid var(--line);
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.72);
   color: var(--foreground);
-  font-size: 0.78rem;
+  font-size: 0.74rem;
   font-weight: 700;
   transition:
     transform 160ms ease,
@@ -7231,6 +7231,24 @@ body[data-admin-theme="dark"] .admin-nav-link:hover {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0.9rem;
+}
+
+.admin-shell .button {
+  min-height: 42px;
+  padding: 0 0.95rem;
+  font-size: 0.88rem;
+}
+
+.admin-shell .button-chip {
+  min-height: 2.25rem;
+  padding: 0.38rem 0.78rem;
+  gap: 0.4rem;
+  font-size: 0.76rem;
+}
+
+.admin-shell .button-chip svg {
+  width: 0.92rem;
+  height: 0.92rem;
 }
 
 .admin-chart-panel {
