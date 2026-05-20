@@ -2,7 +2,7 @@
 
 import { createPortal } from "react-dom";
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
@@ -11,11 +11,9 @@ import {
   EyeOff,
   Filter,
   ImageOff,
-  ImagePlus,
   PackageX,
   PencilLine,
   MoreHorizontal,
-  Square,
   SquareCheckBig,
   TriangleAlert,
   RefreshCw,
@@ -31,7 +29,6 @@ import type {
   BrandOption,
   CategoryOption,
 } from "@/lib/store";
-import { CHANGE_CODES } from "@/lib/change-codes";
 import { formatCurrency } from "@/lib/utils";
 
 type AdminProductsWorkspaceProps = {
@@ -211,7 +208,6 @@ export function AdminProductsWorkspace({
   const pageStart = totalResults > 0 ? (page - 1) * pageSize + 1 : 0;
   const pageEnd = Math.min(page * pageSize, totalResults);
 
-  const currentHref = useMemo(() => `/admin/products?${buildQuery(filters)}`, [filters]);
   const hasAnyFilter =
     Boolean(filters.q) ||
     filters.category !== "all" ||
@@ -371,12 +367,6 @@ export function AdminProductsWorkspace({
     return product ? product.isFeatured : false;
   }).length;
   const hasHardReview = stats.needsReviewProducts > 0;
-  const healthState =
-    stats.outOfStockProducts > 0
-      ? { tone: "sync-status-warning", label: "Atención", note: "Hay productos sin stock o para revisar." }
-      : stats.staleSyncedProducts > 0
-        ? { tone: "sync-status-running", label: "Conectado", note: "El catálogo está sincronizado, pero algunos productos están desactualizados." }
-        : { tone: "sync-status-success", label: "Saludable", note: "El catálogo está estable y listo para operar." };
 
   const quickFilters = [
     { label: "Sin stock", href: `/admin/products?${buildQuery(filters, { stock: "out" })}`, tone: stats.outOfStockProducts > 0 ? "warning" : "muted", count: stats.outOfStockProducts, icon: PackageX, active: filters.stock === "out" },
@@ -398,63 +388,6 @@ export function AdminProductsWorkspace({
         </div>
       </div>
 
-      <section className="admin-products-hero">
-        <div className="admin-products-hero-copy">
-          <p className="eyebrow">Catálogo</p>
-          <h2>Listado optimizado para catálogo grande</h2>
-          <p className="admin-products-hero-meta">
-            {stats.visibleProducts} activos · {stats.withPhotoProducts} con foto · {stats.syncedProducts} sincronizados con ERP
-          </p>
-          <div className="admin-products-hero-signals">
-            <article className="admin-products-signal">
-              <span>Cobertura visual</span>
-              <strong>{stats.withPhotoProducts}</strong>
-              <p>{stats.withoutPhotoProducts} sin foto</p>
-            </article>
-            <article className="admin-products-signal">
-              <span>Riesgo de stock</span>
-              <strong>{stats.outOfStockProducts}</strong>
-              <p>{stats.lowStockProducts} con stock bajo</p>
-            </article>
-            <article className="admin-products-signal">
-              <span>Frescura ERP</span>
-              <strong>{stats.syncedProducts}</strong>
-              <p>{stats.staleSyncedProducts} sin sync reciente</p>
-            </article>
-          </div>
-        </div>
-
-        <div className="admin-products-hero-health">
-          <div className="admin-products-health-pill">
-            <span>Salud del catálogo</span>
-            <strong>{healthState.label}</strong>
-            <p>{healthState.note}</p>
-          </div>
-          <div className="admin-products-health-grid">
-            <article>
-              <span>Activos</span>
-              <strong>{stats.visibleProducts}</strong>
-              <p>{stats.featuredProducts} destacados</p>
-            </article>
-            <article>
-              <span>Calidad visual</span>
-              <strong>{stats.withPhotoProducts}</strong>
-              <p>{stats.withoutPhotoProducts} sin foto · {stats.needsReviewProducts} a revisar</p>
-            </article>
-            <article>
-              <span>Sin stock</span>
-              <strong>{stats.outOfStockProducts}</strong>
-              <p>{stats.lowStockProducts} con stock bajo</p>
-            </article>
-            <article>
-              <span>Sync ERP</span>
-              <strong>{stats.syncedProducts}</strong>
-              <p>{stats.staleSyncedProducts} sin sync reciente</p>
-            </article>
-          </div>
-        </div>
-      </section>
-
       {toast ? (
         <div className={`admin-toast admin-toast-${toast.tone}`}>
           <strong>{toast.tone === "success" ? "Listo" : toast.tone === "error" ? "Error" : "Aviso"}</strong>
@@ -468,44 +401,6 @@ export function AdminProductsWorkspace({
           </button>
         </div>
       ) : null}
-
-      <div className="admin-products-summary-grid">
-        <Link
-          className="metric-panel metric-panel-link"
-          href={currentHref}
-          data-change-code={CHANGE_CODES.ADMIN_STABLE_PAGINATION}
-        >
-          <Square size={22} />
-          <strong>{stats.totalProducts}</strong>
-          <span>Total productos</span>
-        </Link>
-        <Link
-          className="metric-panel metric-panel-link"
-          href={`/admin/products?${buildQuery(filters, { photo: "with-photo" })}`}
-          data-change-code={CHANGE_CODES.ADMIN_VISIBLE_WITH_PHOTO}
-        >
-          <ImagePlus size={22} />
-          <strong>{stats.withPhotoProducts}</strong>
-          <span>Con foto</span>
-        </Link>
-        <Link
-          className="metric-panel metric-panel-link"
-          href={`/admin/products?${buildQuery(filters, { issue: "review" })}`}
-          data-change-code={CHANGE_CODES.ADMIN_REVIEW_ALERTS}
-        >
-          <TriangleAlert size={22} />
-          <strong>{stats.needsReviewProducts}</strong>
-          <span>Productos a revisar</span>
-        </Link>
-        <Link
-          className="metric-panel metric-panel-link"
-          href={`/admin/products?${buildQuery(filters, { stock: "low" })}`}
-        >
-          <AlertTriangle size={22} />
-          <strong>{stats.lowStockProducts}</strong>
-          <span>Stock bajo</span>
-        </Link>
-      </div>
 
       <section className="admin-products-sanity-rail">
         <div className="panel-header admin-products-sanity-head">
