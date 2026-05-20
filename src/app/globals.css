@@ -7795,6 +7795,142 @@ body[data-admin-theme="dark"] .erp-progress-copy {
   font-size: 0.88rem;
 }
 
+.admin-complaints-panel {
+  display: grid;
+  gap: 1rem;
+}
+
+.admin-complaints-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(280px, 0.75fr);
+  gap: 1rem;
+  align-items: stretch;
+}
+
+.admin-complaints-copy {
+  display: grid;
+  gap: 0.55rem;
+  padding: 1.15rem;
+  border: 1px solid var(--line);
+  border-radius: 28px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(var(--brand-tint-rgb), 0.16)),
+    rgba(255, 255, 255, 0.74);
+  box-shadow: 0 14px 32px rgba(var(--brand-ink-rgb), 0.06);
+}
+
+.admin-complaints-copy h1 {
+  font-size: clamp(2rem, 2.5vw, 3rem);
+}
+
+.admin-complaints-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin-top: 0.25rem;
+}
+
+.admin-complaints-health {
+  display: grid;
+  align-content: start;
+  gap: 0.45rem;
+  padding: 1.15rem;
+  border: 1px solid rgba(var(--brand-rgb), 0.12);
+  border-radius: 28px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(var(--brand-tint-rgb), 0.2)),
+    rgba(255, 255, 255, 0.72);
+  box-shadow: 0 14px 32px rgba(var(--brand-ink-rgb), 0.06);
+}
+
+.admin-complaints-health span {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.admin-complaints-health strong {
+  font-family: var(--font-display), sans-serif;
+  font-size: 1.5rem;
+  line-height: 1.1;
+}
+
+.admin-complaints-health p {
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.4;
+}
+
+.admin-complaints-health.is-positive {
+  border-color: rgba(15, 157, 108, 0.18);
+}
+
+.admin-complaints-health.is-warning {
+  border-color: rgba(217, 119, 6, 0.18);
+}
+
+.admin-complaints-health.is-neutral {
+  border-color: rgba(var(--brand-rgb), 0.12);
+}
+
+.admin-complaints-stats {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.admin-complaints-stats article,
+.admin-complaints-summary-row article {
+  display: grid;
+  gap: 0.28rem;
+  padding: 0.95rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.admin-complaints-stats svg {
+  color: var(--brand-primary);
+}
+
+.admin-complaints-kpi-number {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-display), sans-serif;
+  font-size: 1.4rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.admin-complaints-stats span:last-child,
+.admin-complaints-summary-row span {
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
+.admin-complaints-summary-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.admin-complaints-summary-row strong {
+  font-size: 0.98rem;
+}
+
+.admin-complaints-empty {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.admin-complaints-empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
 .admin-quote-filters {
   padding-top: 0.2rem;
 }
@@ -8874,6 +9010,17 @@ body[data-admin-theme="dark"] .admin-chart-legend-item {
   background: rgba(255, 255, 255, 0.04);
 }
 
+body[data-admin-theme="dark"] .admin-complaints-copy,
+body[data-admin-theme="dark"] .admin-complaints-health,
+body[data-admin-theme="dark"] .admin-complaints-stats article,
+body[data-admin-theme="dark"] .admin-complaints-summary-row article,
+body[data-admin-theme="dark"] .admin-complaints-empty {
+  border-color: rgba(148, 163, 184, 0.12);
+  background:
+    linear-gradient(180deg, rgba(18, 24, 39, 0.92), rgba(15, 20, 33, 0.86)),
+    radial-gradient(circle at top right, rgba(var(--brand-rgb), 0.1), transparent 36%);
+}
+
 @media (max-width: 1100px) {
   .admin-chart-legend {
     grid-template-columns: 1fr;
@@ -8897,6 +9044,12 @@ body[data-admin-theme="dark"] .admin-chart-legend-item {
   .erp-progress-idle-link {
     justify-self: start;
   }
+
+  .admin-complaints-hero,
+  .admin-complaints-stats,
+  .admin-complaints-summary-row {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 780px) {
@@ -8910,6 +9063,16 @@ body[data-admin-theme="dark"] .admin-chart-legend-item {
 
   .erp-timeline-track {
     grid-template-columns: 1fr;
+  }
+
+  .admin-complaints-actions,
+  .admin-complaints-empty-actions {
+    flex-direction: column;
+  }
+
+  .admin-complaints-copy,
+  .admin-complaints-health {
+    padding: 0.95rem;
   }
 }
 

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { ComplaintStatus } from "@prisma/client";
-import { FileText, MessageCircle, SearchCode, ShieldAlert } from "lucide-react";
+import { ArrowRight, FileText, MessageCircle, SearchCode, ShieldAlert } from "lucide-react";
 import { getAdminComplaints } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
@@ -48,6 +48,18 @@ function formatDate(value: string) {
   }).format(new Date(value));
 }
 
+function getHealthTone(openCount: number, respondedCount: number) {
+  if (openCount === 0 && respondedCount > 0) {
+    return "is-positive";
+  }
+
+  if (openCount > 0 && respondedCount > 0) {
+    return "is-warning";
+  }
+
+  return "is-neutral";
+}
+
 export default async function AdminComplaintsPage({ searchParams }: AdminComplaintsPageProps) {
   const params = searchParams ? await searchParams : undefined;
   const status = parseStatus(params?.status);
@@ -58,17 +70,44 @@ export default async function AdminComplaintsPage({ searchParams }: AdminComplai
   });
   const pageStart = data.totalResults > 0 ? (data.page - 1) * data.pageSize + 1 : 0;
   const pageEnd = Math.min(data.page * data.pageSize, data.totalResults);
+  const openCount = data.stats.new + data.stats.inReview;
+  const respondedCount = data.stats.responded + data.stats.closed;
+  const responseRate = data.stats.all ? Math.round((respondedCount / data.stats.all) * 100) : 0;
+  const healthTone = getHealthTone(openCount, respondedCount);
+  const selectedFilterLabel = statusOptions.find((option) => option.value === status)?.label ?? "Todas";
 
   return (
-    <section className="panel admin-quotes-panel">
-      <div className="panel-header">
-        <div>
+    <section className="panel admin-quotes-panel admin-complaints-panel">
+      <section className="admin-complaints-hero">
+        <div className="admin-complaints-copy">
           <p className="eyebrow">Atención</p>
           <h1>Libro de reclamaciones</h1>
+          <p className="panel-copy">
+            Seguimiento operativo de reclamos, respuestas y cierres con una lectura clara del estado
+            comercial y de atención.
+          </p>
+          <div className="admin-complaints-actions">
+            <Link className="button button-secondary button-chip" href="/libro-reclamaciones">
+              <ArrowRight size={16} />
+              Ver formulario público
+            </Link>
+            <Link className="button button-ghost button-chip" href={buildComplaintsHref({ page: 1, status: "NEW" })}>
+              <ShieldAlert size={16} />
+              Nuevos reclamos
+            </Link>
+          </div>
         </div>
-      </div>
 
-      <div className="admin-quote-stats">
+        <div className={cn("admin-complaints-health", healthTone)}>
+          <span>Salud operativa</span>
+          <strong>
+            {openCount === 0 ? "Sin pendientes" : `${openCount} abiertos`}
+          </strong>
+          <p>{responseRate}% de los reclamos ya tienen un cierre o respuesta registrada.</p>
+        </div>
+      </section>
+
+      <div className="admin-complaints-stats">
         <article>
           <ShieldAlert size={18} />
           <strong>{data.stats.all}</strong>
@@ -88,6 +127,31 @@ export default async function AdminComplaintsPage({ searchParams }: AdminComplai
           <MessageCircle size={18} />
           <strong>{data.stats.responded}</strong>
           <span>Respondidos</span>
+        </article>
+        <article>
+          <span className="admin-complaint-kpi-number">{data.stats.closed}</span>
+          <span>Cerrados</span>
+        </article>
+        <article>
+          <span className="admin-complaint-kpi-number">{responseRate}%</span>
+          <span>Tasa de respuesta</span>
+        </article>
+      </div>
+
+      <div className="admin-complaints-summary-row">
+        <article>
+          <span>Filtro activo</span>
+          <strong>{selectedFilterLabel}</strong>
+        </article>
+        <article>
+          <span>Ventana actual</span>
+          <strong>
+            {pageStart}–{pageEnd} de {data.totalResults}
+          </strong>
+        </article>
+        <article>
+          <span>Estado dominante</span>
+          <strong>{openCount > 0 ? "Requiere atención" : "Estable"}</strong>
         </article>
       </div>
 
@@ -158,10 +222,22 @@ export default async function AdminComplaintsPage({ searchParams }: AdminComplai
           </table>
         </div>
       ) : (
-        <article className="panel panel-slim empty-state">
+        <article className="panel panel-slim empty-state admin-complaints-empty">
           <SearchCode size={18} />
           <p className="eyebrow">Sin reclamos</p>
           <h2>No hay registros con este filtro</h2>
+          <p className="panel-copy">
+            Cambia de filtro o revisa el formulario público para validar el flujo completo.
+          </p>
+          <div className="admin-complaints-empty-actions">
+            <Link className="button button-secondary button-chip" href="/libro-reclamaciones">
+              <ArrowRight size={16} />
+              Abrir formulario
+            </Link>
+            <Link className="button button-ghost button-chip" href={buildComplaintsHref({ page: 1, status: "all" })}>
+              Ver todos
+            </Link>
+          </div>
         </article>
       )}
 
