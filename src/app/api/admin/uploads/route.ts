@@ -8,6 +8,19 @@ import { requireAdmin } from "@/lib/auth";
 export const runtime = "nodejs";
 
 const allowedFolders = new Set(["products", "hero", "categories"]);
+const allowedMimeTypes = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+  "image/svg+xml",
+  "video/mp4",
+  "video/webm",
+  "video/quicktime",
+]);
+const uploadRateWindowMs = 10 * 60 * 1000;
+const uploadRateLimit = 20;
+const uploadAttempts = new Map<string, { count: number; resetAt: number }>();
 
 function sanitizeBaseName(value: string) {
   return value
@@ -49,6 +62,29 @@ function isImageFile(file: File) {
   return file.type.startsWith("image/");
 }
 
+function getRequestFingerprint(request: Request) {
+  const forwarded = request.headers.get("x-forwarded-for") ?? request.headers.get("x-real-ip") ?? "";
+  return forwarded.split(",")[0]?.trim() || "unknown";
+}
+
+function allowUpload(request: Request) {
+  const fingerprint = getRequestFingerprint(request);
+  const now = Date.now();
+  const current = uploadAttempts.get(fingerprint);
+
+  if (!current || current.resetAt <= now) {
+    uploadAttempts.set(fingerprint, { count: 1, resetAt: now + uploadRateWindowMs });
+    return true;
+  }
+
+  if (current.count >= uploadRateLimit) {
+    return false;
+  }
+
+  current.count += 1;
+  return true;
+}
+
 async function writeOptimizedImageVariants(
   inputBuffer: Buffer,
   outputDir: string,
@@ -78,6 +114,13 @@ async function writeOptimizedImageVariants(
 export async function POST(request: Request) {
   await requireAdmin();
 
+  if (!allowUpload(request)) {
+    return NextResponse.json(
+      { error: "Demasiados intentos de carga. Intenta nuevamente en unos minutos." },
+      { status: 429 },
+    );
+  }
+
   const formData = await request.formData();
   const fileEntry = formData.get("file");
   const folderValue = String(formData.get("folder") ?? "products").trim();
@@ -89,6 +132,13 @@ export async function POST(request: Request) {
 
   if (fileEntry.size <= 0) {
     return NextResponse.json({ error: "El archivo está vacío." }, { status: 400 });
+  }
+
+  if (!allowedMimeTypes.has(fileEntry.type)) {
+    return NextResponse.json(
+      { error: "Formato no permitido. Usa una imagen o video válido." },
+      { status: 400 },
+    );
   }
 
   const maxSize = 25 * 1024 * 1024;

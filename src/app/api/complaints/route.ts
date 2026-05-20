@@ -26,8 +26,45 @@ const complaintCreateSchema = z
     }
   });
 
+const complaintRateWindowMs = 10 * 60 * 1000;
+const complaintRateLimit = 6;
+const complaintAttempts = new Map<string, { count: number; resetAt: number }>();
+
+function getRequestFingerprint(request: Request) {
+  const forwarded = request.headers.get("x-forwarded-for") ?? request.headers.get("x-real-ip") ?? "";
+  return forwarded.split(",")[0]?.trim() || "unknown";
+}
+
+function allowComplaintSubmission(request: Request) {
+  const fingerprint = getRequestFingerprint(request);
+  const now = Date.now();
+  const current = complaintAttempts.get(fingerprint);
+
+  if (!current || current.resetAt <= now) {
+    complaintAttempts.set(fingerprint, { count: 1, resetAt: now + complaintRateWindowMs });
+    return true;
+  }
+
+  if (current.count >= complaintRateLimit) {
+    return false;
+  }
+
+  current.count += 1;
+  return true;
+}
+
 export async function POST(request: Request) {
   try {
+    if (!allowComplaintSubmission(request)) {
+      return NextResponse.json(
+        {
+          ok: false,
+          message: "Demasiados reclamos en poco tiempo. Intenta nuevamente en unos minutos.",
+        },
+        { status: 429 },
+      );
+    }
+
     const payload = complaintCreateSchema.parse(await request.json());
     const createdAt = new Date();
     const claimCode = buildComplaintCode(createdAt);
