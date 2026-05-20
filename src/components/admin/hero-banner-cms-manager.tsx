@@ -416,12 +416,12 @@ export function HeroBannerCmsManager({
             </Link>
           </div>
           <div className="hero-banner-cms-links">
-            <Link className="button button-ghost button-chip" href="/#hero">
+            <Link className="hero-banner-cms-link" href="/#hero">
               <ArrowRight size={16} />
               Ver hero público
             </Link>
             <form action={importLegacyHeroSlidesAction}>
-              <button className="button button-ghost button-chip" type="submit">
+              <button className="hero-banner-cms-link" type="submit">
                 <ImagePlus size={16} />
                 Importar slides
               </button>

@@ -416,11 +416,11 @@ export function AdminProductsWorkspace({
             </Link>
           </div>
           <div className="admin-products-hero-links">
-            <Link className="button button-ghost button-chip admin-products-hero-secondary" href="/admin/categories">
+            <Link className="admin-products-hero-link" href="/admin/categories">
               <Boxes size={16} />
               Categorías
             </Link>
-            <Link className="button button-ghost button-chip admin-products-hero-secondary" href="/admin/erp">
+            <Link className="admin-products-hero-link" href="/admin/erp">
               <Truck size={16} />
               Ver ERP
             </Link>

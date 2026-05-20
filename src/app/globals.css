@@ -1615,6 +1615,27 @@ body {
   margin-top: 0.28rem;
 }
 
+.admin-products-hero-link,
+.hero-banner-cms-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.38rem;
+  min-height: 1.55rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.admin-products-hero-link:hover,
+.hero-banner-cms-link:hover {
+  color: var(--foreground);
+  background: transparent;
+}
+
 .admin-products-hero-actions .button,
 .admin-erp-hero-actions .button,
 .hero-banner-cms-actions .button {
@@ -1631,23 +1652,6 @@ body {
 
 .admin-products-hero-secondary {
   opacity: 0.96;
-}
-
-.admin-products-hero-links .button,
-.hero-banner-cms-links .button {
-  min-height: 1.7rem;
-  padding: 0 0.56rem;
-  font-size: 0.68rem;
-  border-color: rgba(var(--line-rgb), 0.64);
-  background: transparent;
-  color: var(--muted);
-}
-
-.admin-products-hero-links .button:hover,
-.hero-banner-cms-links .button:hover {
-  color: var(--foreground);
-  background: rgba(var(--brand-rgb), 0.06);
-  border-color: rgba(var(--brand-rgb), 0.18);
 }
 
 .admin-products-hero-health {
@@ -2246,8 +2250,8 @@ body[data-admin-theme="dark"] .admin-chip-filter.is-neutral {
 
   .hero-banner-hero-actions .button,
   .hero-banner-cms-actions .button,
-  .admin-products-hero-links .button,
-  .hero-banner-cms-links .button {
+  .admin-products-hero-link,
+  .hero-banner-cms-link {
     width: 100%;
   }
 
@@ -2306,7 +2310,7 @@ body[data-admin-theme="dark"] .admin-chip-filter.is-neutral {
   }
 
   .admin-products-hero-actions .button,
-  .admin-products-hero-links .button,
+  .admin-products-hero-link,
   .admin-products-empty-actions .button {
     width: 100%;
   }
