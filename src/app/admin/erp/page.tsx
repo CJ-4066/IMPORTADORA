@@ -136,6 +136,7 @@ export default async function ErpPage({ searchParams }: ErpPageProps) {
   const syncLogs = await getRecentErpSyncLogs(8);
   const activeSyncLog = syncLogs.find((log) => log.status === "RUNNING") ?? null;
   const latestLog = syncLogs[0] ?? null;
+  const erpApiUrl = process.env.FACTURADOR_API_URL?.trim() || "ERP no configurado";
   const params = searchParams ? await searchParams : undefined;
   const syncStatus = typeof params?.syncStatus === "string" ? params.syncStatus : "";
   const syncError = typeof params?.syncError === "string" ? params.syncError : "";
@@ -156,6 +157,12 @@ export default async function ErpPage({ searchParams }: ErpPageProps) {
   const lastSyncedAt = latestLog?.finishedAt ?? latestLog?.updatedAt ?? null;
   const failedLog = syncLogs.find((log) => log.failedPage || log.status === "ERROR") ?? null;
   const erpHealth = getErpHealthState(activeSyncLog, latestLog);
+  const looksLikeConnectivityIssue = Boolean(
+    latestLog?.errorMessage &&
+      /fetch failed|timed out|timeout|ECONNRESET|ENOTFOUND|EAI_AGAIN|No se pudo conectar/i.test(
+        latestLog.errorMessage,
+      ),
+  );
 
   const recentModes = [
     { mode: "FULL", label: getModeLabel("FULL"), count: syncLogs.filter((log) => log.syncMode === "FULL").length },
@@ -222,6 +229,31 @@ export default async function ErpPage({ searchParams }: ErpPageProps) {
       ) : null}
       {syncStatus === "error" ? <p className="error-text auth-error">{syncError}</p> : null}
       {syncStatus === "cancelled" ? <p className="success-text">La sincronización fue cancelada desde el panel.</p> : null}
+      {looksLikeConnectivityIssue ? (
+        <section className="panel admin-erp-connection-alert">
+          <div className="panel-header">
+            <div>
+              <p className="eyebrow">ERP sin conexión</p>
+              <h2>El host configurado no responde</h2>
+            </div>
+            <span className="pill">{erpHealth.label}</span>
+          </div>
+          <div className="admin-erp-connection-grid">
+            <article>
+              <span>Endpoint</span>
+              <strong>{erpApiUrl}</strong>
+            </article>
+            <article>
+              <span>Último error</span>
+              <strong>{latestLog?.failedPageMessage || latestLog?.errorMessage || "Sin detalle"}</strong>
+            </article>
+          </div>
+          <p className="panel-copy">
+            Ningún modo de sincronización puede completar si el ERP no responde a la primera página.
+            Revisa URL, token, DNS o firewall antes de volver a lanzar FULL, Rápida, Solo nuevos o Incremental.
+          </p>
+        </section>
+      ) : null}
 
       <section className="admin-erp-modes">
         <ErpSyncModeCard

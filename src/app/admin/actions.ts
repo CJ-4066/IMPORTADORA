@@ -6,6 +6,7 @@ import { Prisma } from "@prisma/client";
 import { ZodError } from "zod";
 import { prisma } from "@/lib/prisma";
 import { clearSession, requireAdmin } from "@/lib/auth";
+import { FacturadorApiError, FacturadorClient } from "@/lib/facturador/client";
 import { parseFacturadorSyncMode, syncFacturadorProducts } from "@/lib/facturador/sync";
 import { sendComplaintResponseEmail } from "@/lib/complaints-email";
 import { slugify } from "@/lib/utils";
@@ -128,8 +129,34 @@ function scheduleErpSync(options: Parameters<typeof syncFacturadorProducts>[0]) 
         revalidatePath("/admin/settings");
         revalidatePath("/admin/erp");
         revalidatePath("/admin/categories");
-      });
+    });
   });
+}
+
+function isErpConnectivityError(error: unknown) {
+  return (
+    error instanceof Error &&
+    /fetch failed|timed out|timeout|ECONNRESET|ETIMEDOUT|ENOTFOUND|EAI_AGAIN/i.test(error.message)
+  );
+}
+
+function getErpConnectionErrorMessage(error: unknown) {
+  if (error instanceof FacturadorApiError) {
+    if (error.status === 401 || error.status === 403) {
+      return "El ERP rechazó la autenticación. Revisa FACTURADOR_API_TOKEN.";
+    }
+
+    return `El ERP respondió HTTP ${error.status}: ${error.message}`;
+  }
+
+  if (isErpConnectivityError(error)) {
+    const baseUrl = process.env.FACTURADOR_API_URL?.trim() || "ERP configurado";
+    return `No se pudo conectar a ${baseUrl}. Revisa el host, DNS o firewall.`;
+  }
+
+  return error instanceof Error && error.message.trim()
+    ? error.message
+    : "No se pudo conectar al ERP.";
 }
 
 function mapProductActionError(
@@ -421,6 +448,15 @@ export async function syncProductsFromErpAction(formData: FormData) {
   const session = await requireAdmin();
   const syncMode = parseSyncMode(formData);
   const returnTo = parseSyncReturnPath(formData);
+  let client: FacturadorClient;
+
+  try {
+    client = new FacturadorClient();
+  } catch (error) {
+    redirect(
+      `${returnTo}?syncStatus=error&syncError=${encodeURIComponent(getErpConnectionErrorMessage(error))}`,
+    );
+  }
 
   if (syncMode === "INCREMENTAL" && !process.env.FACTURADOR_SYNC_UPDATED_SINCE_PARAM?.trim()) {
     redirect(
@@ -430,7 +466,19 @@ export async function syncProductsFromErpAction(formData: FormData) {
     );
   }
 
+  try {
+    await client.request("/items/records", {
+      query: { page: 1 },
+      retry: false,
+    });
+  } catch (error) {
+    redirect(
+      `${returnTo}?syncStatus=error&syncError=${encodeURIComponent(getErpConnectionErrorMessage(error))}`,
+    );
+  }
+
   scheduleErpSync({
+    client,
     trigger: "MANUAL",
     initiatedByName: session.name,
     initiatedByEmail: session.email,

@@ -8052,6 +8052,43 @@ body[data-admin-theme="dark"] .erp-progress-copy {
   font-size: 0.84rem;
 }
 
+.admin-erp-connection-alert {
+  display: grid;
+  gap: 0.9rem;
+  padding: 1rem 1.05rem;
+  border: 1px solid rgba(197, 59, 53, 0.2);
+  border-radius: 24px;
+  background:
+    linear-gradient(180deg, rgba(255, 245, 245, 0.95), rgba(255, 255, 255, 0.88)),
+    radial-gradient(circle at top right, rgba(197, 59, 53, 0.1), transparent 32%);
+  box-shadow: 0 16px 34px rgba(197, 59, 53, 0.08);
+}
+
+.admin-erp-connection-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.admin-erp-connection-grid article {
+  display: grid;
+  gap: 0.18rem;
+  padding: 0.9rem 0.95rem;
+  border: 1px solid rgba(197, 59, 53, 0.14);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.88);
+}
+
+.admin-erp-connection-grid span {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.admin-erp-connection-grid strong {
+  line-height: 1.35;
+  word-break: break-word;
+}
+
 .admin-erp-modes {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -8783,6 +8820,18 @@ body[data-admin-theme="dark"] .admin-erp-note,
 body[data-admin-theme="dark"] .admin-erp-summary-row,
 body[data-admin-theme="dark"] .admin-erp-failure-content {
   border-color: rgba(148, 163, 184, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+body[data-admin-theme="dark"] .admin-erp-connection-alert {
+  border-color: rgba(245, 158, 11, 0.22);
+  background:
+    linear-gradient(180deg, rgba(46, 29, 9, 0.72), rgba(18, 24, 39, 0.94)),
+    radial-gradient(circle at top right, rgba(245, 158, 11, 0.1), transparent 32%);
+}
+
+body[data-admin-theme="dark"] .admin-erp-connection-grid article {
+  border-color: rgba(245, 158, 11, 0.16);
   background: rgba(255, 255, 255, 0.04);
 }
 
