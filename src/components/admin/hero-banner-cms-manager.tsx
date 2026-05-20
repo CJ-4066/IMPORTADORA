@@ -410,14 +410,14 @@ export function HeroBannerCmsManager({
             Administra banners, campañas programadas, variantes responsive y métricas de interacción desde una sola vista.
           </p>
           <div className="hero-banner-cms-actions">
-            <Link className="button button-primary button-chip" href="/admin/banners">
+            <Link className="button button-primary button-chip hero-banner-primary-action" href="/admin/banners">
               <Plus size={16} />
               Nuevo banner
             </Link>
             <form action={importLegacyHeroSlidesAction}>
-              <button className="button button-secondary button-chip" type="submit">
+              <button className="button button-ghost button-chip" type="submit">
                 <ImagePlus size={16} />
-                Importar slides heredados
+                Importar slides
               </button>
             </form>
             <Link className="button button-ghost button-chip" href="/#hero">
@@ -431,18 +431,18 @@ export function HeroBannerCmsManager({
           <div className={`hero-banner-health-pill is-${heroSummary.healthTone}`}>
             <span>Salud de campañas</span>
             <strong>{heroSummary.primaryLabel}</strong>
-            <p>{heroSummary.live.length} banners activos en tienda ahora mismo.</p>
+            <p>{heroSummary.live.length} banners activos ahora · {heroSummary.scheduled.length} programados</p>
           </div>
           <div className="hero-banner-hero-stats">
             <article>
               <span>Activos</span>
               <strong>{heroSummary.active.length}</strong>
-              <p>{heroSummary.scheduled.length} programados</p>
+              <p>En tienda ahora</p>
             </article>
             <article>
               <span>Borradores</span>
               <strong>{heroSummary.drafts.length}</strong>
-              <p>{heroSummary.expired.length} expirados</p>
+              <p>En preparación</p>
             </article>
             <article>
               <span>Mobile ready</span>

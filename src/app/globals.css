@@ -1686,6 +1686,11 @@ body {
   min-height: 6.85rem;
 }
 
+.hero-banner-primary-action {
+  min-height: 2.35rem;
+  padding-inline: 0.9rem;
+}
+
 .admin-products-toolbar {
   display: grid;
   gap: 0.9rem;
@@ -2890,7 +2895,13 @@ body[data-admin-theme="dark"] .admin-chip-filter.is-neutral {
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
-  gap: 0.65rem;
+  gap: 0.45rem;
+}
+
+.hero-banner-cms-actions .button {
+  min-height: 2.1rem;
+  padding: 0 0.78rem;
+  font-size: 0.74rem;
 }
 
 .hero-banner-list-actions {
@@ -2905,14 +2916,14 @@ body[data-admin-theme="dark"] .admin-chip-filter.is-neutral {
 
 .hero-banner-kpis {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0.85rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
 }
 
 .hero-banner-kpi {
   display: grid;
-  gap: 0.25rem;
-  padding: 0.9rem 1rem;
+  gap: 0.2rem;
+  padding: 0.82rem 0.95rem;
   border: 1px solid var(--line);
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.72);
@@ -2920,7 +2931,7 @@ body[data-admin-theme="dark"] .admin-chip-filter.is-neutral {
 
 .hero-banner-kpi strong {
   color: var(--foreground);
-  font-size: 1.35rem;
+  font-size: 1.2rem;
 }
 
 .hero-banner-kpi span {
@@ -3088,7 +3099,13 @@ body[data-admin-theme="dark"] .admin-chip-filter.is-neutral {
 .hero-banner-list-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.55rem;
+  gap: 0.4rem;
+}
+
+.hero-banner-list-actions .button-chip {
+  min-height: 2rem;
+  padding-inline: 0.62rem;
+  font-size: 0.72rem;
 }
 
 .hero-banner-editor-form {
@@ -3146,13 +3163,13 @@ body[data-admin-theme="dark"] .admin-chip-filter.is-neutral {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  min-height: 1.9rem;
-  padding: 0.32rem 0.62rem;
+  min-height: 1.85rem;
+  padding: 0.28rem 0.58rem;
   border: 0;
   border-radius: 999px;
   background: transparent;
   color: var(--muted);
-  font-size: 0.76rem;
+  font-size: 0.74rem;
   font-weight: 700;
 }
 
