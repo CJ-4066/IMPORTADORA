@@ -103,8 +103,8 @@ Para ejecutarlo automáticamente cada 60 minutos en un VPS Linux con `cron`:
 Para mantener el stock siempre fresco sin tocar precios en cada corrida, puedes usar:
 
 ```bash
-* * * * * cd /ruta/de/IMPORTADORA && ERP_SYNC_TRIGGER=AUTOMATIC ERP_SYNC_MODE=STOCK_ONLY npm run sync:facturador-products >> /var/log/importadora-sync-stock.log 2>&1
-2-57/5 * * * * cd /ruta/de/IMPORTADORA && ERP_SYNC_TRIGGER=AUTOMATIC ERP_SYNC_MODE=STOCK_PRICE npm run sync:facturador-products >> /var/log/importadora-sync-price.log 2>&1
+* * * * * cd /ruta/de/IMPORTADORA && set -a && . ./.env && set +a && ERP_SYNC_TRIGGER=AUTOMATIC ERP_SYNC_MODE=STOCK_ONLY npm run sync:facturador-products >> /var/log/importadora-sync-stock.log 2>&1
+2-57/5 * * * * cd /ruta/de/IMPORTADORA && set -a && . ./.env && set +a && ERP_SYNC_TRIGGER=AUTOMATIC ERP_SYNC_MODE=STOCK_PRICE npm run sync:facturador-products >> /var/log/importadora-sync-price.log 2>&1
 ```
 
 El primer cron actualiza solo stock y disponibilidad cada minuto. El segundo refresca stock, precio unitario y precio mayorista cada 5 minutos, con un pequeño desfase para reducir solapes.
