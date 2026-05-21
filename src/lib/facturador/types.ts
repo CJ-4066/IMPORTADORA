@@ -45,6 +45,8 @@ export type FacturadorConfig = {
   runningSyncTimeoutMs: number;
   productUpdatedSinceParam: string | null;
   productUpdatedSinceFormat: "iso" | "date" | "unix-ms" | "unix-seconds";
+  productWarehouseId: number | null;
+  orderByInternalId: boolean;
 };
 
 export type FacturadorQuoteItem = {
@@ -53,6 +55,12 @@ export type FacturadorQuoteItem = {
   name: string;
   quantity: number;
   unitPrice: number;
+};
+
+export type FacturadorProductSyncOptions = {
+  updatedSince?: Date | null;
+  pageConcurrency?: number | null;
+  pageDelayMs?: number | null;
 };
 
 export type SyncableProduct = {

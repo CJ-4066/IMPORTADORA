@@ -526,24 +526,25 @@ export async function syncFacturadorProducts(options: FacturadorSyncOptions = {}
 
     const shouldLoadReferenceData = !isQuickMode && !isStockOnlyMode;
 
-    const [categories, brands, products] = await Promise.all([
-      shouldLoadReferenceData ? client.getCategories() : Promise.resolve([] as FacturadorCategory[]),
-      shouldLoadReferenceData ? client.getBrands() : Promise.resolve([] as FacturadorBrand[]),
-      client.getProducts(
-        isIncrementalMode && incrementalCheckpoint
-          ? { updatedSince: incrementalCheckpoint }
-          : {},
-      ),
-    ]);
+    const categories = shouldLoadReferenceData
+      ? await client.getCategories()
+      : ([] as FacturadorCategory[]);
+    const brands = shouldLoadReferenceData ? await client.getBrands() : ([] as FacturadorBrand[]);
+    const products = await client.getProducts({
+      updatedSince:
+        isIncrementalMode && incrementalCheckpoint ? incrementalCheckpoint : null,
+      pageConcurrency: isQuickMode || isStockOnlyMode ? null : 1,
+      pageDelayMs: isQuickMode || isStockOnlyMode ? null : 1000,
+    });
     const categoryLookup = buildCategoryLookup(categories);
     const brandLookup = buildBrandLookup(brands);
-  const summary: FacturadorSyncSummary = {
-    source: client.source,
-    fetched: products.length,
-    created: 0,
-    updated: 0,
-    skipped: [],
-  };
+    const summary: FacturadorSyncSummary = {
+      source: client.source,
+      fetched: products.length,
+      created: 0,
+      updated: 0,
+      skipped: [],
+    };
   let processedCount = 0;
   let errorCount = 0;
   const preparedProducts: PreparedSyncableProduct[] = [];

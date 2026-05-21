@@ -94,20 +94,21 @@ Para sincronizar productos, categorías, marcas, precios, stock e imágenes disp
 npm run sync:facturador-products
 ```
 
-Para ejecutarlo automáticamente cada 60 minutos en un VPS Linux con `cron`:
+Para ejecutar una sincronización completa cada hora en un VPS Linux con `cron`:
 
 ```bash
-0 * * * * cd /ruta/de/IMPORTADORA && ERP_SYNC_TRIGGER=AUTOMATIC npm run sync:facturador-products >> /var/log/importadora-sync.log 2>&1
+0 * * * * cd /ruta/de/IMPORTADORA && set -a && . ./.env && set +a && ERP_SYNC_TRIGGER=AUTOMATIC ERP_SYNC_MODE=FULL npm run sync:facturador-products >> /var/log/importadora-sync-full.log 2>&1
 ```
 
-Para mantener el stock siempre fresco sin tocar precios en cada corrida, puedes usar:
+Para mantener el stock actualizado cada minuto sin tocar precios en cada corrida, puedes usar:
 
 ```bash
 * * * * * cd /ruta/de/IMPORTADORA && set -a && . ./.env && set +a && ERP_SYNC_TRIGGER=AUTOMATIC ERP_SYNC_MODE=STOCK_ONLY npm run sync:facturador-products >> /var/log/importadora-sync-stock.log 2>&1
-2-57/5 * * * * cd /ruta/de/IMPORTADORA && set -a && . ./.env && set +a && ERP_SYNC_TRIGGER=AUTOMATIC ERP_SYNC_MODE=STOCK_PRICE npm run sync:facturador-products >> /var/log/importadora-sync-price.log 2>&1
 ```
 
-El primer cron actualiza solo stock y disponibilidad cada minuto. El segundo refresca stock, precio unitario y precio mayorista cada 5 minutos, con un pequeño desfase para reducir solapes.
+Si quieres una capa adicional de precios cada 5 minutos, puedes mantener un cron extra con `ERP_SYNC_MODE=STOCK_PRICE`, pero no es obligatorio para la operación base.
+
+El cron horario refresca todo el catálogo. El cron de cada minuto actualiza stock y disponibilidad. Si activas el cron adicional de 5 minutos, este refresca stock, precio unitario y precio mayorista con un pequeño desfase para reducir solapes.
 
 Cada ejecución deja bitácora en `ErpSyncLog`, visible desde `/admin/settings`, con estado, origen, disparador, cantidades procesadas y error si algo falla.
 
@@ -115,9 +116,11 @@ El sincronizador requiere `FACTURADOR_API_URL` y `FACTURADOR_API_TOKEN`. Si el t
 
 Modos de sincronización:
 
-- `FULL`: sincroniza todo el catálogo del ERP y actualiza lo existente.
+- `FULL`: sincroniza todo el catálogo del ERP y actualiza lo existente. Es el modo recomendado para la sincronización completa horaria.
 - `NEW_ONLY`: lee todo el ERP pero solo crea productos que todavía no están vinculados.
 - `INCREMENTAL`: requiere que el ERP exponga un filtro por fecha en `FACTURADOR_SYNC_UPDATED_SINCE_PARAM`. Con ese parámetro el cliente lee solo los cambios desde el último checkpoint exitoso registrado en `ErpSyncLog`. Si todavía no hay checkpoint previo, la primera corrida hace carga completa.
+- `STOCK_ONLY`: refresca solo stock y disponibilidad. Es el modo recomendado para la sincronización silenciosa de cada minuto.
+- `STOCK_PRICE`: refresca stock, precio unitario, precio mayorista y disponibilidad.
 
 Para el modo incremental puedes ajustar el formato del valor enviado al ERP con `FACTURADOR_SYNC_UPDATED_SINCE_FORMAT`:
 

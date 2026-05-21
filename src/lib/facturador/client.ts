@@ -9,6 +9,7 @@ import type {
   FacturadorProduct,
   FacturadorRecord,
   FacturadorSalesProduct,
+  FacturadorProductSyncOptions,
 } from "@/lib/facturador/types";
 
 const DEFAULT_TIMEOUT_MS = 15_000;
@@ -27,11 +28,7 @@ type RequestOptions = {
   retry?: boolean;
 };
 
-const PAGE_RETRY_DELAYS_MS = [1000, 3000, 7000] as const;
-
-type ProductSyncOptions = {
-  updatedSince?: Date | null;
-};
+const PAGE_RETRY_DELAYS_MS = [5000, 15000, 45000, 120000] as const;
 
 export class FacturadorApiError extends Error {
   constructor(
@@ -68,6 +65,11 @@ export function getFacturadorConfig(): FacturadorConfig {
   const productPageConcurrency = Number(
     process.env.FACTURADOR_PRODUCT_PAGE_CONCURRENCY ?? DEFAULT_PRODUCT_PAGE_CONCURRENCY,
   );
+  const productWarehouseId = Number(process.env.FACTURADOR_PRODUCT_WAREHOUSE_ID ?? 1);
+  const orderByInternalId =
+    process.env.FACTURADOR_ORDER_BY_INTERNAL_ID === "1" ||
+    process.env.FACTURADOR_ORDER_BY_INTERNAL_ID === "true" ||
+    process.env.FACTURADOR_ORDER_BY_INTERNAL_ID === undefined;
   const productUpdatedSinceParam = process.env.FACTURADOR_SYNC_UPDATED_SINCE_PARAM?.trim();
   const productUpdatedSinceFormat = parseUpdatedSinceFormat(
     process.env.FACTURADOR_SYNC_UPDATED_SINCE_FORMAT,
@@ -100,6 +102,9 @@ export function getFacturadorConfig(): FacturadorConfig {
       Number.isInteger(productPageConcurrency) && productPageConcurrency > 0
         ? productPageConcurrency
         : DEFAULT_PRODUCT_PAGE_CONCURRENCY,
+    productWarehouseId:
+      Number.isInteger(productWarehouseId) && productWarehouseId > 0 ? productWarehouseId : null,
+    orderByInternalId,
     productPageDelayMs: productPageDelayMs > 0 ? productPageDelayMs : 0,
     maxRetries: maxRetries >= 0 ? maxRetries : DEFAULT_MAX_RETRIES,
     retryDelayMs: retryDelayMs > 0 ? retryDelayMs : DEFAULT_RETRY_DELAY_MS,
@@ -295,8 +300,10 @@ export class FacturadorClient {
     }
   }
 
-  async getProducts(options: ProductSyncOptions = {}) {
+  async getProducts(options: FacturadorProductSyncOptions = {}) {
     const startPage = this.config.startProductPage;
+    const pageConcurrency = Math.max(1, options.pageConcurrency ?? this.config.productPageConcurrency);
+    const pageDelayMs = Math.max(0, options.pageDelayMs ?? this.config.productPageDelayMs);
     const updatedSinceQueryValue =
       options.updatedSince && this.config.productUpdatedSinceParam
         ? formatUpdatedSinceValue(options.updatedSince, this.config.productUpdatedSinceFormat)
@@ -330,11 +337,11 @@ export class FacturadorClient {
       pendingPages.push(page);
     }
 
-    const pageChunks = chunkArray(pendingPages, this.config.productPageConcurrency);
+    const pageChunks = chunkArray(pendingPages, pageConcurrency);
 
     for (const chunk of pageChunks) {
-      if (this.config.productPageDelayMs > 0) {
-        await sleep(this.config.productPageDelayMs);
+      if (pageDelayMs > 0) {
+        await sleep(pageDelayMs);
       }
 
       const payloads = await Promise.all(chunk.map((page) => this.requestItemsPage(page, query)));
@@ -349,13 +356,20 @@ export class FacturadorClient {
 
   private async requestItemsPage(page: number, baseQuery: Record<string, string | number | boolean | null | undefined>) {
     let lastError: unknown = null;
+    const query = {
+      ...baseQuery,
+      ...(this.config.productWarehouseId
+        ? { warehouse_id: this.config.productWarehouseId }
+        : {}),
+      ...(this.config.orderByInternalId ? { order_by_internal_id: 1 } : {}),
+    };
 
     for (let attempt = 0; attempt <= PAGE_RETRY_DELAYS_MS.length; attempt += 1) {
       try {
         return await this.request("/items/records", {
           query: {
             page,
-            ...baseQuery,
+            ...query,
           },
           retry: false,
         });
