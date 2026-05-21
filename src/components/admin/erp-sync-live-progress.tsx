@@ -16,6 +16,8 @@ const POLL_INTERVAL_MS = 5000;
 
 function getModeLabel(syncMode: string) {
   switch (syncMode) {
+    case "STOCK_ONLY":
+      return "Solo stock";
     case "STOCK_PRICE":
       return "Rápida";
     case "NEW_ONLY":
@@ -137,9 +139,9 @@ export function ErpSyncLiveProgress({ initialLog, latestLog }: ErpSyncLiveProgre
         <div className="erp-progress-idle-actions">
           <form action={syncProductsFromErpAction}>
             <input name="returnTo" type="hidden" value="/admin/erp" />
-            <input name="syncMode" type="hidden" value="STOCK_PRICE" />
+            <input name="syncMode" type="hidden" value="STOCK_ONLY" />
             <SubmitButton className="erp-progress-idle-primary" pendingLabel="Iniciando...">
-              Sincronización rápida
+              Solo stock
             </SubmitButton>
           </form>
 

@@ -63,6 +63,8 @@ function getStatusTone(status: ErpSyncLogView["status"]) {
 
 function getModeLabel(syncMode: string) {
   switch (syncMode) {
+    case "STOCK_ONLY":
+      return "Solo stock";
     case "STOCK_PRICE":
       return "Rápida stock/precio";
     case "INCREMENTAL":
@@ -76,6 +78,8 @@ function getModeLabel(syncMode: string) {
 
 function getModeDescription(syncMode: string) {
   switch (syncMode) {
+    case "STOCK_ONLY":
+      return "Refresca solo el stock y la disponibilidad visible.";
     case "STOCK_PRICE":
       return "Refresca disponibilidad comercial sin tocar el contenido pesado.";
     case "INCREMENTAL":
@@ -89,6 +93,8 @@ function getModeDescription(syncMode: string) {
 
 function getModeLabelShort(syncMode: string) {
   switch (syncMode) {
+    case "STOCK_ONLY":
+      return "Stock";
     case "STOCK_PRICE":
       return "Rápida";
     case "INCREMENTAL":
@@ -146,7 +152,9 @@ export default async function ErpPage({ searchParams }: ErpPageProps) {
   const updated = Number(typeof params?.updated === "string" ? params.updated : "0");
   const skipped = Number(typeof params?.skipped === "string" ? params.skipped : "0");
   const syncModeLabel =
-    syncMode === "STOCK_PRICE"
+    syncMode === "STOCK_ONLY"
+      ? "solo stock"
+      : syncMode === "STOCK_PRICE"
       ? "rápida de stock/precio"
       : syncMode === "INCREMENTAL"
         ? "incremental real"
@@ -166,6 +174,7 @@ export default async function ErpPage({ searchParams }: ErpPageProps) {
 
   const recentModes = [
     { mode: "FULL", label: getModeLabel("FULL"), count: syncLogs.filter((log) => log.syncMode === "FULL").length },
+    { mode: "STOCK_ONLY", label: getModeLabel("STOCK_ONLY"), count: syncLogs.filter((log) => log.syncMode === "STOCK_ONLY").length },
     { mode: "STOCK_PRICE", label: getModeLabel("STOCK_PRICE"), count: syncLogs.filter((log) => log.syncMode === "STOCK_PRICE").length },
     { mode: "NEW_ONLY", label: getModeLabel("NEW_ONLY"), count: syncLogs.filter((log) => log.syncMode === "NEW_ONLY").length },
     { mode: "INCREMENTAL", label: getModeLabel("INCREMENTAL"), count: syncLogs.filter((log) => log.syncMode === "INCREMENTAL").length },
@@ -250,7 +259,7 @@ export default async function ErpPage({ searchParams }: ErpPageProps) {
           </div>
           <p className="panel-copy">
             Ningún modo de sincronización puede completar si el ERP no responde a la primera página.
-            Revisa URL, token, DNS o firewall antes de volver a lanzar FULL, Rápida, Solo nuevos o Incremental.
+            Revisa URL, token, DNS o firewall antes de volver a lanzar FULL, Solo stock, Rápida, Solo nuevos o Incremental.
           </p>
         </section>
       ) : null}
@@ -262,6 +271,13 @@ export default async function ErpPage({ searchParams }: ErpPageProps) {
           label={getModeLabelShort("FULL")}
           title="Sincronización completa"
           tone="neutral"
+        />
+        <ErpSyncModeCard
+          active={(activeSyncLog?.syncMode ?? syncMode) === "STOCK_ONLY"}
+          description={getModeDescription("STOCK_ONLY")}
+          label={getModeLabelShort("STOCK_ONLY")}
+          title="Solo stock"
+          tone="positive"
         />
         <ErpSyncModeCard
           active={(activeSyncLog?.syncMode ?? syncMode) === "STOCK_PRICE"}
@@ -302,7 +318,9 @@ export default async function ErpPage({ searchParams }: ErpPageProps) {
               <span>Modo de sincronización</span>
               <select
                 defaultValue={
-                  syncMode === "STOCK_PRICE"
+                  syncMode === "STOCK_ONLY"
+                    ? "STOCK_ONLY"
+                    : syncMode === "STOCK_PRICE"
                     ? "STOCK_PRICE"
                     : syncMode === "INCREMENTAL"
                       ? "INCREMENTAL"
@@ -313,6 +331,7 @@ export default async function ErpPage({ searchParams }: ErpPageProps) {
                 name="syncMode"
               >
                 <option value="FULL">Sincronización completa</option>
+                <option value="STOCK_ONLY">Solo stock (cada minuto)</option>
                 <option value="STOCK_PRICE">Sincronización rápida de stock/precio</option>
                 <option value="NEW_ONLY">Solo vincular nuevos</option>
                 <option value="INCREMENTAL">Incremental real (requiere filtro ERP)</option>

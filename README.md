@@ -100,6 +100,15 @@ Para ejecutarlo automáticamente cada 60 minutos en un VPS Linux con `cron`:
 0 * * * * cd /ruta/de/IMPORTADORA && ERP_SYNC_TRIGGER=AUTOMATIC npm run sync:facturador-products >> /var/log/importadora-sync.log 2>&1
 ```
 
+Para mantener el stock siempre fresco sin tocar precios en cada corrida, puedes usar:
+
+```bash
+* * * * * cd /ruta/de/IMPORTADORA && ERP_SYNC_TRIGGER=AUTOMATIC ERP_SYNC_MODE=STOCK_ONLY npm run sync:facturador-products >> /var/log/importadora-sync-stock.log 2>&1
+2-57/5 * * * * cd /ruta/de/IMPORTADORA && ERP_SYNC_TRIGGER=AUTOMATIC ERP_SYNC_MODE=STOCK_PRICE npm run sync:facturador-products >> /var/log/importadora-sync-price.log 2>&1
+```
+
+El primer cron actualiza solo stock y disponibilidad cada minuto. El segundo refresca stock, precio unitario y precio mayorista cada 5 minutos, con un pequeño desfase para reducir solapes.
+
 Cada ejecución deja bitácora en `ErpSyncLog`, visible desde `/admin/settings`, con estado, origen, disparador, cantidades procesadas y error si algo falla.
 
 El sincronizador requiere `FACTURADOR_API_URL` y `FACTURADOR_API_TOKEN`. Si el token responde `401 Unauthorized`, la integración está lista pero no podrá traer datos reales hasta que el administrador de la API entregue credenciales válidas. Por defecto recorre todas las páginas del endpoint de productos; para pruebas o cargas por bloques se puede usar `FACTURADOR_SYNC_START_PRODUCT_PAGE` y `FACTURADOR_SYNC_MAX_PRODUCT_PAGES`. Si el ERP limita peticiones, se puede subir `FACTURADOR_PRODUCT_PAGE_DELAY_MS` o `FACTURADOR_RETRY_DELAY_MS`.

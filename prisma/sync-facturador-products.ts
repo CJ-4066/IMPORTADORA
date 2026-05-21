@@ -10,7 +10,9 @@ async function main() {
   console.log(`Origen: ${summary.source}`);
   console.log(
     `Modo: ${
-      syncMode === "STOCK_PRICE"
+      syncMode === "STOCK_ONLY"
+        ? "Solo stock"
+        : syncMode === "STOCK_PRICE"
         ? "Rápida de stock/precio"
         : syncMode === "INCREMENTAL"
         ? "Incremental real"

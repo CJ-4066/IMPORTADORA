@@ -20,7 +20,12 @@ import { slugify } from "@/lib/utils";
 
 const WRITE_BATCH_SIZE = 500;
 
-export type FacturadorSyncMode = "FULL" | "STOCK_PRICE" | "NEW_ONLY" | "INCREMENTAL";
+export type FacturadorSyncMode =
+  | "FULL"
+  | "STOCK_PRICE"
+  | "STOCK_ONLY"
+  | "NEW_ONLY"
+  | "INCREMENTAL";
 
 export type FacturadorSyncSummary = {
   source: string;
@@ -72,6 +77,10 @@ export function parseFacturadorSyncMode(value: string | null | undefined): Factu
 
   if (normalized === "STOCK_PRICE" || normalized === "FAST" || normalized === "QUICK") {
     return "STOCK_PRICE";
+  }
+
+  if (normalized === "STOCK_ONLY" || normalized === "STOCK" || normalized === "MINUTE") {
+    return "STOCK_ONLY";
   }
 
   if (normalized === "INCREMENTAL") {
@@ -180,6 +189,31 @@ function buildProductQuickSyncHash(
     unitsPerBox: product.unitsPerBox ?? null,
     wholesaleMinQty: product.wholesaleMinQty,
     wholesalePrice: product.wholesalePrice ?? null,
+  };
+
+  return createHash("sha256").update(JSON.stringify(payload)).digest("hex");
+}
+
+function buildProductStockSyncHash(
+  product: Pick<
+    SyncableProduct,
+    | "code"
+    | "externalSource"
+    | "externalId"
+    | "externalCode"
+    | "stockUnits"
+    | "isVisible"
+    | "syncEnabled"
+  >,
+) {
+  const payload = {
+    code: product.code,
+    externalCode: product.externalCode ?? null,
+    externalId: product.externalId,
+    externalSource: product.externalSource,
+    isVisible: product.isVisible,
+    stockUnits: product.stockUnits,
+    syncEnabled: product.syncEnabled,
   };
 
   return createHash("sha256").update(JSON.stringify(payload)).digest("hex");
@@ -309,6 +343,7 @@ type PreparedWritableProduct = SyncableProduct & {
   localImageUrl: string | null;
   syncHash: string | null;
   syncQuickHash: string | null;
+  syncStockHash: string | null;
   writeAction: WriteAction;
 };
 
@@ -318,6 +353,7 @@ type ExistingProductSnapshot = {
   localImageUrl: string | null;
   syncHash: string | null;
   syncQuickHash: string | null;
+  syncStockHash: string | null;
 };
 
 type ChunkUpsertResult = {
@@ -416,6 +452,7 @@ async function loadExistingProductMap(products: PreparedSyncableProduct[]) {
       localImageUrl: true,
       syncHash: true,
       syncQuickHash: true,
+      syncStockHash: true,
     },
   });
 
@@ -429,6 +466,7 @@ async function loadExistingProductMap(products: PreparedSyncableProduct[]) {
       localImageUrl: product.localImageUrl ?? getStoredLocalImageUrl(product.imageUrl),
       syncHash: product.syncHash,
       syncQuickHash: product.syncQuickHash,
+      syncStockHash: product.syncStockHash,
     };
     existingByCode.set(product.code, snapshot);
 
@@ -450,6 +488,7 @@ export async function syncFacturadorProducts(options: FacturadorSyncOptions = {}
   const client = options.client ?? new FacturadorClient();
   const syncMode = options.syncMode ?? "FULL";
   const isQuickMode = syncMode === "STOCK_PRICE";
+  const isStockOnlyMode = syncMode === "STOCK_ONLY";
   const isNewOnlyMode = syncMode === "NEW_ONLY";
   const isIncrementalMode = syncMode === "INCREMENTAL";
   await prepareSyncSlot(client);
@@ -485,9 +524,11 @@ export async function syncFacturadorProducts(options: FacturadorSyncOptions = {}
       );
     }
 
+    const shouldLoadReferenceData = !isQuickMode && !isStockOnlyMode;
+
     const [categories, brands, products] = await Promise.all([
-      isQuickMode ? Promise.resolve([] as FacturadorCategory[]) : client.getCategories(),
-      isQuickMode ? Promise.resolve([] as FacturadorBrand[]) : client.getBrands(),
+      shouldLoadReferenceData ? client.getCategories() : Promise.resolve([] as FacturadorCategory[]),
+      shouldLoadReferenceData ? client.getBrands() : Promise.resolve([] as FacturadorBrand[]),
       client.getProducts(
         isIncrementalMode && incrementalCheckpoint
           ? { updatedSince: incrementalCheckpoint }
@@ -631,6 +672,35 @@ export async function syncFacturadorProducts(options: FacturadorSyncOptions = {}
               return null;
             }
 
+            if (isStockOnlyMode) {
+              const syncStockHash = buildProductStockSyncHash(product);
+              const sourceImageUrl = existingSnapshot?.imageUrl ?? product.imageUrl ?? null;
+              const localImageUrl =
+                existingSnapshot?.localImageUrl ??
+                getStoredLocalImageUrl(existingSnapshot?.imageUrl) ??
+                null;
+
+              if (existingSnapshot && existingSnapshot.syncStockHash === syncStockHash) {
+                summary.skipped.push({
+                  externalId: product.externalId,
+                  reason: "Sin cambios de stock respecto al último sync de stock.",
+                });
+                return null;
+              }
+
+              return {
+                ...product,
+                categoryId: null,
+                sourceImageUrl,
+                localImageUrl,
+                imageUrl: localImageUrl ?? sourceImageUrl,
+                syncHash: existingSnapshot?.syncHash ?? null,
+                syncQuickHash: existingSnapshot?.syncQuickHash ?? null,
+                syncStockHash,
+                writeAction: "updated" as const,
+              };
+            }
+
             if (isQuickMode) {
               const syncQuickHash = buildProductQuickSyncHash(product);
               const sourceImageUrl = existingSnapshot?.imageUrl ?? product.imageUrl ?? null;
@@ -655,6 +725,7 @@ export async function syncFacturadorProducts(options: FacturadorSyncOptions = {}
                 imageUrl: localImageUrl ?? sourceImageUrl,
                 syncHash: null,
                 syncQuickHash,
+                syncStockHash: buildProductStockSyncHash(product),
                 writeAction: "updated" as const,
               };
             }
@@ -691,6 +762,7 @@ export async function syncFacturadorProducts(options: FacturadorSyncOptions = {}
               imageUrl: imageResolution.imageUrl,
               syncHash,
               syncQuickHash,
+              syncStockHash: buildProductStockSyncHash(product),
               writeAction,
             };
           }),
@@ -804,6 +876,7 @@ async function upsertProductChunk(
 
   const rows = products.map((product) => buildProductRow(product));
   const isQuickMode = syncMode === "STOCK_PRICE";
+  const isStockOnlyMode = syncMode === "STOCK_ONLY";
 
   try {
     await prisma.$executeRaw(Prisma.sql`
@@ -836,12 +909,22 @@ async function upsertProductChunk(
         "syncEnabled",
         "lastSyncedAt",
         "syncHash",
-        "syncQuickHash"
+        "syncQuickHash",
+        "syncStockHash"
       )
       VALUES ${Prisma.join(rows)}
       ON CONFLICT ("code") DO UPDATE
       SET
-        ${isQuickMode
+        ${isStockOnlyMode
+          ? Prisma.sql`
+              "stockUnits" = EXCLUDED."stockUnits",
+              "isVisible" = EXCLUDED."isVisible",
+              "syncEnabled" = EXCLUDED."syncEnabled",
+              "lastSyncedAt" = EXCLUDED."lastSyncedAt",
+              "syncStockHash" = EXCLUDED."syncStockHash",
+              "updatedAt" = CURRENT_TIMESTAMP
+            `
+          : isQuickMode
           ? Prisma.sql`
               "unitPrice" = EXCLUDED."unitPrice",
               "wholesalePrice" = EXCLUDED."wholesalePrice",
@@ -853,6 +936,7 @@ async function upsertProductChunk(
               "syncEnabled" = EXCLUDED."syncEnabled",
               "lastSyncedAt" = EXCLUDED."lastSyncedAt",
               "syncQuickHash" = EXCLUDED."syncQuickHash",
+              "syncStockHash" = EXCLUDED."syncStockHash",
               "updatedAt" = CURRENT_TIMESTAMP
             `
           : Prisma.sql`
@@ -881,6 +965,7 @@ async function upsertProductChunk(
               "lastSyncedAt" = EXCLUDED."lastSyncedAt",
               "syncHash" = EXCLUDED."syncHash",
               "syncQuickHash" = EXCLUDED."syncQuickHash",
+              "syncStockHash" = EXCLUDED."syncStockHash",
               "updatedAt" = CURRENT_TIMESTAMP
             `}
     `);
@@ -954,7 +1039,8 @@ function buildProductRow(
     ${product.syncEnabled},
     ${product.lastSyncedAt},
     ${product.syncHash},
-    ${product.syncQuickHash}
+    ${product.syncQuickHash},
+    ${product.syncStockHash}
   )`;
 }
 
@@ -986,6 +1072,7 @@ function buildPrismaProductCreateData(product: PreparedWritableProduct) {
     lastSyncedAt: product.lastSyncedAt,
     syncHash: product.syncHash,
     syncQuickHash: product.syncQuickHash,
+    syncStockHash: product.syncStockHash,
   };
 }
 
@@ -1006,6 +1093,17 @@ function buildPrismaProductUpdateData(
       syncEnabled: product.syncEnabled,
       lastSyncedAt: product.lastSyncedAt,
       syncQuickHash: product.syncQuickHash,
+      syncStockHash: product.syncStockHash,
+    };
+  }
+
+  if (syncMode === "STOCK_ONLY") {
+    return {
+      stockUnits: product.stockUnits,
+      isVisible: product.isVisible,
+      syncEnabled: product.syncEnabled,
+      lastSyncedAt: product.lastSyncedAt,
+      syncStockHash: product.syncStockHash,
     };
   }
 
@@ -1013,5 +1111,6 @@ function buildPrismaProductUpdateData(
     ...buildPrismaProductCreateData(product),
     sourceImageUrl: product.sourceImageUrl ?? product.imageUrl ?? null,
     localImageUrl: product.localImageUrl ?? null,
+    syncStockHash: product.syncStockHash,
   };
 }
