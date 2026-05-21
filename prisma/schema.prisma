@@ -111,6 +111,8 @@ model Product {
   categoryId      String?
   categoryRef     Category?      @relation("CategoryToProduct", fields: [categoryId], references: [id], onDelete: SetNull)
   imageUrl        String?        @db.Text
+  sourceImageUrl  String?        @db.Text
+  localImageUrl   String?        @db.Text
   unitLabel       String         @default("unidad") @db.VarChar(40)
   unitPrice       Decimal        @db.Decimal(10, 2)
   wholesalePrice  Decimal?       @db.Decimal(10, 2)
@@ -144,6 +146,8 @@ model Product {
   @@index([syncEnabled, lastSyncedAt])
   @@index([syncEnabled])
   @@index([lastSyncedAt])
+  @@index([sourceImageUrl])
+  @@index([localImageUrl])
   @@index([externalId])
   @@index([syncHash])
   @@index([syncQuickHash])

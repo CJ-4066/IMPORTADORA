@@ -14,6 +14,7 @@ import type {
   FacturadorCategory,
   SyncableProduct,
 } from "@/lib/facturador/types";
+import { mirrorProductImageToLocal } from "@/lib/product-image-storage";
 import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/utils";
 
@@ -251,6 +252,50 @@ function chunkArray<T>(items: T[], size: number) {
   return chunks;
 }
 
+function getStoredLocalImageUrl(value: string | null | undefined) {
+  const trimmed = value?.trim() ?? "";
+
+  if (!trimmed || !trimmed.startsWith("/")) {
+    return null;
+  }
+
+  return trimmed;
+}
+
+type WritableProductMediaInput = {
+  code: string;
+  imageUrl: string | null;
+  sourceImageUrl?: string | null;
+  localImageUrl?: string | null;
+  syncHash: string | null;
+  syncQuickHash: string | null;
+};
+
+async function resolveWritableProductImages(
+  product: WritableProductMediaInput,
+  existingSnapshot: ExistingProductSnapshot | null,
+) {
+  const previousLocalUrl =
+    existingSnapshot?.localImageUrl ??
+    getStoredLocalImageUrl(existingSnapshot?.imageUrl) ??
+    null;
+  const sourceImageUrl = product.sourceImageUrl?.trim() ?? product.imageUrl?.trim() ?? null;
+  const imageVersionKey = product.syncHash ?? product.syncQuickHash ?? product.code;
+  const mirrored = await mirrorProductImageToLocal({
+    code: product.code,
+    sourceUrl: sourceImageUrl,
+    versionKey: imageVersionKey ?? product.code,
+    previousLocalUrl,
+  });
+  const localImageUrl = mirrored.localUrl ?? previousLocalUrl ?? null;
+
+  return {
+    sourceImageUrl,
+    localImageUrl,
+    imageUrl: localImageUrl ?? sourceImageUrl ?? null,
+  };
+}
+
 type PreparedSyncableProduct = SyncableProduct & {
   categoryName: string | null;
 };
@@ -258,7 +303,10 @@ type PreparedSyncableProduct = SyncableProduct & {
 type WriteAction = "created" | "updated";
 
 type PreparedWritableProduct = SyncableProduct & {
+  categoryName: string | null;
   categoryId: string | null;
+  sourceImageUrl: string | null;
+  localImageUrl: string | null;
   syncHash: string | null;
   syncQuickHash: string | null;
   writeAction: WriteAction;
@@ -266,6 +314,8 @@ type PreparedWritableProduct = SyncableProduct & {
 
 type ExistingProductSnapshot = {
   id: string;
+  imageUrl: string | null;
+  localImageUrl: string | null;
   syncHash: string | null;
   syncQuickHash: string | null;
 };
@@ -362,6 +412,8 @@ async function loadExistingProductMap(products: PreparedSyncableProduct[]) {
       code: true,
       externalSource: true,
       externalId: true,
+      imageUrl: true,
+      localImageUrl: true,
       syncHash: true,
       syncQuickHash: true,
     },
@@ -373,6 +425,8 @@ async function loadExistingProductMap(products: PreparedSyncableProduct[]) {
   for (const product of existingProducts) {
     const snapshot = {
       id: product.id,
+      imageUrl: product.imageUrl,
+      localImageUrl: product.localImageUrl ?? getStoredLocalImageUrl(product.imageUrl),
       syncHash: product.syncHash,
       syncQuickHash: product.syncQuickHash,
     };
@@ -558,67 +612,90 @@ export async function syncFacturadorProducts(options: FacturadorSyncOptions = {}
     for (const chunk of writeChunks) {
       await ensureSyncNotCancelled(syncLog.id);
 
-      const resolvedProducts = chunk.flatMap((product) => {
-        const categoryId = product.categoryName
-          ? categoryIdsByName.get(product.categoryName) ?? null
-          : null;
-        const existingSnapshot =
-          existingByExternal.get(
-            buildExternalKey(product.externalSource, product.externalId),
-          ) ?? existingByCode.get(product.code);
+      const resolvedProducts = (
+        await Promise.all(
+          chunk.map(async (product) => {
+            const categoryId = product.categoryName
+              ? categoryIdsByName.get(product.categoryName) ?? null
+              : null;
+            const existingSnapshot =
+              existingByExternal.get(
+                buildExternalKey(product.externalSource, product.externalId),
+              ) ?? existingByCode.get(product.code);
 
-        if (!existingSnapshot && isQuickMode) {
-          summary.skipped.push({
-            externalId: product.externalId,
-            reason: "Producto no existe localmente; omitido en sincronización rápida.",
-          });
-          return [];
-        }
+            if (!existingSnapshot && isQuickMode) {
+              summary.skipped.push({
+                externalId: product.externalId,
+                reason: "Producto no existe localmente; omitido en sincronización rápida.",
+              });
+              return null;
+            }
 
-        if (isQuickMode) {
-          const syncQuickHash = buildProductQuickSyncHash(product);
+            if (isQuickMode) {
+              const syncQuickHash = buildProductQuickSyncHash(product);
+              const sourceImageUrl = existingSnapshot?.imageUrl ?? product.imageUrl ?? null;
+              const localImageUrl =
+                existingSnapshot?.localImageUrl ??
+                getStoredLocalImageUrl(existingSnapshot?.imageUrl) ??
+                null;
 
-          if (existingSnapshot && existingSnapshot.syncQuickHash === syncQuickHash) {
-            summary.skipped.push({
-              externalId: product.externalId,
-              reason: "Sin cambios de stock/precio respecto al último sync rápido.",
+              if (existingSnapshot && existingSnapshot.syncQuickHash === syncQuickHash) {
+                summary.skipped.push({
+                  externalId: product.externalId,
+                  reason: "Sin cambios de stock/precio respecto al último sync rápido.",
+                });
+                return null;
+              }
+
+              return {
+                ...product,
+                categoryId,
+                sourceImageUrl,
+                localImageUrl,
+                imageUrl: localImageUrl ?? sourceImageUrl,
+                syncHash: null,
+                syncQuickHash,
+                writeAction: "updated" as const,
+              };
+            }
+
+            const syncHash = buildProductSyncHash({
+              ...product,
+              categoryId,
             });
-            return [];
-          }
+            const syncQuickHash = buildProductQuickSyncHash(product);
 
-          return {
-            ...product,
-            categoryId,
-            syncHash: null,
-            syncQuickHash,
-            writeAction: "updated" as const,
-          };
-        }
+            if (existingSnapshot && existingSnapshot.syncHash === syncHash) {
+              summary.skipped.push({
+                externalId: product.externalId,
+                reason: "Sin cambios reales respecto al último sync.",
+              });
+              return null;
+            }
 
-        const syncHash = buildProductSyncHash({
-          ...product,
-          categoryId,
-        });
-        const syncQuickHash = buildProductQuickSyncHash(product);
+            const writeAction: WriteAction = existingSnapshot ? "updated" : "created";
+            const imageResolution = await resolveWritableProductImages(
+              {
+                ...product,
+                syncHash,
+                syncQuickHash,
+              },
+              existingSnapshot ?? null,
+            );
 
-        if (existingSnapshot && existingSnapshot.syncHash === syncHash) {
-          summary.skipped.push({
-            externalId: product.externalId,
-            reason: "Sin cambios reales respecto al último sync.",
-          });
-          return [];
-        }
-
-        const writeAction: WriteAction = existingSnapshot ? "updated" : "created";
-
-        return {
-          ...product,
-          categoryId,
-          syncHash,
-          syncQuickHash,
-          writeAction,
-        };
-      });
+            return {
+              ...product,
+              categoryId,
+              sourceImageUrl: imageResolution.sourceImageUrl,
+              localImageUrl: imageResolution.localImageUrl,
+              imageUrl: imageResolution.imageUrl,
+              syncHash,
+              syncQuickHash,
+              writeAction,
+            };
+          }),
+        )
+      ).filter(Boolean) as PreparedWritableProduct[];
 
       const result = await upsertProductChunk(resolvedProducts, syncMode);
       summary.created += result.created;
@@ -740,6 +817,8 @@ async function upsertProductChunk(
         "category",
         "categoryId",
         "imageUrl",
+        "sourceImageUrl",
+        "localImageUrl",
         "unitLabel",
         "unitPrice",
         "wholesalePrice",
@@ -784,6 +863,8 @@ async function upsertProductChunk(
               "category" = EXCLUDED."category",
               "categoryId" = EXCLUDED."categoryId",
               "imageUrl" = EXCLUDED."imageUrl",
+              "sourceImageUrl" = EXCLUDED."sourceImageUrl",
+              "localImageUrl" = EXCLUDED."localImageUrl",
               "unitLabel" = EXCLUDED."unitLabel",
               "unitPrice" = EXCLUDED."unitPrice",
               "wholesalePrice" = EXCLUDED."wholesalePrice",
@@ -854,6 +935,8 @@ function buildProductRow(
     ${product.category},
     ${product.categoryId},
     ${product.imageUrl},
+    ${product.sourceImageUrl ?? product.imageUrl ?? null},
+    ${product.localImageUrl ?? null},
     ${product.unitLabel},
     ${product.unitPrice},
     ${product.wholesalePrice},
@@ -885,6 +968,8 @@ function buildPrismaProductCreateData(product: PreparedWritableProduct) {
     category: product.category,
     categoryId: product.categoryId,
     imageUrl: product.imageUrl,
+    sourceImageUrl: product.sourceImageUrl ?? product.imageUrl ?? null,
+    localImageUrl: product.localImageUrl ?? null,
     unitLabel: product.unitLabel,
     unitPrice: new Prisma.Decimal(product.unitPrice),
     wholesalePrice: product.wholesalePrice === null ? null : new Prisma.Decimal(product.wholesalePrice),
@@ -924,5 +1009,9 @@ function buildPrismaProductUpdateData(
     };
   }
 
-  return buildPrismaProductCreateData(product);
+  return {
+    ...buildPrismaProductCreateData(product),
+    sourceImageUrl: product.sourceImageUrl ?? product.imageUrl ?? null,
+    localImageUrl: product.localImageUrl ?? null,
+  };
 }

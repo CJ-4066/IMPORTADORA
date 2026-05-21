@@ -25,6 +25,14 @@ type ProductDetailViewProps = {
 function getFallbackMedia(product: CatalogProduct): ProductMediaView | null {
   return product.primaryMedia
     ? product.primaryMedia
+    : product.localImageUrl
+      ? {
+          id: "local-image",
+          type: "IMAGE",
+          url: product.localImageUrl,
+          altText: product.name,
+          sortOrder: 0,
+        }
     : product.imageUrl && !isGenericProductPhotoUrl(product.imageUrl)
       ? {
           id: "legacy-image",

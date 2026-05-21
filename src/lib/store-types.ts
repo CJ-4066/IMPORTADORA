@@ -25,6 +25,8 @@ export type CatalogProduct = {
   category: string | null;
   categoryId: string | null;
   imageUrl: string | null;
+  sourceImageUrl: string | null;
+  localImageUrl: string | null;
   media: ProductMediaView[];
   primaryMedia: ProductMediaView | null;
   unitLabel: string;
@@ -48,6 +50,8 @@ export type AdminProductListItem = {
   name: string;
   brand: string | null;
   imageUrl: string | null;
+  sourceImageUrl: string | null;
+  localImageUrl: string | null;
   thumbnailUrl: string | null;
   unitPrice: number;
   wholesalePrice: number | null;

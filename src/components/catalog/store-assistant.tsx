@@ -299,6 +299,8 @@ function AssistantProductCard({ product }: AssistantProductCardProps) {
         category: product.category,
         categoryId: null,
         imageUrl: product.imageUrl,
+        sourceImageUrl: product.imageUrl,
+        localImageUrl: product.imageUrl?.startsWith("/") ? product.imageUrl : null,
         media: product.imageUrl
           ? [
               {

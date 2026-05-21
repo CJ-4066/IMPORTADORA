@@ -13,6 +13,7 @@ import {
   mapProduct,
   hasRealProductPhoto,
 } from "@/lib/store-shared";
+import { getPreferredProductImageUrl } from "@/lib/product-media";
 import type {
   AdminProductListItem,
   AdminCategory,
@@ -676,6 +677,8 @@ export async function getAdminProducts(input: {
           name: true,
           brand: true,
           imageUrl: true,
+          sourceImageUrl: true,
+          localImageUrl: true,
           unitPrice: true,
           wholesalePrice: true,
           stockUnits: true,
@@ -746,19 +749,34 @@ export async function getAdminProducts(input: {
   const payload = {
     products: products.map((product) => {
       const imageUrl = product.imageUrl?.trim() ?? "";
+      const localImageUrl = product.localImageUrl?.trim() ?? "";
+      const sourceImageUrl = product.sourceImageUrl?.trim() ?? "";
       const mediaUrl = product.media[0]?.url?.trim() ?? "";
       const hasPhoto = hasRealProductPhoto({
-        imageUrl: imageUrl || null,
+        imageUrl: sourceImageUrl || imageUrl || null,
+        localImageUrl: localImageUrl || null,
         media: mediaUrl ? [{ url: mediaUrl }] : [],
       });
-      const thumbnailUrl = hasPhoto ? imageUrl || mediaUrl || null : null;
+      const thumbnailUrl = hasPhoto
+        ? getPreferredProductImageUrl({
+            localImageUrl,
+            imageUrl: sourceImageUrl || imageUrl || null,
+            media: mediaUrl ? [{ url: mediaUrl }] : [],
+          })
+        : null;
 
       return {
         id: product.id,
         code: product.code,
         name: product.name,
         brand: product.brand,
-        imageUrl: imageUrl || null,
+        imageUrl: getPreferredProductImageUrl({
+          localImageUrl,
+          imageUrl: sourceImageUrl || imageUrl || null,
+          media: mediaUrl ? [{ url: mediaUrl }] : [],
+        }),
+        sourceImageUrl: sourceImageUrl || null,
+        localImageUrl: localImageUrl || null,
         thumbnailUrl,
         unitPrice: Number(product.unitPrice),
         wholesalePrice: product.wholesalePrice === null ? null : Number(product.wholesalePrice),

@@ -25,18 +25,16 @@ import {
   buildHeroBannerWhere,
   mapHeroBanner,
 } from "@/lib/hero-banners";
+import {
+  getPreferredProductImageUrl,
+  isGenericProductMediaUrl,
+} from "@/lib/product-media";
 
 export const PUBLIC_PAGE_SIZE = 24;
 export const ADMIN_PAGE_SIZE = 10;
 
 const BRAND_BLUE = "#292c95";
 const LEGACY_PRIMARY_BLUE = "#147cc4";
-const GENERIC_PRODUCT_PHOTO_MARKERS = [
-  "imagen-no-disponible",
-  "no-image",
-  "placeholder",
-  "sin-foto",
-];
 export const GENERIC_PRODUCT_PHOTO_URLS = [
   "https://original.negocioserp.com/logo/imagen-no-disponible.jpg",
 ];
@@ -65,6 +63,7 @@ type ProductWithMedia = Product & {
 
 type ProductPhotoSource = {
   imageUrl: string | null;
+  localImageUrl?: string | null;
   media: Array<{ url: string }>;
 };
 
@@ -79,14 +78,17 @@ export function isGenericProductPhotoUrl(value: string | null | undefined) {
     return true;
   }
 
-  return GENERIC_PRODUCT_PHOTO_MARKERS.some((marker) => normalized.includes(marker));
+  return isGenericProductMediaUrl(normalized);
 }
 
 export function hasRealProductPhoto(product: ProductPhotoSource) {
   const imageUrl = product.imageUrl?.trim() ?? "";
+  const localImageUrl = product.localImageUrl?.trim() ?? "";
   const mediaUrls = product.media.map((item) => item.url.trim()).filter((value) => value.length > 0);
 
-  return [imageUrl, ...mediaUrls].some((value) => value.length > 0 && !isGenericProductPhotoUrl(value));
+  return [localImageUrl, imageUrl, ...mediaUrls].some(
+    (value) => value.length > 0 && !isGenericProductPhotoUrl(value),
+  );
 }
 
 export function hasProductPhoto(product: ProductPhotoSource) {
@@ -96,6 +98,12 @@ export function hasProductPhoto(product: ProductPhotoSource) {
 export function buildRealProductPhotoWhere(): Prisma.ProductWhereInput {
   return {
     OR: [
+      {
+        AND: [
+          { localImageUrl: { not: null } },
+          { localImageUrl: { notIn: GENERIC_PRODUCT_PHOTO_FILTER_URLS } },
+        ],
+      },
       {
         AND: [
           { imageUrl: { not: null } },
@@ -125,6 +133,21 @@ export function buildSellableProductWhere(): Prisma.ProductWhereInput {
 export function buildMissingProductPhotoWhere(): Prisma.ProductWhereInput {
   return {
     OR: [
+      { localImageUrl: null },
+      { localImageUrl: "" },
+      { localImageUrl: { in: GENERIC_PRODUCT_PHOTO_URLS } },
+      {
+        localImageUrl: {
+          contains: "imagen-no-disponible",
+          mode: "insensitive",
+        },
+      },
+      {
+        localImageUrl: {
+          contains: "no-image",
+          mode: "insensitive",
+        },
+      },
       { imageUrl: null },
       { imageUrl: "" },
       { imageUrl: { in: GENERIC_PRODUCT_PHOTO_URLS } },
@@ -186,14 +209,29 @@ export function mapProduct(product: ProductWithMedia): CatalogProduct {
     .slice()
     .sort((a, b) => a.sortOrder - b.sortOrder)
     .map(mapMedia);
+  const localImageUrl = product.localImageUrl?.trim() ?? "";
+  const sourceImageUrl = product.sourceImageUrl?.trim() ?? product.imageUrl?.trim() ?? "";
+  const localMedia = localImageUrl
+    ? {
+        id: "local-image",
+        type: "IMAGE" as const,
+        url: localImageUrl,
+        altText: product.name,
+        sortOrder: -1,
+      }
+    : null;
   const realMedia = media.find((item) => !isGenericProductPhotoUrl(item.url));
+  const mediaWithPrimary = localMedia
+    ? [localMedia, ...media.filter((item) => item.url.trim() !== localImageUrl)]
+    : media;
   const primaryMedia =
+    localMedia ??
     realMedia ??
-    (product.imageUrl && !isGenericProductPhotoUrl(product.imageUrl)
+    (sourceImageUrl && !isGenericProductPhotoUrl(sourceImageUrl)
       ? {
           id: "legacy-image",
           type: "IMAGE" as const,
-          url: product.imageUrl,
+          url: sourceImageUrl,
           altText: product.name,
           sortOrder: 0,
         }
@@ -209,8 +247,14 @@ export function mapProduct(product: ProductWithMedia): CatalogProduct {
     brand: product.brand,
     category: product.category,
     categoryId: product.categoryId,
-    imageUrl: product.imageUrl,
-    media,
+    imageUrl: getPreferredProductImageUrl({
+      localImageUrl,
+      imageUrl: sourceImageUrl,
+      media,
+    }),
+    sourceImageUrl: sourceImageUrl || null,
+    localImageUrl: localImageUrl || null,
+    media: mediaWithPrimary,
     primaryMedia,
     unitLabel: product.unitLabel,
     unitPrice: Number(product.unitPrice),
@@ -222,7 +266,11 @@ export function mapProduct(product: ProductWithMedia): CatalogProduct {
     isVisible: product.isVisible,
     isFeatured: product.isFeatured,
     syncEnabled: product.syncEnabled,
-    hasPhoto: hasRealProductPhoto({ imageUrl: product.imageUrl, media: product.media }),
+    hasPhoto: hasRealProductPhoto({
+      imageUrl: sourceImageUrl || null,
+      localImageUrl: localImageUrl || null,
+      media: product.media,
+    }),
     lastSyncedAt: product.lastSyncedAt?.toISOString() ?? null,
     updatedAt: product.updatedAt.toISOString(),
   };

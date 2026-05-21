@@ -1,5 +1,6 @@
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { getPreferredProductImageUrl } from "@/lib/product-media";
 import { buildRealProductPhotoWhere } from "@/lib/store-shared";
 import { buildPublicWhatsappHref, formatCurrency } from "@/lib/utils";
 import type {
@@ -169,6 +170,8 @@ export type AssistantProductRecord = {
   category: string | null;
   categoryId?: string | null;
   imageUrl?: string | null;
+  sourceImageUrl?: string | null;
+  localImageUrl?: string | null;
   media?: Array<{
     type: "IMAGE" | "VIDEO";
     url: string;
@@ -239,17 +242,16 @@ function getAssistantProductImage(product: AssistantProductRecord) {
     .sort((left, right) => left.sortOrder - right.sortOrder)
     .find((item) => item.type === "IMAGE" && !isGenericProductPhotoUrl(item.url));
 
-  if (realImageMedia) {
-    return {
-      imageUrl: realImageMedia.url,
-      imageAlt: realImageMedia.altText ?? product.name,
-    };
-  }
+  const preferredUrl = getPreferredProductImageUrl({
+    localImageUrl: product.localImageUrl ?? null,
+    imageUrl: product.sourceImageUrl ?? product.imageUrl ?? null,
+    media: product.media?.filter((item) => item.type === "IMAGE") ?? [],
+  });
 
-  if (product.imageUrl && !isGenericProductPhotoUrl(product.imageUrl)) {
+  if (preferredUrl) {
     return {
-      imageUrl: product.imageUrl,
-      imageAlt: product.name,
+      imageUrl: preferredUrl,
+      imageAlt: realImageMedia?.altText ?? product.name,
     };
   }
 
@@ -302,6 +304,8 @@ const ASSISTANT_PRODUCT_SELECT = {
   category: true,
   categoryId: true,
   imageUrl: true,
+  sourceImageUrl: true,
+  localImageUrl: true,
   media: {
     orderBy: { sortOrder: "asc" },
     take: 4,
