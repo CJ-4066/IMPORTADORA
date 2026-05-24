@@ -390,7 +390,6 @@ export default async function ShopperAccountPage({ searchParams }: ShopperAccoun
       <CartDrawer
         initialOpen={initialCartOpen}
         quoteDefaults={{
-          email: account.email,
           name: account.name,
           phone: account.phone,
         }}

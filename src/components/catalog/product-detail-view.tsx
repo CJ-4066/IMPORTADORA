@@ -11,11 +11,7 @@ import { getPublicProductName } from "@/lib/product-name";
 import type { CatalogProduct, ProductMediaView, StoreSettingsView } from "@/lib/store";
 import { isGenericProductPhotoUrl } from "@/lib/store-shared";
 import { formatCurrency } from "@/lib/utils";
-import {
-  getProductDiscountPercent,
-  ProductPriceRows,
-  ProductStockChip,
-} from "@/components/catalog/product-display";
+import { getProductDiscountPercent, ProductStockChip } from "@/components/catalog/product-display";
 
 type ProductDetailViewProps = {
   product: CatalogProduct;
@@ -27,7 +23,7 @@ function getFallbackMedia(product: CatalogProduct): ProductMediaView | null {
     ? product.primaryMedia
     : product.localImageUrl
       ? {
-          id: "local-image",
+          id: `${product.id}-local-image`,
           type: "IMAGE",
           url: product.localImageUrl,
           altText: product.name,
@@ -35,13 +31,17 @@ function getFallbackMedia(product: CatalogProduct): ProductMediaView | null {
         }
     : product.imageUrl && !isGenericProductPhotoUrl(product.imageUrl)
       ? {
-          id: "legacy-image",
+          id: `${product.id}-legacy-image`,
           type: "IMAGE",
           url: product.imageUrl,
           altText: product.name,
           sortOrder: 0,
         }
       : null;
+}
+
+function normalizeMediaUrl(value: string | null | undefined) {
+  return value?.trim().toLowerCase() ?? "";
 }
 
 export function ProductDetailView({ product, settings }: ProductDetailViewProps) {
@@ -58,11 +58,29 @@ export function ProductDetailView({ product, settings }: ProductDetailViewProps)
     return fallback ? [fallback] : [];
   }, [product]);
 
+  const uniqueGallery = useMemo(() => {
+    const seen = new Set<string>();
+
+    return gallery.filter((item) => {
+      const key = normalizeMediaUrl(item.url);
+
+      if (!key || seen.has(key)) {
+        return false;
+      }
+
+      seen.add(key);
+      return true;
+    });
+  }, [gallery]);
+
   const [activeIndex, setActiveIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [imageFailed, setImageFailed] = useState<Record<string, boolean>>({});
 
-  const activeMedia = gallery[activeIndex] ?? null;
+  const safeActiveIndex = uniqueGallery.length
+    ? Math.min(activeIndex, uniqueGallery.length - 1)
+    : 0;
+  const activeMedia = uniqueGallery[safeActiveIndex] ?? null;
   const activeMediaUrl = getSafeMediaUrl(activeMedia?.url);
   const maxQuantity = product.stockUnits;
   const safeQuantity = Math.min(Math.max(quantity, 1), Math.max(maxQuantity, 1));
@@ -74,6 +92,11 @@ export function ProductDetailView({ product, settings }: ProductDetailViewProps)
     ? product.wholesalePrice ?? product.unitPrice
     : product.unitPrice;
   const total = effectiveUnitPrice * safeQuantity;
+  const wholesaleSavings =
+    wholesaleApplies && product.wholesalePrice !== null
+      ? (Number(product.unitPrice) - Number(product.wholesalePrice)) * safeQuantity
+      : 0;
+  const hasSavings = wholesaleApplies && wholesaleSavings > 0;
 
   const handleAdd = async () => {
     if (maxQuantity <= 0) {
@@ -144,11 +167,11 @@ export function ProductDetailView({ product, settings }: ProductDetailViewProps)
             )}
           </div>
 
-          {gallery.length > 1 ? (
+          {uniqueGallery.length > 1 ? (
             <div className="product-detail-thumbs">
-              {gallery.map((media, index) => (
+              {uniqueGallery.map((media, index) => (
                 <button
-                  className={`product-detail-thumb ${index === activeIndex ? "is-active" : ""}`}
+                  className={`product-detail-thumb ${index === safeActiveIndex ? "is-active" : ""}`}
                   key={media.id}
                   onClick={() => setActiveIndex(index)}
                   type="button"
@@ -199,14 +222,25 @@ export function ProductDetailView({ product, settings }: ProductDetailViewProps)
           </div>
 
           <div className="product-detail-price-box">
-            <div className="product-detail-price-main">
+            <div
+              className={`product-detail-price-main ${
+                wholesaleApplies ? "is-wholesale" : "is-unitary"
+              }`}
+            >
               <span>{wholesaleApplies ? "Precio mayorista activo" : "Precio unitario"}</span>
               <strong>{formatCurrency(effectiveUnitPrice, settings.currencySymbol)}</strong>
             </div>
 
-            <div className="product-detail-price-lines">
-              <ProductPriceRows currencySymbol={settings.currencySymbol} product={product} />
-            </div>
+            {wholesaleApplies ? (
+              <div className="product-detail-price-lines">
+                {hasSavings ? (
+                  <div className="product-detail-price-savings">
+                    <span>Ahorras por mayorista</span>
+                    <strong>{formatCurrency(wholesaleSavings, settings.currencySymbol)}</strong>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
           </div>
 
           <div className="product-detail-buybox">
@@ -234,7 +268,7 @@ export function ProductDetailView({ product, settings }: ProductDetailViewProps)
                 </button>
               </div>
 
-              <div className="product-detail-total">
+              <div className="product-detail-total is-total">
                 <span>Total estimado</span>
                 <strong>{formatCurrency(total, settings.currencySymbol)}</strong>
               </div>

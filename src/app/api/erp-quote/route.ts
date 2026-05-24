@@ -186,16 +186,33 @@ export async function POST(request: Request) {
     });
     const warnings = result.warnings.filter(Boolean);
     const internalWhatsappNumber = getWhatsappAlertTarget(settings.whatsappNumber);
-    const pdfNotification = await sendInternalPdfNotification({
+    const customerPdfNotification = await sendPdfNotification({
       businessName: settings.businessName,
       customerName,
       currencySymbol: settings.currencySymbol,
       pdfFilename,
       pdfUrl,
       quoteNumber,
-      recipientNumber: internalWhatsappNumber,
+      recipientNumber: customerPhone,
       total,
     });
+    const internalPdfNotification =
+      internalWhatsappNumber && internalWhatsappNumber !== customerPhone
+        ? await sendPdfNotification({
+            businessName: settings.businessName,
+            customerName,
+            currencySymbol: settings.currencySymbol,
+            pdfFilename,
+            pdfUrl,
+            quoteNumber,
+            recipientNumber: internalWhatsappNumber,
+            total,
+          })
+        : {
+            message: "Alerta interna omitida porque coincide con el número del cliente.",
+            ok: true,
+            sent: false,
+          };
     const messageBase = quoteNumber
       ? `Cotización ${quoteNumber} registrada en el ERP.`
       : "Cotización registrada en el ERP.";
@@ -215,8 +232,12 @@ export async function POST(request: Request) {
         text: customerModeLabel,
       },
       {
-        status: pdfNotification.sent ? "success" : "warning",
-        text: pdfNotification.message,
+        status: customerPdfNotification.sent ? "success" : "warning",
+        text: customerPdfNotification.message,
+      },
+      {
+        status: internalPdfNotification.sent ? "success" : "warning",
+        text: internalPdfNotification.message,
       },
       ...warnings.map((warning) => ({
         status: "warning" as const,
@@ -229,7 +250,13 @@ export async function POST(request: Request) {
         erpCustomerId: result.customerId,
         erpCustomerMode: result.customerMode,
         erpExternalId: quoteExternalId,
-        pdfNotification: toJson(pdfNotification),
+        pdfNotification: toJson({
+          message: customerPdfNotification.message,
+          ok: customerPdfNotification.ok || internalPdfNotification.ok,
+          sent: customerPdfNotification.sent,
+          customer: customerPdfNotification,
+          internal: internalPdfNotification,
+        }),
         quoteNumber,
         status: "ERP_REGISTERED",
         statusSteps: toJson(statusSteps),
@@ -240,8 +267,22 @@ export async function POST(request: Request) {
     return NextResponse.json({
       customerMode: result.customerMode,
       localQuoteId: localQuote.id,
-      message: [messageBase, customerModeLabel, pdfNotification.message, ...warnings].filter(Boolean).join(" "),
-      pdfNotification,
+      message: [
+        messageBase,
+        customerModeLabel,
+        customerPdfNotification.message,
+        internalPdfNotification.message,
+        ...warnings,
+      ]
+        .filter(Boolean)
+        .join(" "),
+      pdfNotification: {
+        message: customerPdfNotification.message,
+        ok: customerPdfNotification.ok || internalPdfNotification.ok,
+        sent: customerPdfNotification.sent,
+        customer: customerPdfNotification,
+        internal: internalPdfNotification,
+      },
       quoteNumber,
       response: result.response,
       statusSteps,
@@ -338,7 +379,7 @@ function toJson(value: unknown): Prisma.InputJsonValue {
   return JSON.parse(JSON.stringify(value ?? null)) as Prisma.InputJsonValue;
 }
 
-async function sendInternalPdfNotification(input: {
+async function sendPdfNotification(input: {
   businessName: string;
   customerName: string;
   currencySymbol: string;

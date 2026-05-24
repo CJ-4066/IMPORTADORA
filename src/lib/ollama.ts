@@ -92,6 +92,8 @@ function buildRewritePrompt(input: OllamaRewriteInput) {
     "Reglas obligatorias:",
     "- No inventes productos, precios, stock, categorías ni especificaciones.",
     "- No cambies los productos ni los enlaces.",
+    "- No amplíes la intención del usuario ni mezcles categorías distintas.",
+    "- Si la respuesta base ya está enfocada a una categoría o presupuesto, conserva ese foco.",
     "- No agregues promesas ni datos que no estén en la entrada.",
     "- Usa español natural, claro y breve.",
     "- Si falta información, sugiere revisar el catálogo o WhatsApp.",

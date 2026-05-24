@@ -48,7 +48,7 @@ export default async function ProductDetailPage({
     <main className="site-shell" style={themeVars}>
       <PublicStoreHeader />
 
-      <ProductDetailView product={data.product} settings={data.settings} />
+      <ProductDetailView key={data.product.slug} product={data.product} settings={data.settings} />
 
       {data.relatedProducts.length ? (
         <section className="panel related-products-panel">

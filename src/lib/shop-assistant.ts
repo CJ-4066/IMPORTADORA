@@ -116,6 +116,14 @@ const CATEGORY_FOCUS_ALIASES: Record<string, string[]> = {
   scooter: ["scooter", "scoter", "scuter", "patineta"],
 };
 
+const CATEGORY_FOCUS_EXCLUSIONS: Record<string, string[]> = {
+  teclado: ["audifono", "audifonos", "auricular", "auriculares", "headset"],
+  mouse: ["audifono", "audifonos", "auricular", "auriculares", "headset"],
+  audifonos: ["teclado", "key board", "keyboard", "mouse", "mause"],
+  auriculares: ["teclado", "key board", "keyboard", "mouse", "mause"],
+  scooter: ["hervidor", "cocina", "audifono", "auricular"],
+};
+
 const SEARCH_CORRECTIONS: Record<string, string> = {
   acsesorio: "accesorio",
   acsesorios: "accesorios",
@@ -442,7 +450,11 @@ function normalizeProductSearchText(product: AssistantProductRecord) {
 
 function productMatchesFocus(product: AssistantProductRecord, focus: ProductFocus) {
   const text = normalizeProductSearchText(product);
-  return focus.aliases.some((alias) => text.includes(alias));
+  const hasPositiveHit = focus.aliases.some((alias) => text.includes(alias));
+  const exclusionTerms = CATEGORY_FOCUS_EXCLUSIONS[focus.canonical] ?? [];
+  const hasExclusion = exclusionTerms.some((term) => text.includes(term));
+
+  return hasPositiveHit && !hasExclusion;
 }
 
 function removeBudgetText(message: string) {
@@ -533,6 +545,19 @@ function scoreAssistantProduct(
 
     if (!focusMatch && !focusNameHit && !focusSpecsHit) {
       score -= 100;
+    }
+
+    const exclusionTerms = CATEGORY_FOCUS_EXCLUSIONS[focus.canonical] ?? [];
+    if (
+      exclusionTerms.some((term) => {
+        return (
+          normalizedName.includes(term) ||
+          normalizedCategory.includes(term) ||
+          normalizedSpecs.includes(term)
+        );
+      })
+    ) {
+      score -= 120;
     }
   }
 
@@ -796,6 +821,34 @@ function buildDefaultPrompts() {
     "Busco algo por menos de S/ 50",
     "¿Qué categorías tienes?",
   ];
+}
+
+function shouldUseConversationContext(message: string, recentConversation: string) {
+  if (!recentConversation.trim()) {
+    return false;
+  }
+
+  const text = normalizeAssistantText(message);
+  const followUpSignals =
+    /\b(mas|más|otro|otra|similar|parecid|ese|esa|esos|esas|mismo|igual|tambien|también|alternativ|por mayor|mayorista|el de|la de|los de|las de|de ese|de esa|de los|de las)\b/.test(
+      text,
+    ) || text.length <= 18;
+
+  if (!followUpSignals) {
+    return false;
+  }
+
+  const hasDirectNewIntent =
+    Boolean(extractProductCode(message)) ||
+    Boolean(extractSearchTerms(message)) ||
+    Boolean(detectProductFocus(message)) ||
+    extractBudget(message) !== null ||
+    extractQuantity(message) !== null ||
+    isAdultIntent(message) ||
+    detectGiftIntent(message).isGiftIntent ||
+    /(oferta|ofertas|categoria|categorias|rubro|stock|whatsapp|pedido|cotizacion|cotizar)/.test(text);
+
+  return !hasDirectNewIntent;
 }
 
 function detectGiftOccasionLabel(value: string) {
@@ -1091,6 +1144,10 @@ export function createShopAssistantService(repository: ShopAssistantRepository) 
       .map((item) => normalizeAssistantText(item.text))
       .filter(Boolean)
       .join(" ");
+    const useConversationContext = shouldUseConversationContext(trimmedMessage, recentConversation);
+    const assistantScope = useConversationContext
+      ? `${trimmedMessage} ${recentConversation}`.trim()
+      : trimmedMessage;
 
     if (!trimmedMessage) {
       return {
@@ -1109,16 +1166,18 @@ export function createShopAssistantService(repository: ShopAssistantRepository) 
       return (
         normalized.includes(normalizedName) ||
         normalized.includes(normalizedSlug) ||
-        recentConversation.includes(normalizedName) ||
-        recentConversation.includes(normalizedSlug)
+        assistantScope.includes(normalizedName) ||
+        assistantScope.includes(normalizedSlug)
       );
     });
     const contextCategory =
       matchedCategory ??
-      baseData.categories.find((category) => category.slug === input.contextCategorySlug) ??
+      (useConversationContext
+        ? baseData.categories.find((category) => category.slug === input.contextCategorySlug)
+        : null) ??
       null;
-    const productFocus = detectProductFocus(`${trimmedMessage} ${recentConversation}`);
-    const giftIntent = detectGiftIntent(`${trimmedMessage} ${recentConversation}`);
+    const productFocus = detectProductFocus(assistantScope);
+    const giftIntent = detectGiftIntent(assistantScope);
 
     const wantsOffers = /(oferta|ofertas|promo|promocion|promociones|destacado|destacados)/.test(
       normalized,
@@ -1142,12 +1201,13 @@ export function createShopAssistantService(repository: ShopAssistantRepository) 
     const wantsContinuation = /(mas|más|otra|otro|otras|otros|ver mas|ver más|muestrame mas|muestrame más)/.test(
       normalized,
     );
-    const code = extractProductCode(trimmedMessage) ?? input.productContextCode ?? null;
-    const searchTerms = extractSearchTerms(trimmedMessage);
+    const code =
+      extractProductCode(trimmedMessage) ?? (useConversationContext ? input.productContextCode : null) ?? null;
+    const searchTerms = extractSearchTerms(assistantScope);
     const searchCorrections = getSearchCorrections(trimmedMessage);
     const budget = extractBudget(trimmedMessage);
     const quantity = extractQuantity(trimmedMessage);
-    const allowSensitiveProducts = isAdultIntent(`${trimmedMessage} ${recentConversation}`);
+    const allowSensitiveProducts = isAdultIntent(assistantScope);
     const contextProduct = code ? await repository.findProductByCode(code) : null;
 
     if (wantsOffers) {
@@ -1291,7 +1351,11 @@ export function createShopAssistantService(repository: ShopAssistantRepository) 
         };
       }
 
-      const giftQueries = buildGiftSearchQueries(trimmedMessage, recentConversation, giftIntent);
+      const giftQueries = buildGiftSearchQueries(
+        trimmedMessage,
+        useConversationContext ? recentConversation : "",
+        giftIntent,
+      );
       const giftProducts = await gatherProductsFromQueries(
         repository,
         giftQueries,
@@ -1354,7 +1418,7 @@ export function createShopAssistantService(repository: ShopAssistantRepository) 
           : rankedGiftProducts.slice(0, MAX_PRODUCTS);
       const visibleGiftProducts = sortedGiftProducts.slice(0, MAX_PRODUCTS);
       const opening = buildGiftReply(giftIntent, visibleGiftProducts);
-      const occasionLabel = detectGiftOccasionLabel(`${trimmedMessage} ${recentConversation}`);
+      const occasionLabel = detectGiftOccasionLabel(assistantScope);
 
       return {
         text: budget

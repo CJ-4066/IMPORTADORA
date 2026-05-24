@@ -259,6 +259,17 @@ test("ordena recomendaciones por presupuesto cercano", async () => {
   assert.equal(reply.products?.[0].code, "AUD-025");
   assert.ok(containsNormalized(reply.text, "más cercana"));
   assert.ok(containsNormalized(reply.text, "S/ 25"));
+  assert.ok(!reply.products?.some((product) => containsNormalized(product.name, "teclado")));
+});
+
+test("no mezcla audifonos con teclados aunque ambos tengan bluetooth", async () => {
+  const reply = await answerShopAssistant({
+    message: "busco audifonos bluetooth por 25 soles",
+  });
+
+  assert.ok(reply.products?.length);
+  assert.ok(reply.products?.every((product) => containsNormalized(product.name, "audifono")));
+  assert.ok(!reply.products?.some((product) => containsNormalized(product.name, "teclado")));
 });
 
 test("no confunde scooter electrico con hervidor electrico", async () => {

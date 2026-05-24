@@ -378,9 +378,9 @@ function AssistantProductCard({ product }: AssistantProductCardProps) {
       ) : null}
 
       <div className="store-assistant-product-prices">
-        <span>Unitario {formatCurrency(product.unitPriceValue)}</span>
+        <span className="is-unitary">Unitario {formatCurrency(product.unitPriceValue)}</span>
         {product.wholesalePrice ? (
-          <span>
+          <span className="is-wholesale">
             Mayorista {formatCurrency(product.wholesalePriceValue ?? product.unitPriceValue)} desde {product.wholesaleMinQty}
           </span>
         ) : null}

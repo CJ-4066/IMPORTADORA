@@ -101,7 +101,7 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
         </section>
       ) : null}
 
-      <StoreSideActions settings={data.settings} />
+      <StoreSideActions settings={data.settings} showHomeShortcut={data.products.length === 0} />
       <CartDrawer initialOpen={initialCartOpen} quoteDefaults={quoteDefaults} settings={data.settings} />
     </main>
   );

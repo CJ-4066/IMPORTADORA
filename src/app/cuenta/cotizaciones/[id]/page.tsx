@@ -188,7 +188,6 @@ export default async function ShopperQuoteDetailPage({ params }: ShopperQuoteDet
       <StoreSideActions settings={settings} />
       <CartDrawer
         quoteDefaults={{
-          email: account.email,
           name: account.name,
           phone: account.phone,
         }}

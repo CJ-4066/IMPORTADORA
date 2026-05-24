@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   FileText,
   MessageCircleMore,
@@ -17,7 +17,7 @@ import { rehydrateCartStore } from "@/components/catalog/cart-store";
 import { getSafeMediaUrl } from "@/lib/media-url";
 import { getLinePricing } from "@/lib/pricing";
 import type { StoreSettingsView } from "@/lib/store";
-import { buildPublicWhatsappHref, formatCurrency } from "@/lib/utils";
+import { formatCurrency } from "@/lib/utils";
 import { useCartStore } from "@/components/catalog/cart-store";
 
 type CartDrawerProps = {
@@ -29,16 +29,13 @@ type CartDrawerProps = {
 type QuoteDraftDefaults = {
   name?: string | null;
   phone?: string | null;
-  email?: string | null;
 };
 
 type QuoteDraft = {
   name: string;
   phone: string;
-  email: string;
   documentType: string;
   documentNumber: string;
-  address: string;
   note: string;
 };
 
@@ -65,10 +62,8 @@ function buildInitialQuoteDraft(
   defaults?: QuoteDraftDefaults | null,
 ): QuoteDraft {
   return {
-    address: "",
     documentNumber: "",
     documentType: "",
-    email: defaults?.email?.trim() ?? "",
     name: defaults?.name?.trim() ?? "",
     note: settings.orderFooter,
     phone: defaults?.phone?.trim() ?? "",
@@ -77,12 +72,8 @@ function buildInitialQuoteDraft(
 
 function CartHeader({
   onClose,
-  onToggleQuoteForm,
-  quoteFormOpen,
 }: {
   onClose: () => void;
-  onToggleQuoteForm: () => void;
-  quoteFormOpen: boolean;
 }) {
   return (
     <div className="cart-header">
@@ -91,10 +82,6 @@ function CartHeader({
         <h2>Carrito de compra</h2>
       </div>
       <div className="cart-header-actions">
-        <button className="button button-ghost cart-header-quote" onClick={onToggleQuoteForm} type="button">
-          <FileText size={16} />
-          {quoteFormOpen ? "Cerrar" : "Cotizar"}
-        </button>
         <button className="icon-button" onClick={onClose} type="button">
           ×
         </button>
@@ -167,83 +154,44 @@ function CartFooter({
   currencySymbol,
   onClear,
   onOpenQuoteForm,
-  quoteState,
-  quoteMessage,
-  quoteMessageTone,
-  quoteStatusSteps,
-  quoteWhatsappHref,
+  quoteFormOpen,
   totalAmount,
   totalSavings,
-  whatsappHref,
 }: {
   currencySymbol: string;
   onClear: () => void;
   onOpenQuoteForm: () => void;
-  quoteState: "idle" | "loading" | "success" | "error";
-  quoteMessage: string;
-  quoteMessageTone: "success" | "error" | "neutral";
-  quoteStatusSteps: QuoteStatusStep[];
-  quoteWhatsappHref: string | null;
+  quoteFormOpen: boolean;
   totalAmount: number;
   totalSavings: number;
-  whatsappHref: string;
 }) {
   return (
     <div className="cart-footer">
-      <div className="summary-row">
+      <div className="summary-row is-total">
         <span>Total estimado</span>
         <strong>{formatCurrency(totalAmount, currencySymbol)}</strong>
       </div>
       {totalSavings > 0 ? (
-        <div className="summary-row">
+        <div className="summary-row is-savings">
           <span>Ahorro por mayorista</span>
           <strong>{formatCurrency(totalSavings, currencySymbol)}</strong>
         </div>
       ) : null}
 
-      <div className="cart-footer-actions">
-        <button className="button button-primary" onClick={onOpenQuoteForm} type="button">
-          <FileText size={18} />
-          Completar cotización
-        </button>
-        <a className="button button-secondary" href={whatsappHref} rel="noreferrer" target="_blank">
-          <MessageCircleMore size={18} />
-          Enviar pedido
-        </a>
-      </div>
-
-      {quoteWhatsappHref ? (
-        <a className="button button-ghost" href={quoteWhatsappHref} rel="noreferrer" target="_blank">
-          <MessageCircleMore size={18} />
-          Enviar cotización al cliente
-        </a>
-      ) : null}
-
-      {quoteState === "loading" ? (
-        <p className="muted">Enviando solicitud y validando disponibilidad...</p>
-      ) : null}
-
-      {quoteMessage ? (
-        <p className={quoteMessageTone === "error" ? "error-text" : quoteMessageTone === "success" ? "success-text" : "muted"}>
-          {quoteMessage}
-        </p>
-      ) : null}
-
-      {quoteStatusSteps.length ? (
-        <div className="cart-quote-status">
-          {quoteStatusSteps.map((step, index) => (
-            <p
-              className={`cart-quote-status-item is-${step.status}`}
-              key={`${step.status}-${index}-${step.text}`}
-            >
-              <span>{step.status === "success" ? "OK" : step.status === "warning" ? "AV" : "ER"}</span>
-              {step.text}
-            </p>
-          ))}
+      {!quoteFormOpen ? (
+        <div className="cart-footer-actions">
+          <button
+            className="button button-secondary cart-quote-open"
+            onClick={onOpenQuoteForm}
+            type="button"
+          >
+            <FileText size={18} />
+            Generar cotización web
+          </button>
         </div>
       ) : null}
 
-      <button className="button button-ghost" onClick={onClear} type="button">
+      <button className="button button-ghost cart-clear-button" onClick={onClear} type="button">
         Vaciar carrito
       </button>
     </div>
@@ -253,30 +201,40 @@ function CartFooter({
 function QuoteForm({
   draft,
   hasAccountDefaults,
+  isReady,
   onChange,
   onClose,
   onReset,
   onSubmit,
+  quoteMessage,
+  quoteMessageTone,
+  quoteStatusSteps,
   quoteState,
+  quoteWhatsappHref,
 }: {
   draft: QuoteDraft;
   hasAccountDefaults: boolean;
+  isReady: boolean;
   onChange: (field: keyof QuoteDraft, value: string) => void;
   onClose: () => void;
   onReset: () => void;
   onSubmit: () => void;
+  quoteMessage: string;
+  quoteMessageTone: "success" | "error" | "neutral";
+  quoteStatusSteps: QuoteStatusStep[];
   quoteState: "idle" | "loading" | "success" | "error";
+  quoteWhatsappHref: string | null;
 }) {
   return (
     <section className="cart-quote-form">
       <div className="cart-quote-head">
         <div className="stack-xs">
-          <p className="eyebrow">Datos de compra</p>
-          <h3>Enviar solicitud de cotización</h3>
+          <p className="eyebrow">Generar cotización web</p>
+          <h3>Completa tus datos para enviar al ERP</h3>
           <p className="muted">
             {hasAccountDefaults
-              ? "Cargamos tus datos de cuenta para acelerar la cotización. Puedes corregirlos antes de enviar."
-              : "Completa tus datos de contacto, documento y observaciones antes de enviar la solicitud."}
+              ? "Usaremos tus datos de cuenta como base. Completa lo mínimo para activar el envío."
+              : "Completa nombre y teléfono. El botón se activará solo cuando el formulario esté listo."}
           </p>
         </div>
         <button className="icon-button" onClick={onClose} type="button">
@@ -308,21 +266,12 @@ function QuoteForm({
           />
         </label>
         <label className="field-stack">
-          <span>Teléfono</span>
+          <span>Teléfono / WhatsApp</span>
           <input
             onChange={(event) => onChange("phone", event.target.value)}
             placeholder="Ej. 987654321"
             type="tel"
             value={draft.phone}
-          />
-        </label>
-        <label className="field-stack">
-          <span>Correo</span>
-          <input
-            onChange={(event) => onChange("email", event.target.value)}
-            placeholder="cliente@empresa.com"
-            type="email"
-            value={draft.email}
           />
         </label>
         <label className="field-stack">
@@ -345,15 +294,6 @@ function QuoteForm({
           />
         </label>
         <label className="field-stack cart-quote-grid-full">
-          <span>Dirección</span>
-          <input
-            onChange={(event) => onChange("address", event.target.value)}
-            placeholder="Dirección de entrega o referencia"
-            type="text"
-            value={draft.address}
-          />
-        </label>
-        <label className="field-stack cart-quote-grid-full">
           <span>Observaciones</span>
           <textarea
             onChange={(event) => onChange("note", event.target.value)}
@@ -364,10 +304,43 @@ function QuoteForm({
         </label>
       </div>
 
-      <button className="button button-primary" disabled={quoteState === "loading"} onClick={onSubmit} type="button">
-        <FileText size={18} />
-        {quoteState === "loading" ? "Enviando..." : "Enviar solicitud"}
-      </button>
+      <div className="cart-quote-actions">
+        <button
+          className={`button cart-quote-submit ${isReady ? "is-ready button-primary" : "button-ghost"}`}
+          disabled={!isReady || quoteState === "loading"}
+          onClick={onSubmit}
+          type="button"
+        >
+          {quoteState === "loading" ? "Enviando..." : "Solicitar cotización"}
+        </button>
+
+        {quoteWhatsappHref ? (
+          <a className="button button-secondary" href={quoteWhatsappHref} rel="noreferrer" target="_blank">
+            <MessageCircleMore size={18} />
+            Ver cotización por WhatsApp
+          </a>
+        ) : null}
+      </div>
+
+      {quoteMessage ? (
+        <p className={quoteMessageTone === "error" ? "error-text" : quoteMessageTone === "success" ? "success-text" : "muted"}>
+          {quoteMessage}
+        </p>
+      ) : null}
+
+      {quoteStatusSteps.length ? (
+        <div className="cart-quote-status">
+          {quoteStatusSteps.map((step, index) => (
+            <p
+              className={`cart-quote-status-item is-${step.status}`}
+              key={`${step.status}-${index}-${step.text}`}
+            >
+              <span>{step.status === "success" ? "OK" : step.status === "warning" ? "AV" : "ER"}</span>
+              {step.text}
+            </p>
+          ))}
+        </div>
+      ) : null}
     </section>
   );
 }
@@ -394,9 +367,7 @@ export function CartDrawer({
   const [quoteMessageTone, setQuoteMessageTone] = useState<"success" | "error" | "neutral">("neutral");
   const [quoteStatusSteps, setQuoteStatusSteps] = useState<QuoteStatusStep[]>([]);
   const [quoteWhatsappHref, setQuoteWhatsappHref] = useState<string | null>(null);
-  const hasAccountDefaults = Boolean(
-    quoteDefaults?.name?.trim() || quoteDefaults?.phone?.trim() || quoteDefaults?.email?.trim(),
-  );
+  const hasAccountDefaults = Boolean(quoteDefaults?.name?.trim() || quoteDefaults?.phone?.trim());
   const [quoteDraft, setQuoteDraft] = useState<QuoteDraft>(() => buildInitialQuoteDraft(settings, quoteDefaults));
 
   useEffect(() => {
@@ -420,22 +391,9 @@ export function CartDrawer({
   const totalAmount = orderLines.reduce((sum, line) => sum + line.pricing.total, 0);
   const totalSavings = orderLines.reduce((sum, line) => sum + line.pricing.savings, 0);
 
-  const whatsappText = useMemo(
-    () =>
-      [
-        settings.orderIntro,
-        "",
-        ...orderLines.map(({ item, pricing }) => {
-          return `- ${item.name} (${item.code}) | ${pricing.quantityLabel} | ${pricing.tierLabel} | ${formatCurrency(pricing.total, settings.currencySymbol)}`;
-        }),
-        "",
-        `Total referencial: ${formatCurrency(totalAmount, settings.currencySymbol)}`,
-        settings.orderFooter,
-      ].join("\n"),
-    [orderLines, settings.currencySymbol, settings.orderFooter, settings.orderIntro, totalAmount],
-  );
-
-  const whatsappHref = buildPublicWhatsappHref(whatsappText);
+  const isQuoteReady =
+    quoteDraft.name.trim().length >= 3 &&
+    quoteDraft.phone.trim().length >= 6;
 
   const updateQuoteDraft = (field: keyof QuoteDraft, value: string) => {
     setQuoteDraft((current) => ({
@@ -448,8 +406,21 @@ export function CartDrawer({
     setQuoteDraft(buildInitialQuoteDraft(settings, quoteDefaults));
   };
 
+  const openQuoteForm = () => {
+    setQuoteFormOpen(true);
+
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        document.querySelector(".cart-quote-form")?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      });
+    });
+  };
+
   const submitQuoteToErp = async () => {
-    if (!orderLines.length || quoteState === "loading") {
+    if (!orderLines.length || !isQuoteReady || quoteState === "loading") {
       return;
     }
 
@@ -467,10 +438,8 @@ export function CartDrawer({
         },
         body: JSON.stringify({
           customer: {
-            address: quoteDraft.address,
             documentNumber: quoteDraft.documentNumber,
             documentType: quoteDraft.documentType,
-            email: quoteDraft.email,
             name: quoteDraft.name,
             phone: quoteDraft.phone,
           },
@@ -493,22 +462,20 @@ export function CartDrawer({
       }
 
       setQuoteState("success");
-      setQuoteMessage(payload.message ?? "Solicitud enviada correctamente.");
+      setQuoteMessage(payload.message ?? "Cotización enviada correctamente.");
       setQuoteMessageTone("success");
       setQuoteStatusSteps(payload.statusSteps ?? []);
       setQuoteWhatsappHref(payload.whatsappHref ?? null);
-      setQuoteFormOpen(true);
     } catch (error) {
       setQuoteState("error");
       setQuoteMessage(
-        error instanceof Error ? error.message : "No se pudo enviar la solicitud.",
+        error instanceof Error ? error.message : "No se pudo enviar la cotización.",
       );
       setQuoteMessageTone("error");
       setQuoteStatusSteps([
         {
           status: "error",
-          text:
-            error instanceof Error ? error.message : "No se pudo enviar la solicitud.",
+          text: error instanceof Error ? error.message : "No se pudo enviar la cotización.",
         },
       ]);
     }
@@ -522,8 +489,6 @@ export function CartDrawer({
     <aside className={`cart-drawer ${open ? "is-open" : ""}`}>
       <CartHeader
         onClose={() => setOpen(false)}
-        onToggleQuoteForm={() => setQuoteFormOpen((current) => !current)}
-        quoteFormOpen={quoteFormOpen}
       />
 
       {orderLines.length ? (
@@ -535,31 +500,31 @@ export function CartDrawer({
             orderLines={orderLines}
           />
 
+          <CartFooter
+            currencySymbol={settings.currencySymbol}
+            onClear={clear}
+            onOpenQuoteForm={openQuoteForm}
+            quoteFormOpen={quoteFormOpen}
+            totalAmount={totalAmount}
+            totalSavings={totalSavings}
+          />
+
           {quoteFormOpen ? (
             <QuoteForm
               draft={quoteDraft}
               hasAccountDefaults={hasAccountDefaults}
+              isReady={isQuoteReady}
               onChange={updateQuoteDraft}
               onClose={() => setQuoteFormOpen(false)}
               onReset={resetQuoteDraft}
-              onSubmit={() => void submitQuoteToErp()}
+              onSubmit={submitQuoteToErp}
+              quoteMessage={quoteMessage}
+              quoteMessageTone={quoteMessageTone}
               quoteState={quoteState}
+              quoteStatusSteps={quoteStatusSteps}
+              quoteWhatsappHref={quoteWhatsappHref}
             />
           ) : null}
-
-          <CartFooter
-            currencySymbol={settings.currencySymbol}
-            onClear={clear}
-            onOpenQuoteForm={() => setQuoteFormOpen(true)}
-            quoteState={quoteState}
-            quoteMessage={quoteMessage}
-            quoteMessageTone={quoteMessageTone}
-            quoteStatusSteps={quoteStatusSteps}
-            quoteWhatsappHref={quoteWhatsappHref}
-            totalAmount={totalAmount}
-            totalSavings={totalSavings}
-            whatsappHref={whatsappHref}
-          />
         </>
       ) : (
         <EmptyCartState />

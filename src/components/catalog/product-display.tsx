@@ -24,28 +24,32 @@ export function getProductStockState(product: CatalogProduct) {
 export function ProductPriceRows({
   currencySymbol,
   product,
+  showWholesalePrice = true,
 }: {
   currencySymbol: string;
   product: CatalogProduct;
+  showWholesalePrice?: boolean;
 }) {
   return (
     <>
-      <div className="price-row">
+      <div className="price-row is-unitary">
         <span>
           <Tags size={16} />
           Unitario
         </span>
         <strong>{formatCurrency(product.unitPrice, currencySymbol)}</strong>
       </div>
-      <div className="price-row">
-        <span>Mayorista desde {product.wholesaleMinQty}</span>
-        <strong>
-          {formatCurrency(
-            product.wholesalePrice ?? product.unitPrice,
-            currencySymbol,
-          )}
-        </strong>
-      </div>
+      {showWholesalePrice ? (
+        <div className="price-row is-wholesale">
+          <span>Mayorista desde {product.wholesaleMinQty}</span>
+          <strong>
+            {formatCurrency(
+              product.wholesalePrice ?? product.unitPrice,
+              currencySymbol,
+            )}
+          </strong>
+        </div>
+      ) : null}
     </>
   );
 }

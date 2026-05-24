@@ -4,21 +4,6 @@ import { requireAdmin } from "@/lib/auth";
 import { logoutAction } from "@/app/admin/actions";
 import { BrandLogo } from "@/components/brand/brand-logo";
 import { AdminNav } from "@/components/admin/admin-nav";
-import { AdminThemeToggle } from "@/components/admin/admin-theme-toggle";
-
-const adminThemeBootstrap = `
-(function() {
-  try {
-    var stored = window.localStorage.getItem("admin-theme");
-    var theme = stored === "light" || stored === "dark"
-      ? stored
-      : (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
-    document.body.dataset.adminTheme = theme;
-  } catch (error) {
-    document.body.dataset.adminTheme = "dark";
-  }
-})();
-`;
 
 export default async function AdminLayout({
   children,
@@ -29,12 +14,10 @@ export default async function AdminLayout({
 
   return (
     <main className="admin-shell">
-      <script dangerouslySetInnerHTML={{ __html: adminThemeBootstrap }} />
       <aside className="admin-sidebar">
         <div className="admin-sidebar-main">
           <div className="admin-sidebar-brand">
             <BrandLogo href="/admin" priority size="sm" />
-            <AdminThemeToggle />
           </div>
           <div className="admin-profile-card">
             <span className="admin-profile-badge">

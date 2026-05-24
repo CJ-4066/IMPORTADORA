@@ -104,12 +104,26 @@ function mapQuotePdfNotification(value: Prisma.JsonValue | null): AdminQuotePdfN
   }
 
   const record = value as Record<string, Prisma.JsonValue>;
+  const nestedCustomer =
+    record.customer && typeof record.customer === "object" && !Array.isArray(record.customer)
+      ? (record.customer as Record<string, Prisma.JsonValue>)
+      : null;
+  const nestedInternal =
+    record.internal && typeof record.internal === "object" && !Array.isArray(record.internal)
+      ? (record.internal as Record<string, Prisma.JsonValue>)
+      : null;
+  const nestedMessage =
+    nestedCustomer && typeof nestedCustomer.message === "string"
+      ? nestedCustomer.message.trim()
+      : nestedInternal && typeof nestedInternal.message === "string"
+        ? nestedInternal.message.trim()
+        : "";
 
   return {
     message:
       typeof record.message === "string" && record.message.trim()
         ? record.message.trim()
-        : "Sin detalle de notificación.",
+        : nestedMessage || "Sin detalle de notificación.",
     ok: record.ok === true,
     sent: record.sent === true,
   };

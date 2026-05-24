@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { House, LayoutDashboard, LogOut, UserRound } from "lucide-react";
 import { shopperLogoutAction } from "@/app/acceso/actions";
 import type { SessionUser } from "@/lib/auth";
@@ -55,6 +55,8 @@ function AccountPopover({
 export function PublicStoreAccountSlot({ role }: { role?: AccountRole }) {
   const { collapsed } = usePublicStoreHeaderState();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const hasQueryParams = searchParams.toString().length > 0;
 
   const handleStartClick = () => {
     if (pathname === "/") {
@@ -88,7 +90,7 @@ export function PublicStoreAccountSlot({ role }: { role?: AccountRole }) {
       </div>
 
       <div className="public-store-account-switch-layer is-collapsed" aria-hidden={!collapsed}>
-        {pathname === "/" ? (
+        {pathname === "/" && !hasQueryParams ? (
           <button
             className="public-store-quick-link public-store-cart-link public-store-home-link public-store-account-switch-link"
             type="button"

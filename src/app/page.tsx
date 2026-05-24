@@ -193,7 +193,7 @@ export default async function Home({ searchParams }: HomeProps) {
   const heroProducts = pickHeroProducts([...data.bestSellerProducts, ...data.products]);
 
   return (
-    <main className="site-shell" style={themeVars}>
+    <main className="site-shell" id="home-top" style={themeVars}>
       <PublicStoreHeader
         brands={data.brands}
         categories={data.categories}
@@ -240,7 +240,10 @@ export default async function Home({ searchParams }: HomeProps) {
         />
       </section>
 
-      <StoreSideActions settings={data.settings} />
+      <StoreSideActions
+        settings={data.settings}
+        showHomeShortcut={data.totalResults === 0 || data.products.length === 0}
+      />
 
       <CatalogPagination
         brand={brand}
