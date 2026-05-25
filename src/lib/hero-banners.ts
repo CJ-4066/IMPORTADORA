@@ -174,8 +174,8 @@ export function mapHeroBanner(banner: PrismaHeroBanner, now = new Date()): HeroB
 
 export function buildHeroBannerOrderBy() {
   return [
-    { priority: "desc" as const },
     { sortOrder: "asc" as const },
+    { priority: "desc" as const },
     { startsAt: "asc" as const },
     { updatedAt: "desc" as const },
     { id: "asc" as const },

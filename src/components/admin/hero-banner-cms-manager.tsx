@@ -1,14 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useEffect, useMemo, useRef, useState } from "react";
+import { useActionState, useMemo, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
 import {
   Copy,
   Eye,
   EyeOff,
   GripVertical,
-  ImagePlus,
   LayoutGrid,
   MonitorSmartphone,
   Plus,
@@ -16,7 +15,6 @@ import {
   Sparkles,
   Trash2,
   Upload,
-  ArrowRight,
   ChevronDown,
   ChevronUp,
 } from "lucide-react";
@@ -31,7 +29,6 @@ import { HeroBannerVisual } from "@/components/catalog/hero-banner-visual";
 import {
   deleteHeroBannerAction,
   duplicateHeroBannerAction,
-  importLegacyHeroSlidesAction,
   reorderHeroBannersAction,
   toggleHeroBannerAction,
   upsertHeroBannerAction,
@@ -305,7 +302,6 @@ export function HeroBannerCmsManager({
   const [items, setItems] = useState<HeroBannerView[]>(banners);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const reorderFormRef = useRef<HTMLFormElement | null>(null);
-  const shouldSubmitReorderRef = useRef(false);
   const [orderIds, setOrderIds] = useState<string[]>(() => banners.map((item) => item.id));
   const selectedBanner = useMemo(
     () => items.find((item) => item.id === selectedBannerId) ?? null,
@@ -319,6 +315,14 @@ export function HeroBannerCmsManager({
       ...current,
       [key]: value,
     }));
+  }
+
+  function submitReorder(nextIds: string[]) {
+    setOrderIds(nextIds);
+
+    window.setTimeout(() => {
+      reorderFormRef.current?.requestSubmit();
+    }, 0);
   }
 
   function reorderList(sourceId: string, targetId: string) {
@@ -337,8 +341,7 @@ export function HeroBannerCmsManager({
       const next = current.slice();
       const [moved] = next.splice(fromIndex, 1);
       next.splice(toIndex, 0, moved);
-      setOrderIds(next.map((item) => item.id));
-      shouldSubmitReorderRef.current = true;
+      submitReorder(next.map((item) => item.id));
 
       return next;
     });
@@ -356,21 +359,11 @@ export function HeroBannerCmsManager({
       const next = current.slice();
       const [moved] = next.splice(fromIndex, 1);
       next.splice(toIndex, 0, moved);
-      setOrderIds(next.map((item) => item.id));
-      shouldSubmitReorderRef.current = true;
+      submitReorder(next.map((item) => item.id));
 
       return next;
     });
   }
-
-  useEffect(() => {
-    if (!shouldSubmitReorderRef.current) {
-      return;
-    }
-
-    shouldSubmitReorderRef.current = false;
-    reorderFormRef.current?.requestSubmit();
-  }, [orderIds]);
 
   return (
     <section className="panel hero-banner-cms">
@@ -392,16 +385,6 @@ export function HeroBannerCmsManager({
                 <Plus size={16} />
                 Nuevo banner
               </Link>
-              <Link className="hero-banner-cms-link" href="/#hero">
-                <ArrowRight size={16} />
-                Ver hero público
-              </Link>
-              <form action={importLegacyHeroSlidesAction}>
-                <button className="hero-banner-cms-link" type="submit">
-                  <ImagePlus size={16} />
-                  Importar slides
-                </button>
-              </form>
             </div>
           </div>
 
@@ -533,12 +516,6 @@ export function HeroBannerCmsManager({
                     <Plus size={16} />
                     Crear banner
                   </Link>
-                  <form action={importLegacyHeroSlidesAction}>
-                    <button className="button button-secondary button-chip" type="submit">
-                      <ImagePlus size={16} />
-                      Importar slides
-                    </button>
-                  </form>
                 </div>
               </article>
             )}
@@ -742,35 +719,37 @@ export function HeroBannerCmsManager({
                 />
               </label>
 
-              <label className="field">
-                <span>Fecha inicio</span>
-                <input
-                  name="startsAt"
-                  type="datetime-local"
-                  value={draft.startsAt}
-                  onChange={(event) => updateDraft("startsAt", event.target.value)}
-                />
-              </label>
+              <div className="hero-banner-schedule-grid">
+                <label className="field">
+                  <span>Fecha inicio</span>
+                  <input
+                    name="startsAt"
+                    type="datetime-local"
+                    value={draft.startsAt}
+                    onChange={(event) => updateDraft("startsAt", event.target.value)}
+                  />
+                </label>
 
-              <label className="field">
-                <span>Fecha fin</span>
-                <input
-                  name="endsAt"
-                  type="datetime-local"
-                  value={draft.endsAt}
-                  onChange={(event) => updateDraft("endsAt", event.target.value)}
-                />
-              </label>
+                <label className="field">
+                  <span>Fecha fin</span>
+                  <input
+                    name="endsAt"
+                    type="datetime-local"
+                    value={draft.endsAt}
+                    onChange={(event) => updateDraft("endsAt", event.target.value)}
+                  />
+                </label>
 
-              <label className="field field-inline-check">
-                <input
-                  checked={draft.isActive}
-                  name="isActive"
-                  onChange={(event) => updateDraft("isActive", event.target.checked)}
-                  type="checkbox"
-                />
-                <span>Banner activo</span>
-              </label>
+                <label className="field field-inline-check hero-banner-active-field">
+                  <input
+                    checked={draft.isActive}
+                    name="isActive"
+                    onChange={(event) => updateDraft("isActive", event.target.checked)}
+                    type="checkbox"
+                  />
+                  <span>Banner activo</span>
+                </label>
+              </div>
               </div>
 
               <div className="hero-banner-upload-grid">

@@ -83,7 +83,7 @@ export function HeroBannerVisual({
   const modeClass = mode === "mobile" ? "is-mobile-mode" : mode === "desktop" ? "is-desktop-mode" : "is-auto-mode";
   const desktopUrl = getSafeMediaUrl(banner.desktopImageUrl)?.trim() || "";
   const mobileUrl = banner.mobileImageUrl ? (getSafeMediaUrl(banner.mobileImageUrl)?.trim() || "") : "";
-  const src = mode === "mobile" ? mobileUrl : desktopUrl;
+  const src = mode === "mobile" ? mobileUrl || desktopUrl : desktopUrl || mobileUrl;
   const hasMobileImage = mobileUrl.length > 0;
   const hasVisibleImage = src.length > 0;
   const overlayColor = hexToRgba(banner.overlayColor, banner.overlayOpacity);
