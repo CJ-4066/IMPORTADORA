@@ -1,13 +1,19 @@
-import process from "node:process";
-import { setTimeout as sleep } from "node:timers/promises";
 import { loadEnvConfig } from "@next/env";
-import { FacturadorApiError } from "../src/lib/facturador/client";
+import {
+  FacturadorApiError,
+  FacturadorClient,
+  getFacturadorConfig,
+} from "../src/lib/facturador/client";
 import {
   ErpSyncAlreadyRunningError,
   syncFacturadorProducts,
   type FacturadorSyncMode,
 } from "../src/lib/facturador/sync";
 import { prisma } from "../src/lib/prisma";
+import { readFile, writeFile } from "node:fs/promises";
+import { join } from "node:path";
+import process from "node:process";
+import { setTimeout as sleep } from "node:timers/promises";
 
 loadEnvConfig(process.cwd());
 
@@ -18,13 +24,21 @@ type SchedulerConfig = {
   stockEveryMinutes: number;
   stockPriceEveryMinutes: number;
   fullEveryMinutes: number;
+  windowPages: number;
   throttleCooldownMinutes: number;
+};
+
+type SchedulerState = {
+  stockPage: number;
+  stockPricePage: number;
+  fullPage: number;
+  lastKnownPage: number | null;
+  cooldownUntil: number | null;
 };
 
 type SchedulerMode = FacturadorSyncMode | null;
 
-let schedulerConfig: SchedulerConfig | null = null;
-let cooldownUntil: number | null = null;
+const STATE_FILE = join(process.cwd(), ".erp-sync-scheduler-state.json");
 
 function parsePositiveInt(value: string | undefined, fallback: number) {
   const parsed = Number(value ?? fallback);
@@ -62,11 +76,51 @@ function getSchedulerConfig(): SchedulerConfig {
     stockEveryMinutes: parsePositiveInt(process.env.ERP_SYNC_STOCK_EVERY_MINUTES, 1),
     stockPriceEveryMinutes: parsePositiveInt(process.env.ERP_SYNC_PRICE_EVERY_MINUTES, 5),
     fullEveryMinutes: parsePositiveInt(process.env.ERP_SYNC_FULL_EVERY_MINUTES, 60),
+    windowPages: parsePositiveInt(process.env.ERP_SYNC_WINDOW_PAGES, 1),
     throttleCooldownMinutes: parsePositiveInt(
       process.env.ERP_SYNC_THROTTLE_COOLDOWN_MINUTES,
       10,
     ),
   };
+}
+
+function defaultState(): SchedulerState {
+  return {
+    stockPage: 1,
+    stockPricePage: 1,
+    fullPage: 1,
+    lastKnownPage: null,
+    cooldownUntil: null,
+  };
+}
+
+async function loadSchedulerState() {
+  try {
+    const raw = await readFile(STATE_FILE, "utf8");
+    const parsed = JSON.parse(raw) as Partial<SchedulerState>;
+
+    return {
+      ...defaultState(),
+      ...parsed,
+      stockPage: parsePositiveInt(String(parsed.stockPage ?? 1), 1),
+      stockPricePage: parsePositiveInt(String(parsed.stockPricePage ?? 1), 1),
+      fullPage: parsePositiveInt(String(parsed.fullPage ?? 1), 1),
+      lastKnownPage:
+        parsed.lastKnownPage === null || parsed.lastKnownPage === undefined
+          ? null
+          : Number(parsed.lastKnownPage),
+      cooldownUntil:
+        parsed.cooldownUntil === null || parsed.cooldownUntil === undefined
+          ? null
+          : Number(parsed.cooldownUntil),
+    } satisfies SchedulerState;
+  } catch {
+    return defaultState();
+  }
+}
+
+async function saveSchedulerState(state: SchedulerState) {
+  await writeFile(STATE_FILE, JSON.stringify(state, null, 2));
 }
 
 function getTimePartsInTimeZone(date: Date, timeZone: string) {
@@ -137,21 +191,123 @@ function isThrottleError(error: unknown) {
   );
 }
 
-async function runSync(mode: FacturadorSyncMode) {
-  if (!schedulerConfig) {
-    throw new Error("El scheduler no fue inicializado correctamente.");
+function extractLastPage(payload: unknown) {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    return null;
   }
+
+  const record = payload as Record<string, unknown>;
+  const meta = record.meta;
+
+  if (!meta || typeof meta !== "object" || Array.isArray(meta)) {
+    return null;
+  }
+
+  const lastPage = (meta as Record<string, unknown>).last_page;
+
+  if (typeof lastPage === "number" && Number.isInteger(lastPage) && lastPage > 0) {
+    return lastPage;
+  }
+
+  if (typeof lastPage === "string") {
+    const parsed = Number(lastPage);
+
+    if (Number.isInteger(parsed) && parsed > 0) {
+      return parsed;
+    }
+  }
+
+  return null;
+}
+
+async function probeLastPage(client: FacturadorClient) {
+  const payload = await client.request("/items/records", {
+    query: { page: 1 },
+    retry: false,
+  });
+
+  return extractLastPage(payload);
+}
+
+function getCursorKey(mode: FacturadorSyncMode) {
+  if (mode === "STOCK_PRICE") {
+    return "stockPricePage" as const;
+  }
+
+  if (mode === "FULL") {
+    return "fullPage" as const;
+  }
+
+  return "stockPage" as const;
+}
+
+function advanceCursor(cursor: number, windowPages: number, lastKnownPage: number | null) {
+  const next = cursor + windowPages;
+
+  if (lastKnownPage && Number.isInteger(lastKnownPage) && lastKnownPage > 0) {
+    return next > lastKnownPage ? 1 : next;
+  }
+
+  return next;
+}
+
+async function runSync(
+  mode: FacturadorSyncMode,
+  config: SchedulerConfig,
+  state: SchedulerState,
+) {
+  const cursorKey = getCursorKey(mode);
+  const cursor = state[cursorKey];
+  const baseConfig = getFacturadorConfig();
+  const baseClient = new FacturadorClient(baseConfig);
+
+  let lastKnownPage = state.lastKnownPage;
+
+  try {
+    const probedLastPage = await probeLastPage(baseClient);
+    if (probedLastPage) {
+      lastKnownPage = probedLastPage;
+    }
+  } catch (error) {
+    if (isThrottleError(error)) {
+      state.cooldownUntil = Date.now() + config.throttleCooldownMinutes * 60_000;
+      await saveSchedulerState(state);
+      console.error(
+        `[ERP scheduler] Throttle detectado al sondear la página 1. Enfriando durante ${config.throttleCooldownMinutes} minutos.`,
+      );
+      return;
+    }
+
+    throw error;
+  }
+
+  const pageWindow = Math.max(1, config.windowPages);
+  const effectiveClient = new FacturadorClient({
+    ...baseConfig,
+    startProductPage: cursor,
+    maxProductPages: pageWindow,
+    productPageConcurrency: 1,
+    productPageDelayMs: 2000,
+    maxRetries: 3,
+    retryDelayMs: 10_000,
+  });
 
   const startedAt = new Date();
   console.log(
-    `[ERP scheduler] Iniciando sync ${getModeLabel(mode)} a las ${startedAt.toISOString()}`,
+    `[ERP scheduler] Iniciando sync ${getModeLabel(mode)} en página ${cursor}${lastKnownPage ? ` de ${lastKnownPage}` : ""} a las ${startedAt.toISOString()}`,
   );
 
   try {
     const summary = await syncFacturadorProducts({
+      client: effectiveClient,
       trigger: "AUTOMATIC",
       syncMode: mode,
     });
+
+    state[cursorKey] = advanceCursor(cursor, pageWindow, lastKnownPage);
+    state.lastKnownPage = lastKnownPage;
+    state.cooldownUntil = null;
+    await saveSchedulerState(state);
 
     console.log(
       `[ERP scheduler] Sync ${getModeLabel(mode)} completada. Recibidos=${summary.fetched} Creados=${summary.created} Actualizados=${summary.updated} Omitidos=${summary.skipped.length}`,
@@ -164,9 +320,10 @@ async function runSync(mode: FacturadorSyncMode) {
 
     if (error instanceof FacturadorApiError) {
       if (isThrottleError(error)) {
-        cooldownUntil = Date.now() + schedulerConfig.throttleCooldownMinutes * 60_000;
+        state.cooldownUntil = Date.now() + config.throttleCooldownMinutes * 60_000;
+        await saveSchedulerState(state);
         console.error(
-          `[ERP scheduler] Throttle detectado. Enfriando durante ${schedulerConfig.throttleCooldownMinutes} minutos.`,
+          `[ERP scheduler] Throttle detectado. Enfriando durante ${config.throttleCooldownMinutes} minutos.`,
         );
       }
 
@@ -182,10 +339,10 @@ async function runSync(mode: FacturadorSyncMode) {
 }
 
 async function main() {
-  schedulerConfig = getSchedulerConfig();
-  cooldownUntil = null;
+  const config = getSchedulerConfig();
+  const state = await loadSchedulerState();
 
-  if (!schedulerConfig.enabled) {
+  if (!config.enabled) {
     console.log("[ERP scheduler] Deshabilitado por ERP_SYNC_SCHEDULER_ENABLED=0");
     await prisma.$disconnect();
     return;
@@ -206,32 +363,33 @@ async function main() {
   process.once("SIGINT", stop);
   process.once("SIGTERM", stop);
 
-  if (schedulerConfig.runOnStart) {
-    const initialMode = resolveDueMode(schedulerConfig, new Date());
+  if (config.runOnStart) {
+    const initialMode = resolveDueMode(config, new Date());
     if (initialMode) {
-      await runSync(initialMode);
+      await runSync(initialMode, config, state);
     }
   }
 
   while (!stopped) {
     const now = new Date();
-    const mode =
-      cooldownUntil && Date.now() < cooldownUntil ? null : resolveDueMode(schedulerConfig, now);
+    const cooldownActive = state.cooldownUntil && Date.now() < state.cooldownUntil;
+    const mode = cooldownActive ? null : resolveDueMode(config, now);
 
-    if (cooldownUntil && Date.now() < cooldownUntil) {
-      const remainingMinutes = Math.max(1, Math.ceil((cooldownUntil - Date.now()) / 60_000));
+    if (cooldownActive) {
+      const remainingMinutes = Math.max(1, Math.ceil((state.cooldownUntil! - Date.now()) / 60_000));
       console.log(
         `[ERP scheduler] Enfriamiento activo. Próximo intento en ~${remainingMinutes} minuto(s).`,
       );
     }
 
     if (mode) {
-      await runSync(mode);
+      await runSync(mode, config, state);
     } else {
       console.log("[ERP scheduler] Sin modo due para este minuto; esperando siguiente tick.");
     }
 
     await sleep(getTickDelayMs(new Date()));
+    state.cooldownUntil = state.cooldownUntil && Date.now() < state.cooldownUntil ? state.cooldownUntil : null;
   }
 }
 

@@ -122,6 +122,10 @@ Ese worker lee las variables:
 - `ERP_SYNC_PRICE_EVERY_MINUTES` para stock + precios
 - `ERP_SYNC_FULL_EVERY_MINUTES` para la sincronización completa
 - `ERP_SYNC_SCHEDULER_TIME_ZONE` para fijar la ventana horaria
+- `ERP_SYNC_WINDOW_PAGES` para cuántas páginas leer por tick
+- `ERP_SYNC_THROTTLE_COOLDOWN_MINUTES` para enfriar si el ERP responde con throttle
+
+El scheduler mantiene cursor por modo en `.erp-sync-scheduler-state.json` y avanza por ventanas para no saturar al ERP.
 
 La prioridad del scheduler es:
 
