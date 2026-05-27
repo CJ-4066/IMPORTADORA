@@ -1,6 +1,9 @@
 import { FacturadorApiError } from "../src/lib/facturador/client";
+import { loadEnvConfig } from "@next/env";
 import { parseFacturadorSyncMode, syncFacturadorProducts } from "../src/lib/facturador/sync";
 import { prisma } from "../src/lib/prisma";
+
+loadEnvConfig(process.cwd());
 
 async function main() {
   const trigger = process.env.ERP_SYNC_TRIGGER === "AUTOMATIC" ? "AUTOMATIC" : "SCRIPT";

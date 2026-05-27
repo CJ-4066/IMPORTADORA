@@ -1,5 +1,6 @@
 import process from "node:process";
 import { setTimeout as sleep } from "node:timers/promises";
+import { loadEnvConfig } from "@next/env";
 import { FacturadorApiError } from "../src/lib/facturador/client";
 import {
   ErpSyncAlreadyRunningError,
@@ -7,6 +8,8 @@ import {
   type FacturadorSyncMode,
 } from "../src/lib/facturador/sync";
 import { prisma } from "../src/lib/prisma";
+
+loadEnvConfig(process.cwd());
 
 type SchedulerConfig = {
   enabled: boolean;
