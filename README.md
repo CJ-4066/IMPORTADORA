@@ -110,6 +110,25 @@ Si quieres una capa adicional de precios cada 5 minutos, puedes mantener un cron
 
 El cron horario refresca todo el catálogo. El cron de cada minuto actualiza stock y disponibilidad. Si activas el cron adicional de 5 minutos, este refresca stock, precio unitario y precio mayorista con un pequeño desfase para reducir solapes.
 
+Si prefieres un proceso persistente en vez de `cron`, puedes correr el scheduler del proyecto:
+
+```bash
+npm run sync:facturador-scheduler
+```
+
+Ese worker lee las variables:
+
+- `ERP_SYNC_STOCK_EVERY_MINUTES` para stock completo
+- `ERP_SYNC_PRICE_EVERY_MINUTES` para stock + precios
+- `ERP_SYNC_FULL_EVERY_MINUTES` para la sincronización completa
+- `ERP_SYNC_SCHEDULER_TIME_ZONE` para fijar la ventana horaria
+
+La prioridad del scheduler es:
+
+1. `FULL` en el minuto configurado para carga completa
+2. `STOCK_PRICE` en los minutos múltiples de 5
+3. `STOCK_ONLY` en los demás minutos
+
 Cada ejecución deja bitácora en `ErpSyncLog`, visible desde `/admin/settings`, con estado, origen, disparador, cantidades procesadas y error si algo falla.
 
 El sincronizador requiere `FACTURADOR_API_URL` y `FACTURADOR_API_TOKEN`. Si el token responde `401 Unauthorized`, la integración está lista pero no podrá traer datos reales hasta que el administrador de la API entregue credenciales válidas. Por defecto recorre todas las páginas del endpoint de productos; para pruebas o cargas por bloques se puede usar `FACTURADOR_SYNC_START_PRODUCT_PAGE` y `FACTURADOR_SYNC_MAX_PRODUCT_PAGES`. Si el ERP limita peticiones, se puede subir `FACTURADOR_PRODUCT_PAGE_DELAY_MS` o `FACTURADOR_RETRY_DELAY_MS`.
