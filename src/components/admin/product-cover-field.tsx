@@ -115,7 +115,8 @@ export function ProductCoverField({ value, error }: ProductCoverFieldProps) {
                   name="imageUrl"
                   onChange={(event) => handleUrlChange(event.target.value)}
                   placeholder="https://dominio.com/portada.jpg"
-                  type="url"
+                  inputMode="url"
+                  type="text"
                   value={currentValue}
                 />
                 <small className="field-caption">Opcional. Solo si ya tienes un enlace listo.</small>

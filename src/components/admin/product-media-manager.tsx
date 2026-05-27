@@ -189,7 +189,8 @@ export function ProductMediaManager({
                             ? "https://dominio.com/foto.jpg"
                             : "https://dominio.com/video.mp4"
                         }
-                        type="url"
+                        inputMode="url"
+                        type="text"
                         value={item.url}
                       />
                       <small className="field-caption">

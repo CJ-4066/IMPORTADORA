@@ -7,6 +7,40 @@ import {
 } from "@/lib/hero-banners";
 import { isTruthy } from "@/lib/utils";
 
+function isLocalOrAbsoluteUrl(value: string) {
+  if (!value.trim()) {
+    return false;
+  }
+
+  if (value.startsWith("/")) {
+    return true;
+  }
+
+  try {
+    return Boolean(new URL(value));
+  } catch {
+    return false;
+  }
+}
+
+const urlOrPathSchema = z
+  .string()
+  .trim()
+  .refine(isLocalOrAbsoluteUrl, {
+    message: "La URL debe ser válida o una ruta local que empiece con /.",
+  });
+
+const optionalUrlOrPathSchema = z.preprocess(
+  (value) => {
+    if (value === "" || value === null || value === undefined) {
+      return undefined;
+    }
+
+    return String(value).trim();
+  },
+  urlOrPathSchema.optional(),
+);
+
 const optionalText = z
   .string()
   .trim()
@@ -31,7 +65,7 @@ const intOptional = z.preprocess((value) => {
 
 export const productMediaEntrySchema = z.object({
   type: z.enum(["IMAGE", "VIDEO"]),
-  url: z.string().trim().url("Cada foto o video debe tener una URL válida."),
+  url: urlOrPathSchema,
   altText: optionalText,
 });
 
@@ -40,7 +74,7 @@ export const productMediaListSchema = z
   .max(8, "Puedes adjuntar hasta 8 fotos o videos por producto.");
 
 export const heroSlideEntrySchema = z.object({
-  imageUrl: z.string().trim().url("Cada slide debe tener una imagen con URL válida."),
+  imageUrl: urlOrPathSchema,
   title: optionalText,
   text: optionalText,
 });
@@ -68,8 +102,8 @@ export const heroBannerSchema = z.object({
   description: optionalText,
   ctaLabel: optionalText,
   ctaHref: optionalText,
-  desktopImageUrl: z.string().trim().min(1, "La imagen desktop es obligatoria."),
-  mobileImageUrl: optionalText,
+  desktopImageUrl: urlOrPathSchema,
+  mobileImageUrl: optionalUrlOrPathSchema,
   altText: optionalText,
   overlayColor: z.string().trim().regex(/^#[0-9A-Fa-f]{6}$/),
   overlayOpacity: z.coerce.number().min(0).max(1),
@@ -119,7 +153,7 @@ export const productSchema = z
     technicalSpecs: optionalText,
     brand: optionalText,
     categoryId: optionalText,
-    imageUrl: optionalText.pipe(z.string().url("La imagen debe ser una URL válida.").optional()),
+    imageUrl: optionalUrlOrPathSchema,
     unitLabel: z.string().trim().min(2).max(40),
     unitPrice: z.coerce.number().positive("El precio unitario debe ser mayor a cero."),
     wholesalePrice: numericOptional,

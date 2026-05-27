@@ -76,7 +76,8 @@ export function HeroSlidesManager({ initialItems }: HeroSlidesManagerProps) {
                     name="heroSlideImageUrl"
                     onChange={(event) => updateItem(index, "imageUrl", event.target.value)}
                     placeholder="https://dominio.com/hero.jpg"
-                    type="url"
+                    inputMode="url"
+                    type="text"
                     value={item.imageUrl}
                   />
                 </label>
