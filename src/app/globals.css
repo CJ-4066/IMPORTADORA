@@ -8201,6 +8201,59 @@ body[data-admin-theme="dark"] .admin-hero-footnote {
   gap: 0.75rem;
 }
 
+.admin-erp-guide-panel {
+  display: grid;
+  gap: 0.95rem;
+}
+
+.admin-erp-guide-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: var(--shadow);
+}
+
+.admin-erp-guide-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 920px;
+}
+
+.admin-erp-guide-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 0.95rem 0.9rem;
+  border-bottom: 1px solid rgba(var(--brand-ink-rgb), 0.08);
+  background: rgba(255, 255, 255, 0.98);
+  color: var(--muted);
+  font-size: 0.77rem;
+  text-align: left;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.admin-erp-guide-table tbody td {
+  padding: 0.9rem 0.9rem;
+  border-bottom: 1px solid rgba(var(--brand-ink-rgb), 0.06);
+  vertical-align: top;
+  font-size: 0.88rem;
+}
+
+.admin-erp-guide-table tbody tr:hover {
+  background: rgba(var(--brand-rgb), 0.03);
+}
+
+.admin-erp-guide-table td strong {
+  display: block;
+  font-size: 0.94rem;
+}
+
+.admin-erp-guide-table td .admin-erp-table-subtitle {
+  margin-top: 0.18rem;
+}
+
 .erp-mode-card {
   display: grid;
   gap: 0.6rem;

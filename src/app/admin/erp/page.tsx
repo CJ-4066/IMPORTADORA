@@ -180,6 +180,44 @@ export default async function ErpPage({ searchParams }: ErpPageProps) {
     { mode: "INCREMENTAL", label: getModeLabel("INCREMENTAL"), count: syncLogs.filter((log) => log.syncMode === "INCREMENTAL").length },
   ];
 
+  const syncGuideRows = [
+    {
+      mode: "STOCK_ONLY",
+      scope: "Stock y disponibilidad.",
+      cadence: "Cada 1 minuto",
+      type: "Automática",
+      eta: "Segundos a pocos minutos por ventana.",
+    },
+    {
+      mode: "STOCK_PRICE",
+      scope: "Stock + precio unitario + mayorista.",
+      cadence: "Cada 5 minutos",
+      type: "Automática",
+      eta: "Segundos a pocos minutos por ventana.",
+    },
+    {
+      mode: "FULL",
+      scope: "Catálogo completo, media, categorías y stock.",
+      cadence: "Cada 60 minutos",
+      type: "Automática",
+      eta: "Varios minutos, según lote y throttle.",
+    },
+    {
+      mode: "NEW_ONLY",
+      scope: "Solo productos nuevos que aún no existen.",
+      cadence: "Manual",
+      type: "Bajo demanda",
+      eta: "Depende del lote nuevo a vincular.",
+    },
+    {
+      mode: "INCREMENTAL",
+      scope: "Cambios reales desde el último checkpoint.",
+      cadence: "Manual",
+      type: "Bajo demanda",
+      eta: "Normalmente el más eficiente para cambios.",
+    },
+  ];
+
   return (
     <section className="admin-erp-page stack-lg">
       <section className="panel admin-erp-hero">
@@ -263,6 +301,48 @@ export default async function ErpPage({ searchParams }: ErpPageProps) {
           </p>
         </section>
       ) : null}
+
+      <section className="panel admin-erp-guide-panel">
+        <div className="panel-header">
+          <div>
+            <p className="eyebrow">Guía rápida</p>
+            <h2>Cómo funciona la sincronización</h2>
+          </div>
+          <span className="muted">Automática + manual</span>
+        </div>
+
+        <div className="admin-erp-guide-table-wrap">
+          <table className="admin-erp-guide-table">
+            <thead>
+              <tr>
+                <th>Modo</th>
+                <th>Qué actualiza</th>
+                <th>Frecuencia</th>
+                <th>Tipo</th>
+                <th>Tiempo aprox.</th>
+              </tr>
+            </thead>
+            <tbody>
+              {syncGuideRows.map((row) => (
+                <tr key={row.mode}>
+                  <td>
+                    <strong>{getModeLabel(row.mode)}</strong>
+                    <span className="admin-erp-table-subtitle">{row.mode}</span>
+                  </td>
+                  <td>{row.scope}</td>
+                  <td>{row.cadence}</td>
+                  <td>
+                    <span className={`sync-status-badge ${row.type === "Automática" ? "sync-status-success" : "sync-status-running"}`}>
+                      {row.type}
+                    </span>
+                  </td>
+                  <td>{row.eta}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
 
       <section className="admin-erp-modes">
         <ErpSyncModeCard
