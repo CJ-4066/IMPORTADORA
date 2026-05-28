@@ -10,7 +10,6 @@ import {
   ImagePlus,
   PackagePlus,
   PackageSearch,
-  Settings2,
   ShieldAlert,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -54,10 +53,6 @@ const sections: AdminNavSection[] = [
   {
     title: "ERP",
     links: [{ href: "/admin/erp", label: "Sincronización ERP", icon: DatabaseZap }],
-  },
-  {
-    title: "Configuración",
-    links: [{ href: "/admin/settings", label: "Ajustes globales", icon: Settings2 }],
   },
 ];
 
