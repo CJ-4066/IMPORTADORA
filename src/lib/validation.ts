@@ -47,6 +47,21 @@ const optionalText = z
   .transform((value) => value || undefined)
   .optional();
 
+const optionalPhone = z.preprocess(
+  (value) => {
+    if (value === "" || value === null || value === undefined) {
+      return undefined;
+    }
+
+    return String(value).trim();
+  },
+  z
+    .string()
+    .min(7, "El teléfono debe tener al menos 7 dígitos.")
+    .max(32, "El teléfono es demasiado largo.")
+    .optional(),
+);
+
 const numericOptional = z.preprocess((value) => {
   if (value === "" || value === null || value === undefined) {
     return undefined;
@@ -102,7 +117,7 @@ export const heroBannerSchema = z.object({
   description: optionalText,
   ctaLabel: optionalText,
   ctaHref: optionalText,
-  desktopImageUrl: urlOrPathSchema,
+  desktopImageUrl: optionalUrlOrPathSchema,
   mobileImageUrl: optionalUrlOrPathSchema,
   altText: optionalText,
   overlayColor: z.string().trim().regex(/^#[0-9A-Fa-f]{6}$/),
@@ -116,6 +131,17 @@ export const heroBannerSchema = z.object({
   startsAt: optionalDateTime,
   endsAt: optionalDateTime,
   isActive: z.boolean().default(true),
+}).superRefine((value, ctx) => {
+  const desktopImageUrl = value.desktopImageUrl?.trim() ?? "";
+  const mobileImageUrl = value.mobileImageUrl?.trim() ?? "";
+
+  if (!desktopImageUrl && !mobileImageUrl) {
+    ctx.addIssue({
+      code: "custom",
+      message: "Debes subir al menos una imagen para desktop o mobile.",
+      path: ["desktopImageUrl"],
+    });
+  }
 });
 
 export const loginSchema = z.object({
@@ -137,6 +163,55 @@ export const shopperRegisterSchema = z
   })
   .superRefine((value, ctx) => {
     if (value.password !== value.confirmPassword) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Las contraseñas no coinciden.",
+        path: ["confirmPassword"],
+      });
+    }
+  });
+
+export const adminUserSchema = z
+  .object({
+    name: z.string().trim().min(3, "El nombre debe tener al menos 3 caracteres."),
+    email: z.string().trim().email("Correo inválido."),
+    phone: optionalPhone,
+    password: z.string().min(6, "La contraseña debe tener al menos 6 caracteres."),
+    confirmPassword: z.string().min(6, "Confirma la contraseña."),
+    role: z.enum(["ADMIN", "USERSHOP"]),
+  })
+  .superRefine((value, ctx) => {
+    if (value.password !== value.confirmPassword) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Las contraseñas no coinciden.",
+        path: ["confirmPassword"],
+      });
+    }
+  });
+
+export const adminUserUpdateSchema = z
+  .object({
+    name: z.string().trim().min(3, "El nombre debe tener al menos 3 caracteres."),
+    email: z.string().trim().email("Correo inválido."),
+    phone: optionalPhone,
+    password: z.string().trim().optional().or(z.literal("")),
+    confirmPassword: z.string().trim().optional().or(z.literal("")),
+    role: z.enum(["ADMIN", "USERSHOP"]),
+  })
+  .superRefine((value, ctx) => {
+    const password = value.password?.trim() ?? "";
+    const confirmPassword = value.confirmPassword?.trim() ?? "";
+
+    if ((password && !confirmPassword) || (!password && confirmPassword)) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Debes completar y confirmar la nueva contraseña.",
+        path: ["confirmPassword"],
+      });
+    }
+
+    if (password && confirmPassword && password !== confirmPassword) {
       ctx.addIssue({
         code: "custom",
         message: "Las contraseñas no coinciden.",
@@ -216,6 +291,28 @@ export function parseShopperRegisterForm(formData: FormData) {
     phone: formData.get("phone"),
     password: formData.get("password"),
     confirmPassword: formData.get("confirmPassword"),
+  });
+}
+
+export function parseAdminUserForm(formData: FormData) {
+  return adminUserSchema.parse({
+    name: formData.get("name"),
+    email: formData.get("email"),
+    phone: formData.get("phone"),
+    password: formData.get("password"),
+    confirmPassword: formData.get("confirmPassword"),
+    role: formData.get("role"),
+  });
+}
+
+export function parseAdminUserUpdateForm(formData: FormData) {
+  return adminUserUpdateSchema.parse({
+    name: formData.get("name"),
+    email: formData.get("email"),
+    phone: formData.get("phone"),
+    password: formData.get("password"),
+    confirmPassword: formData.get("confirmPassword"),
+    role: formData.get("role"),
   });
 }
 

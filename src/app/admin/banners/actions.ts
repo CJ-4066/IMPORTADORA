@@ -151,7 +151,7 @@ export async function upsertHeroBannerAction(
 
   try {
     const data = parseHeroBannerForm(formData);
-    const desktopImageUrl = data.desktopImageUrl.trim();
+    const desktopImageUrl = data.desktopImageUrl?.trim() || data.mobileImageUrl?.trim() || "";
     const mobileImageUrl = data.mobileImageUrl?.trim() ?? "";
     bannerId = data.bannerId?.trim() ?? "";
 

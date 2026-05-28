@@ -8,16 +8,21 @@ import {
   FileText,
   FolderTree,
   ImagePlus,
+  LogOut,
   PackagePlus,
   PackageSearch,
   ShieldAlert,
+  UsersRound,
+  Store,
 } from "lucide-react";
+import { logoutAction } from "@/app/admin/actions";
 import { cn } from "@/lib/utils";
 
 type AdminNavLink = {
-  href: string;
+  href?: string;
   label: string;
   icon: typeof ChartNoAxesCombined;
+  kind?: "link" | "action";
 };
 
 type AdminNavSection = {
@@ -27,8 +32,18 @@ type AdminNavSection = {
 
 const sections: AdminNavSection[] = [
   {
+    title: "Acceso",
+    links: [
+      { href: "/", label: "Ver catálogo", icon: Store, kind: "link" },
+      { label: "Cerrar sesión", icon: LogOut, kind: "action" },
+    ],
+  },
+  {
     title: "General",
-    links: [{ href: "/admin", label: "Dashboard", icon: ChartNoAxesCombined }],
+    links: [
+      { href: "/admin", label: "Dashboard", icon: ChartNoAxesCombined },
+      { href: "/admin/users", label: "Usuarios", icon: UsersRound },
+    ],
   },
   {
     title: "Catálogo",
@@ -67,15 +82,35 @@ export function AdminNav() {
           <div className="admin-nav-links">
             {section.links.map((link) => {
               const Icon = link.icon;
+              const isLink = link.kind !== "action" && Boolean(link.href);
+              const isActive =
+                isLink &&
+                (pathname === link.href ||
+                  (link.href !== "/admin" && pathname.startsWith(`${link.href}/`)));
+
+              if (link.kind === "action") {
+                return (
+                  <form action={logoutAction} key={link.label}>
+                    <button className="admin-nav-link admin-nav-button" type="submit">
+                      <span className="admin-nav-icon">
+                        <Icon size={18} />
+                      </span>
+                      <span>{link.label}</span>
+                    </button>
+                  </form>
+                );
+              }
+
+              if (!link.href) {
+                return null;
+              }
 
               return (
                 <Link
                   key={link.href}
                   className={cn(
                     "admin-nav-link",
-                    (pathname === link.href ||
-                      (link.href !== "/admin" && pathname.startsWith(`${link.href}/`))) &&
-                      "is-active",
+                    isActive && "is-active",
                   )}
                   href={link.href}
                 >

@@ -317,6 +317,21 @@ export function HeroBannerCmsManager({
     }));
   }
 
+  function updateBannerImage(target: UploadTarget, nextValue: string) {
+    setDraft((current) => {
+      const nextDraft = {
+        ...current,
+        [target]: nextValue,
+      };
+
+      if (target === "mobileImageUrl" && nextValue.trim() && !current.desktopImageUrl.trim()) {
+        nextDraft.desktopImageUrl = nextValue;
+      }
+
+      return nextDraft;
+    });
+  }
+
   function submitReorder(nextIds: string[]) {
     setOrderIds(nextIds);
 
@@ -758,7 +773,7 @@ export function HeroBannerCmsManager({
                   helper="Pega una URL o sube un archivo optimizado."
                   label="Desktop"
                   name="desktopImageUrl"
-                  onValueChange={(nextValue) => updateDraft("desktopImageUrl", nextValue)}
+                  onValueChange={(nextValue) => updateBannerImage("desktopImageUrl", nextValue)}
                   value={draft.desktopImageUrl}
                 />
 
@@ -767,7 +782,7 @@ export function HeroBannerCmsManager({
                   helper="Pega una URL o sube un archivo optimizado."
                   label="Mobile"
                   name="mobileImageUrl"
-                  onValueChange={(nextValue) => updateDraft("mobileImageUrl", nextValue)}
+                  onValueChange={(nextValue) => updateBannerImage("mobileImageUrl", nextValue)}
                   value={draft.mobileImageUrl}
                 />
               </div>

@@ -1,7 +1,5 @@
-import Link from "next/link";
-import { ShieldCheck, Store, LogOut } from "lucide-react";
+import { ShieldCheck } from "lucide-react";
 import { requireAdmin } from "@/lib/auth";
-import { logoutAction } from "@/app/admin/actions";
 import { BrandLogo } from "@/components/brand/brand-logo";
 import { AdminNav } from "@/components/admin/admin-nav";
 
@@ -27,18 +25,6 @@ export default async function AdminLayout({
               <div className="stack-xs">
                 <p className="eyebrow">Control center</p>
                 <h2>{session.name}</h2>
-              </div>
-              <div className="admin-profile-actions">
-                <Link className="button button-secondary button-chip" href="/">
-                  <Store size={16} />
-                  Ver catálogo
-                </Link>
-                <form action={logoutAction}>
-                  <button className="button button-ghost button-chip" type="submit">
-                    <LogOut size={16} />
-                    Cerrar sesión
-                  </button>
-                </form>
               </div>
             </div>
           </div>

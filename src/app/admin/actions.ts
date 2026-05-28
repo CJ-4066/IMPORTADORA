@@ -1,5 +1,6 @@
 "use server";
 
+import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { Prisma } from "@prisma/client";
@@ -16,11 +17,17 @@ import type {
   ProductMediaFormValue,
 } from "@/components/admin/product-form-state";
 import {
+  parseAdminUserForm,
+  parseAdminUserUpdateForm,
   productMediaListSchema,
   parseCategoryForm,
   parseSettingsForm,
   productSchema,
 } from "@/lib/validation";
+
+function normalizeEmail(email: string) {
+  return email.trim().toLowerCase();
+}
 
 async function resolveCategory(categoryId?: string) {
   if (!categoryId) {
@@ -592,4 +599,127 @@ export async function deleteCategoryAction(formData: FormData) {
   revalidatePath("/admin/categories");
   revalidatePath("/admin/products");
   redirect("/admin/categories?status=deleted");
+}
+
+export async function createAdminUserAction(formData: FormData) {
+  await requireAdmin();
+
+  try {
+    const data = parseAdminUserForm(formData);
+    const normalizedEmail = normalizeEmail(data.email);
+
+    await prisma.user.create({
+      data: {
+        name: data.name,
+        email: normalizedEmail,
+        phone: data.phone ?? null,
+        passwordHash: await bcrypt.hash(data.password, 10),
+        role: data.role,
+      },
+    });
+  } catch (error) {
+    const message = toRedirectError(error, "No se pudo crear el usuario.");
+    redirect(`/admin/users?error=${encodeURIComponent(message)}`);
+  }
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/users");
+  redirect("/admin/users?status=created");
+}
+
+export async function updateAdminUserAction(formData: FormData) {
+  const session = await requireAdmin();
+  const userId = String(formData.get("userId") ?? "");
+
+  if (!userId) {
+    redirect("/admin/users?status=error&error=No se encontró el usuario.");
+  }
+
+  try {
+    const data = parseAdminUserUpdateForm(formData);
+    const normalizedEmail = normalizeEmail(data.email);
+    const target = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, role: true },
+    });
+
+    if (!target) {
+      redirect("/admin/users?status=error&error=No se encontró el usuario.");
+    }
+
+    if (target.role === "ADMIN" && data.role === "USERSHOP") {
+      const adminCount = await prisma.user.count({ where: { role: "ADMIN" } });
+
+      if (adminCount <= 1) {
+        redirect("/admin/users?status=error&error=Debe existir al menos un administrador.");
+      }
+    }
+
+    const password = data.password?.trim() ?? "";
+    const confirmPassword = data.confirmPassword?.trim() ?? "";
+    const shouldUpdatePassword = Boolean(password && confirmPassword);
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        name: data.name,
+        email: normalizedEmail,
+        phone: data.phone ?? null,
+        role: data.role,
+        ...(shouldUpdatePassword
+          ? {
+              passwordHash: await bcrypt.hash(password, 10),
+            }
+          : {}),
+      },
+    });
+  } catch (error) {
+    const message = toRedirectError(error, "No se pudo actualizar el usuario.");
+    redirect(`/admin/users/${userId}?error=${encodeURIComponent(message)}`);
+  }
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/users");
+  if (session.userId === userId) {
+    revalidatePath("/login");
+  }
+  redirect(`/admin/users/${userId}?status=updated`);
+}
+
+export async function deleteAdminUserAction(formData: FormData) {
+  const session = await requireAdmin();
+  const userId = String(formData.get("userId") ?? "");
+
+  if (!userId) {
+    redirect("/admin/users?status=error&error=No se encontró el usuario.");
+  }
+
+  if (session.userId === userId) {
+    redirect("/admin/users?status=error&error=No puedes eliminar tu propia cuenta activa.");
+  }
+
+  const target = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { role: true },
+  });
+
+  if (!target) {
+    redirect("/admin/users?status=error&error=No se encontró el usuario.");
+  }
+
+  if (target.role === "ADMIN") {
+    const adminCount = await prisma.user.count({ where: { role: "ADMIN" } });
+
+    if (adminCount <= 1) {
+      redirect("/admin/users?status=error&error=Debe existir al menos un administrador.");
+    }
+  }
+
+  await prisma.user.delete({
+    where: { id: userId },
+  });
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/users");
+  redirect("/admin/users?status=deleted");
 }
