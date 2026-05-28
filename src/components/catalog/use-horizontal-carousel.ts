@@ -37,14 +37,15 @@ export function useHorizontalCarousel({ itemCount, intervalSeconds = 0 }: UseHor
       window.clearTimeout(releaseProgrammaticScrollRef.current);
     }
 
+    const targetLeft = Math.max(0, nextIndex * viewport.clientWidth);
+
     releaseProgrammaticScrollRef.current = window.setTimeout(() => {
       programmaticScrollRef.current = false;
-    }, behavior === "smooth" ? 450 : 0);
+    }, behavior === "smooth" ? 650 : 0);
 
-    slide.scrollIntoView({
+    viewport.scrollTo({
+      left: targetLeft,
       behavior,
-      block: "nearest",
-      inline: "start",
     });
 
     activeIndexRef.current = nextIndex;
