@@ -12,6 +12,7 @@ import {
 } from "@/lib/hero-banners";
 
 export type HeroBannerVisualData = {
+  id?: string;
   title: string | null;
   subtitle: string | null;
   description: string | null;

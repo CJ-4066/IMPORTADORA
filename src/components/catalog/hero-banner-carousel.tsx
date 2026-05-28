@@ -1,8 +1,7 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useHorizontalCarousel } from "@/components/catalog/use-horizontal-carousel";
 import { HeroBannerVisual, type HeroBannerVisualData } from "@/components/catalog/hero-banner-visual";
 
 type HeroBannerCarouselProps = {
@@ -12,23 +11,51 @@ type HeroBannerCarouselProps = {
 
 export function HeroBannerCarousel({ banners, intervalSeconds }: HeroBannerCarouselProps) {
   const slides = useMemo(() => banners.filter(Boolean), [banners]);
-  const { activeIndex, goToNext, goToPrevious, handleScroll, scrollToIndex, viewportRef } =
-    useHorizontalCarousel({ itemCount: slides.length, intervalSeconds });
+  const [activeIndex, setActiveIndex] = useState(0);
+  const currentIndex = slides.length ? Math.min(activeIndex, slides.length - 1) : 0;
+
+  useEffect(() => {
+    if (slides.length <= 1 || intervalSeconds <= 0) {
+      return;
+    }
+
+    const timer = window.setInterval(() => {
+      setActiveIndex((current) => (current + 1) % slides.length);
+    }, intervalSeconds * 1000);
+
+    return () => window.clearInterval(timer);
+  }, [intervalSeconds, slides.length]);
+
+  function goToPrevious() {
+    setActiveIndex((current) => (current - 1 + slides.length) % slides.length);
+  }
+
+  function goToNext() {
+    setActiveIndex((current) => (current + 1) % slides.length);
+  }
 
   if (!slides.length) {
     return null;
   }
 
   return (
-    <div className="hero-banner-carousel" onScroll={handleScroll} ref={viewportRef}>
-      {slides.map((slide, index) => (
-        <article
-          className={`hero-banner-carousel-slide ${index === activeIndex ? "is-active" : ""}`}
-          key={`${slide.desktopImageUrl}-${slide.title ?? index}`}
-        >
-          <HeroBannerVisual banner={slide} eager={index === 0} mode="auto" />
-        </article>
-      ))}
+    <div className="hero-banner-carousel" aria-roledescription="carousel">
+      <div
+        className="hero-banner-carousel-track"
+        style={{
+          transform: `translate3d(-${activeIndex * 100}%, 0, 0)`,
+        }}
+      >
+        {slides.map((slide, index) => (
+          <article
+            aria-hidden={index !== currentIndex}
+            className={`hero-banner-carousel-slide ${index === currentIndex ? "is-active" : ""}`}
+            key={slide.id ?? `${slide.desktopImageUrl}-${slide.title ?? index}`}
+          >
+            <HeroBannerVisual banner={slide} eager={index === 0} mode="auto" />
+          </article>
+        ))}
+      </div>
 
       {slides.length > 1 ? (
         <>
@@ -54,9 +81,9 @@ export function HeroBannerCarousel({ banners, intervalSeconds }: HeroBannerCarou
             {slides.map((slide, index) => (
               <button
                 aria-label={`Ir al banner ${index + 1}`}
-                className={index === activeIndex ? "is-active" : ""}
-                key={`${slide.desktopImageUrl}-dot-${index}`}
-                onClick={() => scrollToIndex(index)}
+                className={index === currentIndex ? "is-active" : ""}
+                key={slide.id ?? `${slide.desktopImageUrl}-dot-${index}`}
+                onClick={() => setActiveIndex(index)}
                 type="button"
               />
             ))}
