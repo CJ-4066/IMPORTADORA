@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from "react";
 import {
-  FileText,
-  MessageCircleMore,
+  BadgeCheck,
   Minus,
   Plus,
   RefreshCcw,
+  ReceiptText,
   ShoppingCart,
   Trash2,
   UserRoundCheck,
@@ -48,6 +48,23 @@ type CartLine = {
   item: ReturnType<typeof useCartStore.getState>["items"][number];
   pricing: ReturnType<typeof getLinePricing>;
 };
+
+function WhatsAppIcon({ size = 18 }: { size?: number }) {
+  return (
+    <svg
+      aria-hidden="true"
+      focusable="false"
+      height={size}
+      viewBox="0 0 24 24"
+      width={size}
+    >
+      <path
+        d="M20.2 3.8A10.7 10.7 0 0 0 12.6 1h-.2C6.8 1 2.2 5.5 2.2 11.1c0 1.9.5 3.8 1.5 5.4L2 23l6.6-1.7c1.6.9 3.3 1.4 5.2 1.4h.1c5.6 0 10.1-4.5 10.1-10.1 0-2.7-1.1-5.2-3.1-7.1ZM14 19.3h-.1c-1.6 0-3.2-.4-4.6-1.3l-.3-.2-3.9 1 1-3.8-.2-.3a8 8 0 0 1-1.3-4.4c0-4.4 3.6-8 8.1-8h.1a8 8 0 0 1 5.7 2.3 8 8 0 0 1 2.4 5.7c0 4.4-3.6 8-8 8ZM18.4 14.2c-.3-.2-1.7-.9-2-.9-.3-.1-.5-.2-.7.2s-.8.9-1 .1-.5-.9-.9-1.2c-.4-.3-.7-.3-.5-.6.1-.2.6-.7.7-1 .2-.2.1-.5 0-.7-.1-.2-.7-1.6-1-2.2-.2-.6-.5-.5-.7-.5H11c-.2 0-.5.1-.8.4-.3.3-1.1 1-1.1 2.4s1.2 2.7 1.4 2.9c.2.2 2 3.1 4.9 4.3.7.3 1.2.5 1.6.6.7.2 1.4.2 1.9.1.6-.1 1.7-.7 1.9-1.3.2-.6.2-1.1.1-1.2-.1-.2-.3-.2-.6-.4Z"
+        fill="currentColor"
+      />
+    </svg>
+  );
+}
 
 const DOCUMENT_TYPE_OPTIONS = [
   { label: "Sin documento", value: "" },
@@ -181,12 +198,12 @@ function CartFooter({
       {!quoteFormOpen ? (
         <div className="cart-footer-actions">
           <button
-            className="button button-secondary cart-quote-open"
+            className="button button-primary cart-quote-open"
             onClick={onOpenQuoteForm}
             type="button"
           >
-            <FileText size={18} />
-            Generar cotización web
+            <ReceiptText size={18} />
+            Generar cotización
           </button>
         </div>
       ) : null}
@@ -227,6 +244,26 @@ function QuoteForm({
 }) {
   return (
     <section className="cart-quote-form">
+      {quoteState === "success" ? (
+        <div className="cart-quote-success" role="status" aria-live="polite">
+          <div className="cart-quote-success-copy">
+            <BadgeCheck size={18} />
+            <div>
+              <strong>Cotización generada con éxito</strong>
+              <span>Te contactaremos vía WhatsApp.</span>
+            </div>
+          </div>
+      {quoteWhatsappHref ? (
+        <a className="button cart-quote-whatsapp" href={quoteWhatsappHref} rel="noreferrer" target="_blank">
+          <span className="cart-quote-whatsapp-icon">
+            <WhatsAppIcon />
+          </span>
+          Contactar asesor por WhatsApp
+        </a>
+      ) : null}
+        </div>
+      ) : null}
+
       <div className="cart-quote-head">
         <div className="stack-xs">
           <p className="eyebrow">Generar cotización web</p>
@@ -314,21 +351,15 @@ function QuoteForm({
           {quoteState === "loading" ? "Enviando..." : "Solicitar cotización"}
         </button>
 
-        {quoteWhatsappHref ? (
-          <a className="button button-secondary" href={quoteWhatsappHref} rel="noreferrer" target="_blank">
-            <MessageCircleMore size={18} />
-            Ver cotización por WhatsApp
-          </a>
-        ) : null}
       </div>
 
-      {quoteMessage ? (
+      {quoteState !== "success" && quoteMessage ? (
         <p className={quoteMessageTone === "error" ? "error-text" : quoteMessageTone === "success" ? "success-text" : "muted"}>
           {quoteMessage}
         </p>
       ) : null}
 
-      {quoteStatusSteps.length ? (
+      {quoteState !== "success" && quoteStatusSteps.length ? (
         <div className="cart-quote-status">
           {quoteStatusSteps.map((step, index) => (
             <p
@@ -466,6 +497,7 @@ export function CartDrawer({
       setQuoteMessageTone("success");
       setQuoteStatusSteps(payload.statusSteps ?? []);
       setQuoteWhatsappHref(payload.whatsappHref ?? null);
+      setQuoteFormOpen(true);
     } catch (error) {
       setQuoteState("error");
       setQuoteMessage(
