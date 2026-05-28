@@ -10,6 +10,9 @@ type UseHorizontalCarouselOptions = {
 export function useHorizontalCarousel({ itemCount, intervalSeconds = 0 }: UseHorizontalCarouselOptions) {
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const frameRef = useRef<number | null>(null);
+  const activeIndexRef = useRef(0);
+  const programmaticScrollRef = useRef(false);
+  const releaseProgrammaticScrollRef = useRef<number | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
 
   const safeCount = Math.max(0, itemCount);
@@ -28,13 +31,23 @@ export function useHorizontalCarousel({ itemCount, intervalSeconds = 0 }: UseHor
       return;
     }
 
-    const targetLeft = Math.max(0, slide.offsetLeft - viewport.offsetLeft);
+    programmaticScrollRef.current = true;
 
-    viewport.scrollTo({
-      left: targetLeft,
+    if (releaseProgrammaticScrollRef.current !== null) {
+      window.clearTimeout(releaseProgrammaticScrollRef.current);
+    }
+
+    releaseProgrammaticScrollRef.current = window.setTimeout(() => {
+      programmaticScrollRef.current = false;
+    }, behavior === "smooth" ? 450 : 0);
+
+    slide.scrollIntoView({
       behavior,
+      block: "nearest",
+      inline: "start",
     });
 
+    activeIndexRef.current = nextIndex;
     setActiveIndex(nextIndex);
   }, [safeCount]);
 
@@ -43,18 +56,22 @@ export function useHorizontalCarousel({ itemCount, intervalSeconds = 0 }: UseHor
       return;
     }
 
-    scrollToIndex(activeIndex - 1);
-  }, [activeIndex, safeCount, scrollToIndex]);
+    scrollToIndex(activeIndexRef.current - 1);
+  }, [safeCount, scrollToIndex]);
 
   const goToNext = useCallback(() => {
     if (safeCount <= 0) {
       return;
     }
 
-    scrollToIndex(activeIndex + 1);
-  }, [activeIndex, safeCount, scrollToIndex]);
+    scrollToIndex(activeIndexRef.current + 1);
+  }, [safeCount, scrollToIndex]);
 
   const handleScroll = useCallback(() => {
+    if (programmaticScrollRef.current) {
+      return;
+    }
+
     if (frameRef.current !== null) {
       window.cancelAnimationFrame(frameRef.current);
     }
@@ -69,7 +86,10 @@ export function useHorizontalCarousel({ itemCount, intervalSeconds = 0 }: UseHor
       const nextIndex = Math.round(viewport.scrollLeft / viewport.clientWidth);
       const clampedIndex = Math.max(0, Math.min(safeCount - 1, nextIndex));
 
-      setActiveIndex((current) => (current === clampedIndex ? current : clampedIndex));
+      if (activeIndexRef.current !== clampedIndex) {
+        activeIndexRef.current = clampedIndex;
+        setActiveIndex(clampedIndex);
+      }
     });
   }, [safeCount]);
 
@@ -79,20 +99,20 @@ export function useHorizontalCarousel({ itemCount, intervalSeconds = 0 }: UseHor
     }
 
     const timer = window.setInterval(() => {
-      setActiveIndex((current) => (current + 1) % safeCount);
+      scrollToIndex((activeIndexRef.current + 1) % safeCount);
     }, intervalSeconds * 1000);
 
     return () => window.clearInterval(timer);
-  }, [intervalSeconds, safeCount]);
-
-  useEffect(() => {
-    scrollToIndex(activeIndex, "smooth");
-  }, [activeIndex, scrollToIndex]);
+  }, [intervalSeconds, safeCount, scrollToIndex]);
 
   useEffect(
     () => () => {
       if (frameRef.current !== null) {
         window.cancelAnimationFrame(frameRef.current);
+      }
+
+      if (releaseProgrammaticScrollRef.current !== null) {
+        window.clearTimeout(releaseProgrammaticScrollRef.current);
       }
     },
     [],
