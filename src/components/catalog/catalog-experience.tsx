@@ -129,7 +129,7 @@ function buildCategorySections(
         products: sortProductsByImageQuality(productsInCategory).slice(0, GRID_SECTION_LIMIT),
       };
     })
-    .filter((item) => item.productCount > 0 && item.products.length > 0)
+    .filter((item) => item.productCount >= GRID_SECTION_LIMIT && item.products.length >= GRID_SECTION_LIMIT)
     .sort((left, right) => {
       const scoreDelta = right.bestSellerCount - left.bestSellerCount;
 

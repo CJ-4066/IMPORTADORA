@@ -82,13 +82,13 @@ export function StoreSideActions({
 
       {showNormalViewShortcut ? (
         <Link
-          aria-label="Volver a la vista normal"
+          aria-label="Reducir vista"
           className="store-side-action store-side-action-home"
           href="/"
           scroll
         >
           <LayoutGrid size={20} />
-          <span>Vista normal</span>
+          <span>Reducir</span>
         </Link>
       ) : null}
 
