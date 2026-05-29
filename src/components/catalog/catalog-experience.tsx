@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import type {
   CatalogProduct,
   CatalogSalesSummary,
+  CategoryOption,
   StoreSettingsView,
 } from "@/lib/store";
 import { CartStoreBootstrap } from "@/components/catalog/cart-store-bootstrap";
@@ -15,6 +16,7 @@ import { CartDrawer } from "@/components/catalog/cart-drawer";
 type CatalogExperienceProps = {
   bestSellerProducts?: CatalogProduct[];
   catalogTitle?: string;
+  categories?: CategoryOption[];
   isSectionedView?: boolean;
   products: CatalogProduct[];
   salesSummary?: CatalogSalesSummary;
@@ -41,17 +43,10 @@ type ProductSectionProps = {
 const FEATURED_SECTION_LIMIT = 6;
 const GRID_SECTION_LIMIT = 8;
 
+const CATEGORY_SECTION_LIMIT = 5;
+
 const takeSectionProducts = (items: CatalogProduct[], limit: number) =>
   items.slice(0, limit);
-
-const fallbackSectionProducts = (
-  products: CatalogProduct[],
-  offset: number,
-  limit = GRID_SECTION_LIMIT,
-) =>
-  products.slice(offset, offset + limit).length
-    ? products.slice(offset, offset + limit)
-    : products.slice(0, limit);
 
 const fillSectionProducts = (
   preferredProducts: CatalogProduct[],
@@ -87,21 +82,75 @@ const fillSectionProducts = (
   return selected;
 };
 
-const productMatches = (
-  product: CatalogProduct,
-  words: string[],
-) => {
-  const text =
-    `${product.name} ${product.category ?? ""} ${product.brand ?? ""}`.toLowerCase();
+function buildCategorySections(
+  categories: CategoryOption[] | undefined,
+  products: CatalogProduct[],
+  bestSellerProducts: CatalogProduct[],
+) {
+  if (!categories?.length) {
+    return [];
+  }
 
-  return words.some((word) => text.includes(word));
-};
+  const productCountByCategoryId = new Map<string, number>();
+  const bestSellerCountByCategoryId = new Map<string, number>();
 
-const getProductText = (product: CatalogProduct) =>
-  `${product.name} ${product.category ?? ""} ${product.brand ?? ""}`.toLowerCase();
+  for (const product of products) {
+    if (!product.categoryId) {
+      continue;
+    }
+
+    productCountByCategoryId.set(
+      product.categoryId,
+      (productCountByCategoryId.get(product.categoryId) ?? 0) + 1,
+    );
+  }
+
+  for (const product of bestSellerProducts) {
+    if (!product.categoryId) {
+      continue;
+    }
+
+    bestSellerCountByCategoryId.set(
+      product.categoryId,
+      (bestSellerCountByCategoryId.get(product.categoryId) ?? 0) + 1,
+    );
+  }
+
+  return categories
+    .map((category) => {
+      const productsInCategory = products.filter((product) => product.categoryId === category.id);
+      const productCount = productCountByCategoryId.get(category.id) ?? productsInCategory.length;
+      const bestSellerCount = bestSellerCountByCategoryId.get(category.id) ?? 0;
+
+      return {
+        category,
+        productCount,
+        bestSellerCount,
+        products: sortProductsByImageQuality(productsInCategory).slice(0, GRID_SECTION_LIMIT),
+      };
+    })
+    .filter((item) => item.productCount > 0 && item.products.length > 0)
+    .sort((left, right) => {
+      const scoreDelta = right.bestSellerCount - left.bestSellerCount;
+
+      if (scoreDelta !== 0) {
+        return scoreDelta;
+      }
+
+      const countDelta = right.productCount - left.productCount;
+
+      if (countDelta !== 0) {
+        return countDelta;
+      }
+
+      return left.category.name.localeCompare(right.category.name);
+    })
+    .slice(0, CATEGORY_SECTION_LIMIT);
+}
 
 const isAdultCatalogProduct = (product: CatalogProduct) => {
-  const text = getProductText(product);
+  const text =
+    `${product.name} ${product.category ?? ""} ${product.brand ?? ""}`.toLowerCase();
 
   return (
     text.includes("juguetes sexuales") ||
@@ -139,118 +188,6 @@ const sortProductsByImageQuality = (items: CatalogProduct[]) =>
 
     return new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime();
   });
-
-const giftScoreWords = [
-  { score: 38, words: ["reloj", "smart watch", "smartwatch", "watch"] },
-  { score: 36, words: ["auricular", "audifono", "audífono", "bluetooth", "parlante"] },
-  { score: 34, words: ["peluche", "juguete", "muñeca", "carrito", "control remoto"] },
-  { score: 32, words: ["perfume", "billetera", "bolso", "mochila", "accesorio"] },
-  { score: 30, words: ["cuidado personal", "maquina", "máquina", "secador", "afeitadora"] },
-  { score: 24, words: ["lampara", "lámpara", "luz", "led", "decoracion", "decoración"] },
-  { score: 22, words: ["termo", "taza", "organizador", "escolar"] },
-  { score: 18, words: ["celular", "xiaomi", "smart", "usb", "power bank"] },
-];
-
-const getGiftScore = (product: CatalogProduct) => {
-  const text = getProductText(product);
-  let score = hasUsableProductImage(product) ? 28 : 0;
-
-  if (product.isFeatured) {
-    score += 8;
-  }
-
-  if (product.stockUnits > 0) {
-    score += 6;
-  }
-
-  for (const group of giftScoreWords) {
-    if (group.words.some((word) => text.includes(word))) {
-      score += group.score;
-    }
-  }
-
-  return score;
-};
-
-const getGiftProducts = (products: CatalogProduct[]) =>
-  products
-    .map((product) => ({
-      product,
-      score: getGiftScore(product),
-    }))
-    .filter((item) => item.score >= 24)
-    .sort((left, right) => {
-      if (left.score !== right.score) {
-        return right.score - left.score;
-      }
-
-      return (
-        Number(hasUsableProductImage(right.product)) -
-          Number(hasUsableProductImage(left.product)) ||
-        new Date(right.product.updatedAt).getTime() -
-          new Date(left.product.updatedAt).getTime()
-      );
-    })
-    .map((item) => item.product);
-
-const getScoredProducts = (
-  products: CatalogProduct[],
-  groups: { score: number; words: string[] }[],
-  minimumScore: number,
-) =>
-  products
-    .map((product) => {
-      const text = getProductText(product);
-      let score = hasUsableProductImage(product) ? 30 : 0;
-
-      if (product.isFeatured) {
-        score += 6;
-      }
-
-      if (product.stockUnits > 0) {
-        score += 4;
-      }
-
-      for (const group of groups) {
-        if (group.words.some((word) => text.includes(word))) {
-          score += group.score;
-        }
-      }
-
-      return { product, score };
-    })
-    .filter((item) => item.score >= minimumScore)
-    .sort((left, right) => {
-      if (left.score !== right.score) {
-        return right.score - left.score;
-      }
-
-      return (
-        Number(hasUsableProductImage(right.product)) -
-          Number(hasUsableProductImage(left.product)) ||
-        new Date(right.product.updatedAt).getTime() -
-          new Date(left.product.updatedAt).getTime()
-      );
-    })
-    .map((item) => item.product);
-
-const technologyScoreWords = [
-  { score: 42, words: ["proyector", "drone", "consola", "gamepad", "videojuego"] },
-  { score: 40, words: ["xiaomi", "alexa", "smart", "smartwatch", "smart watch"] },
-  { score: 38, words: ["auricular", "audifono", "audífono", "parlante", "bluetooth"] },
-  { score: 34, words: ["power bank", "bateria", "batería", "cargador", "carga"] },
-  { score: 32, words: ["usb", "memoria", "micro sd", "microsd", "sd card", "almacenamiento"] },
-  { score: 30, words: ["camara", "cámara", "seguridad", "wifi", "laptop", "teclado", "mouse"] },
-];
-
-const accessoryScoreWords = [
-  { score: 42, words: ["auto", "vehicular", "carro", "llanta", "soporte"] },
-  { score: 40, words: ["usb", "cable", "cargador", "adaptador", "hub"] },
-  { score: 36, words: ["funda", "case", "protector", "mica", "soporte"] },
-  { score: 34, words: ["bateria", "batería", "power bank", "pilas"] },
-  { score: 30, words: ["bolso", "billetera", "mochila", "organizador"] },
-  { score: 26, words: ["accesorio", "repuesto", "complemento"] },
-];
 
 function ProductSection({
   title,
@@ -399,6 +336,7 @@ function ProductGridView({
 export function CatalogExperience({
   bestSellerProducts = [],
   catalogTitle,
+  categories = [],
   isSectionedView = true,
   products,
   salesSummary,
@@ -428,63 +366,10 @@ export function CatalogExperience({
     0,
     FEATURED_SECTION_LIMIT,
   );
-
-  const giftMatches = getGiftProducts(storefrontProducts);
-
-  const homeMatches = storefrontProducts.filter((product) =>
-    productMatches(product, [
-      "cocina",
-      "hogar",
-      "olla",
-      "sarten",
-      "sartén",
-      "vaso",
-      "plato",
-      "termo",
-      "licuadora",
-      "foco",
-      "ventilador",
-    ]),
-  );
-
-  const techMatches = getScoredProducts(storefrontProducts, technologyScoreWords, 34);
-
-  const accessoryMatches = getScoredProducts(storefrontProducts, accessoryScoreWords, 34);
-
-  const giftProducts = fillSectionProducts(
-    giftMatches.length
-      ? giftMatches
-      : sortProductsByImageQuality(fallbackSectionProducts(storefrontProducts, 6)),
+  const categorySections = buildCategorySections(
+    categories,
     storefrontProducts,
-    6,
-    GRID_SECTION_LIMIT,
-  );
-
-  const homeProducts = fillSectionProducts(
-    homeMatches.length
-      ? homeMatches
-      : fallbackSectionProducts(storefrontProducts, 12),
-    storefrontProducts,
-    12,
-    GRID_SECTION_LIMIT,
-  );
-
-  const techProducts = fillSectionProducts(
-    techMatches.length
-      ? techMatches
-      : sortProductsByImageQuality(fallbackSectionProducts(storefrontProducts, 0)),
-    storefrontProducts,
-    0,
-    GRID_SECTION_LIMIT,
-  );
-
-  const accessoryProducts = fillSectionProducts(
-    accessoryMatches.length
-      ? accessoryMatches
-      : sortProductsByImageQuality(fallbackSectionProducts(storefrontProducts, 18)),
-    storefrontProducts,
-    18,
-    GRID_SECTION_LIMIT,
+    storefrontBestSellerProducts,
   );
 
   return (
@@ -503,38 +388,16 @@ export function CatalogExperience({
             compact
           />
 
-          <ProductSection
-            href="/?q=regalo"
-            products={giftProducts}
-            settings={settings}
-            subtitle="Opciones prácticas para clientes, familia o pedidos por campaña."
-            title="Ideas para regalar"
-            compact
-          />
-
-          <ProductSection
-            href="/?q=cocina"
-            products={homeProducts}
-            settings={settings}
-            subtitle="Artículos para casa, negocio y reposición por volumen."
-            title="Cocina y hogar"
-          />
-
-          <ProductSection
-            href="/?q=tecnologia"
-            products={techProducts}
-            settings={settings}
-            subtitle="Dispositivos, audio, energía y accesorios de uso diario."
-            title="Tecnología"
-          />
-
-          <ProductSection
-            href="/?q=accesorio"
-            products={accessoryProducts}
-            settings={settings}
-            subtitle="Complementos pequeños con alta rotación para venta rápida."
-            title="Accesorios"
-          />
+          {categorySections.map(({ category, productCount, products: categoryProducts }) => (
+            <ProductSection
+              key={category.id}
+              href={`/categoria/${category.slug}`}
+              products={categoryProducts}
+              settings={settings}
+              subtitle={`${productCount} producto${productCount === 1 ? "" : "s"} disponibles en el catálogo.`}
+              title={category.name}
+            />
+          ))}
         </div>
       ) : (
         <ProductGridView products={products} settings={settings} title={catalogTitle} />

@@ -231,6 +231,7 @@ export default async function Home({ searchParams }: HomeProps) {
         <CatalogExperience
           bestSellerProducts={data.bestSellerProducts}
           catalogTitle={catalogTitle}
+          categories={data.categories}
           initialCartOpen={initialCartOpen}
           isSectionedView={isSectionedView}
           products={data.products}
