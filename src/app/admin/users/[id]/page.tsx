@@ -124,7 +124,7 @@ export default async function AdminUserEditPage({ params, searchParams }: AdminU
             </div>
           </div>
 
-          <div className="admin-users-summary-grid">
+          <div className="admin-users-summary-grid admin-users-summary-grid--edit">
             <article className="admin-users-summary-card">
               <span className="admin-users-summary-icon">
                 <ShieldCheck size={18} />
@@ -139,11 +139,11 @@ export default async function AdminUserEditPage({ params, searchParams }: AdminU
               <strong>{user.phone ? "Sí" : "No"}</strong>
               <span>Teléfono registrado</span>
             </article>
-            <article className="admin-users-summary-card">
+            <article className="admin-users-summary-card admin-users-summary-card--email">
               <span className="admin-users-summary-icon">
                 <Mail size={18} />
               </span>
-              <strong>{user.email}</strong>
+              <strong className="admin-user-email-value">{user.email}</strong>
               <span>Correo de acceso</span>
             </article>
           </div>
