@@ -10,7 +10,7 @@ type HeroBannerCarouselProps = {
 };
 
 export function HeroBannerCarousel({ banners, intervalSeconds }: HeroBannerCarouselProps) {
-  const slides = useMemo(() => banners.filter(Boolean), [banners]);
+  const slides = useMemo(() => banners.filter(Boolean).slice(0, 1), [banners]);
   const [activeIndex, setActiveIndex] = useState(0);
   const currentIndex = slides.length ? Math.min(activeIndex, slides.length - 1) : 0;
   const slideCount = slides.length;
