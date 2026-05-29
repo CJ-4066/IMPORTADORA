@@ -3,7 +3,14 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { ArrowLeft, ArrowUp, House, MessageCircleMore, Search } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowUp,
+  House,
+  LayoutGrid,
+  MessageCircleMore,
+  Search,
+} from "lucide-react";
 import { StoreAssistantLauncher } from "@/components/catalog/store-assistant-launcher";
 import type { StoreSettingsView } from "@/lib/store";
 import { buildPublicWhatsappHref } from "@/lib/utils";
@@ -11,9 +18,14 @@ import { buildPublicWhatsappHref } from "@/lib/utils";
 type StoreSideActionsProps = {
   settings: Pick<StoreSettingsView, "businessName" | "supportHours" | "whatsappNumber">;
   showHomeShortcut?: boolean;
+  showNormalViewShortcut?: boolean;
 };
 
-export function StoreSideActions({ settings, showHomeShortcut = false }: StoreSideActionsProps) {
+export function StoreSideActions({
+  settings,
+  showHomeShortcut = false,
+  showNormalViewShortcut = false,
+}: StoreSideActionsProps) {
   const pathname = usePathname();
   const isProductPage = pathname.startsWith("/producto/");
   const [isScrolledDown, setIsScrolledDown] = useState(false);
@@ -66,6 +78,18 @@ export function StoreSideActions({ settings, showHomeShortcut = false }: StoreSi
           <ArrowUp size={20} />
           <span>Subir</span>
         </button>
+      ) : null}
+
+      {showNormalViewShortcut ? (
+        <Link
+          aria-label="Volver a la vista normal"
+          className="store-side-action store-side-action-home"
+          href="/"
+          scroll
+        >
+          <LayoutGrid size={20} />
+          <span>Vista normal</span>
+        </Link>
       ) : null}
 
       {isProductPage ? (
