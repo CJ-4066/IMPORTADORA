@@ -6,7 +6,6 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import type {
   CatalogProduct,
   CatalogSalesSummary,
-  CategoryOption,
   StoreSettingsView,
 } from "@/lib/store";
 import { CartStoreBootstrap } from "@/components/catalog/cart-store-bootstrap";
@@ -16,7 +15,6 @@ import { CartDrawer } from "@/components/catalog/cart-drawer";
 type CatalogExperienceProps = {
   bestSellerProducts?: CatalogProduct[];
   catalogTitle?: string;
-  categories?: CategoryOption[];
   isSectionedView?: boolean;
   products: CatalogProduct[];
   salesSummary?: CatalogSalesSummary;
@@ -42,16 +40,6 @@ type ProductSectionProps = {
 
 const FEATURED_SECTION_LIMIT = 6;
 const GRID_SECTION_LIMIT = 8;
-
-function normalizeCatalogKey(value: string | null | undefined) {
-  return (value ?? "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
 
 const takeSectionProducts = (items: CatalogProduct[], limit: number) =>
   items.slice(0, limit);
@@ -98,38 +86,6 @@ const fillSectionProducts = (
 
   return selected;
 };
-
-function buildCategoryHighlights(categories: CategoryOption[] | undefined, products: CatalogProduct[]) {
-  if (!categories?.length) {
-    return [];
-  }
-
-  const productCounts = new Map<string, number>();
-
-  for (const product of products) {
-    const key = normalizeCatalogKey(product.category);
-
-    if (!key) {
-      continue;
-    }
-
-    productCounts.set(key, (productCounts.get(key) ?? 0) + 1);
-  }
-
-  return categories
-    .map((category) => {
-      const key = normalizeCatalogKey(category.name) || normalizeCatalogKey(category.slug);
-      return {
-        id: category.id,
-        name: category.name,
-        slug: category.slug,
-        count: productCounts.get(key) ?? 0,
-      };
-    })
-    .filter((category) => category.count > 0)
-    .sort((left, right) => right.count - left.count || left.name.localeCompare(right.name))
-    .slice(0, 8);
-}
 
 const productMatches = (
   product: CatalogProduct,
@@ -405,40 +361,6 @@ function ProductSection({
   );
 }
 
-function CategoryHighlights({
-  categories,
-}: {
-  categories: Array<{ id: string; name: string; slug: string; count: number }>;
-}) {
-  if (!categories.length) {
-    return null;
-  }
-
-  return (
-    <section className="catalog-category-highlights">
-      <div className="catalog-section-header">
-        <div>
-          <p className="catalog-section-eyebrow">Categorías principales</p>
-          <h2>Entradas rápidas a lo que más rotación tiene</h2>
-        </div>
-        <div className="catalog-section-actions">
-          <Link className="catalog-section-link" href="/?collection=mas-vendidos">
-            Ver todo
-          </Link>
-        </div>
-      </div>
-
-      <div className="catalog-category-highlights-grid">
-        {categories.map((category) => (
-          <Link className="catalog-category-highlight-card" href={`/categoria/${category.slug}`} key={category.id}>
-            <strong>{category.name}</strong>
-            <span>{category.count} productos</span>
-          </Link>
-        ))}
-      </div>
-    </section>
-  );
-}
 
 function ProductGridView({
   products,
@@ -477,7 +399,6 @@ function ProductGridView({
 export function CatalogExperience({
   bestSellerProducts = [],
   catalogTitle,
-  categories = [],
   isSectionedView = true,
   products,
   salesSummary,
@@ -494,7 +415,6 @@ export function CatalogExperience({
   const featuredProducts = products.filter(
     (product) => product.isFeatured && !isAdultCatalogProduct(product),
   );
-  const categoryHighlights = buildCategoryHighlights(categories, storefrontProducts);
 
   const hasRealBestSellers =
     Boolean(salesSummary?.hasRealSales) && storefrontBestSellerProducts.length > 0;
@@ -582,8 +502,6 @@ export function CatalogExperience({
             settings={settings}
             compact
           />
-
-          <CategoryHighlights categories={categoryHighlights} />
 
           <ProductSection
             href="/?q=regalo"
