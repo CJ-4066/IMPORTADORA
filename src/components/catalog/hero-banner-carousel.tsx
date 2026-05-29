@@ -13,25 +13,26 @@ export function HeroBannerCarousel({ banners, intervalSeconds }: HeroBannerCarou
   const slides = useMemo(() => banners.filter(Boolean), [banners]);
   const [activeIndex, setActiveIndex] = useState(0);
   const currentIndex = slides.length ? Math.min(activeIndex, slides.length - 1) : 0;
+  const slideCount = slides.length;
 
   useEffect(() => {
-    if (slides.length <= 1 || intervalSeconds <= 0) {
+    if (slideCount <= 1 || intervalSeconds <= 0) {
       return;
     }
 
     const timer = window.setInterval(() => {
-      setActiveIndex((current) => (current + 1) % slides.length);
+      setActiveIndex((current) => (current + 1) % slideCount);
     }, intervalSeconds * 1000);
 
     return () => window.clearInterval(timer);
-  }, [intervalSeconds, slides.length]);
+  }, [intervalSeconds, slideCount]);
 
   function goToPrevious() {
-    setActiveIndex((current) => (current - 1 + slides.length) % slides.length);
+    setActiveIndex((current) => (current - 1 + slideCount) % slideCount);
   }
 
   function goToNext() {
-    setActiveIndex((current) => (current + 1) % slides.length);
+    setActiveIndex((current) => (current + 1) % slideCount);
   }
 
   if (!slides.length) {
@@ -50,6 +51,7 @@ export function HeroBannerCarousel({ banners, intervalSeconds }: HeroBannerCarou
           <article
             aria-hidden={index !== currentIndex}
             className={`hero-banner-carousel-slide ${index === currentIndex ? "is-active" : ""}`}
+            data-active={index === currentIndex ? "true" : "false"}
             key={slide.id ?? `${slide.desktopImageUrl}-${slide.title ?? index}`}
           >
             <HeroBannerVisual banner={slide} eager={index === 0} mode="auto" />
