@@ -41,7 +41,7 @@ type ProductSectionProps = {
 };
 
 const FEATURED_SECTION_LIMIT = 6;
-const GRID_SECTION_LIMIT = 12;
+const GRID_SECTION_LIMIT = 6;
 
 const CATEGORY_SECTION_LIMIT = 5;
 
