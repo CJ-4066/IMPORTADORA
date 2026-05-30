@@ -43,7 +43,7 @@ type ProductSectionProps = {
 const FEATURED_SECTION_LIMIT = 6;
 const GRID_SECTION_LIMIT = 6;
 
-const CATEGORY_SECTION_LIMIT = 8;
+const CATEGORY_SECTION_LIMIT = 12;
 
 const takeSectionProducts = (items: CatalogProduct[], limit: number) =>
   items.slice(0, limit);
