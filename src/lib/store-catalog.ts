@@ -461,7 +461,7 @@ export async function getCatalogProductBySlug(slug: string) {
         },
       },
       orderBy: [{ isFeatured: "desc" }, { updatedAt: "desc" }],
-      take: 4,
+      take: 8,
     }),
   ]);
 
