@@ -3838,7 +3838,9 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
   line-height: 1.15;
   border-radius: 16px;
   touch-action: manipulation;
-  white-space: normal;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .product-actions .button:disabled {
