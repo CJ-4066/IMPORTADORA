@@ -123,10 +123,12 @@ export function ProductCard({ product, settings }: ProductCardProps) {
             className="button button-primary"
             disabled={product.stockUnits <= 0}
             onClick={() => void handleAddToCart()}
+            title={product.stockUnits <= 0 ? "Sin stock" : "Añadir al carrito"}
             type="button"
+            aria-label={product.stockUnits <= 0 ? "Sin stock" : "Añadir al carrito"}
           >
             <ShoppingCart size={16} />
-            {product.stockUnits <= 0 ? "Sin stock" : "Añadir al carrito"}
+            <span className="product-card-action-label">{product.stockUnits <= 0 ? "Sin stock" : "Añadir"}</span>
           </button>
           <button className="button button-secondary" onClick={openAssistantForProduct} type="button">
             <Bot size={16} />
@@ -137,5 +139,3 @@ export function ProductCard({ product, settings }: ProductCardProps) {
     </article>
   );
 }
-
-

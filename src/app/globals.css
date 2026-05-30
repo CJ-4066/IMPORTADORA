@@ -3857,6 +3857,13 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
   width: 100%;
 }
 
+.product-card-action-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .product-actions .button:disabled {
   cursor: not-allowed;
   opacity: 0.55;
@@ -10411,6 +10418,10 @@ body[data-admin-theme="dark"] .admin-complaints-empty {
     padding: 0.62rem 0.85rem;
   }
 
+  .product-card-action-label {
+    max-width: min(28vw, 6rem);
+  }
+
   .promo-banner-metrics {
     grid-template-columns: 1fr;
   }
@@ -11466,6 +11477,10 @@ body[data-admin-theme="dark"] .admin-complaints-empty {
     height: 13px;
   }
 
+  .product-card-action-label {
+    max-width: min(24vw, 4.5rem);
+  }
+
   .mobile-toolbar {
     flex-direction: column;
     align-items: stretch;
@@ -11831,6 +11846,10 @@ body[data-admin-theme="dark"] .admin-complaints-empty {
   .catalog-section-compact .product-actions .button svg {
     width: 12px;
     height: 12px;
+  }
+
+  .catalog-section-compact .product-card-action-label {
+    display: none;
   }
 }
 
