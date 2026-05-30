@@ -193,6 +193,7 @@ export async function POST(request: Request) {
       pdfFilename,
       pdfUrl,
       quoteNumber,
+      contactName: customerName,
       recipientNumber: customerPhone,
       total,
     });
@@ -205,6 +206,7 @@ export async function POST(request: Request) {
             pdfFilename,
             pdfUrl,
             quoteNumber,
+            contactName: customerName,
             recipientNumber: internalWhatsappNumber,
             total,
           })
@@ -371,6 +373,7 @@ function toJson(value: unknown): Prisma.InputJsonValue {
 
 async function sendPdfNotification(input: {
   businessName: string;
+  contactName: string;
   customerName: string;
   currencySymbol: string;
   pdfFilename: string;
@@ -416,6 +419,7 @@ async function sendPdfNotification(input: {
     const result = await sendQuotePdfToWhatsapp({
       bodyText: summary,
       fallbackText,
+      contactName: input.contactName,
       filename: input.pdfFilename,
       pdfUrl: input.pdfUrl,
       to: input.recipientNumber,
