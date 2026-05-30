@@ -222,7 +222,7 @@ async function buildHomeCategorySections(input: { isHomeView: boolean }) {
       return {
         category: mapCategory(category),
         productCount: categoryProducts.length,
-        products: categoryProducts.slice(0, 6).map(mapProduct),
+        products: categoryProducts.slice(0, 10).map(mapProduct),
         sortIndex: orderByCount.get(category.id) ?? Number.MAX_SAFE_INTEGER,
       };
     })
