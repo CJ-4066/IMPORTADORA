@@ -4095,6 +4095,11 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
   color: var(--danger);
 }
 
+.product-detail-price-rows {
+  display: grid;
+  gap: 0.35rem;
+}
+
 .product-detail-price-savings {
   display: flex;
   align-items: center;

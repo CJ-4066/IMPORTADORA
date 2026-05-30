@@ -11,7 +11,11 @@ import { getPublicProductName } from "@/lib/product-name";
 import type { CatalogProduct, ProductMediaView, StoreSettingsView } from "@/lib/store";
 import { isGenericProductPhotoUrl } from "@/lib/store-shared";
 import { formatCurrency } from "@/lib/utils";
-import { getProductDiscountPercent, ProductStockChip } from "@/components/catalog/product-display";
+import {
+  getProductDiscountPercent,
+  ProductPriceRows,
+  ProductStockChip,
+} from "@/components/catalog/product-display";
 
 type ProductDetailViewProps = {
   product: CatalogProduct;
@@ -230,6 +234,16 @@ export function ProductDetailView({ product, settings }: ProductDetailViewProps)
               <span>{wholesaleApplies ? "Precio mayorista activo" : "Precio unitario"}</span>
               <strong>{formatCurrency(effectiveUnitPrice, settings.currencySymbol)}</strong>
             </div>
+
+            {product.wholesalePrice ? (
+              <div className="product-detail-price-rows">
+                <ProductPriceRows
+                  currencySymbol={settings.currencySymbol}
+                  product={product}
+                  showWholesalePrice
+                />
+              </div>
+            ) : null}
 
             {wholesaleApplies ? (
               <div className="product-detail-price-lines">
