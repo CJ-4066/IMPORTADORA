@@ -235,12 +235,12 @@ export function ProductDetailView({ product, settings }: ProductDetailViewProps)
               <strong>{formatCurrency(effectiveUnitPrice, settings.currencySymbol)}</strong>
             </div>
 
-            {product.wholesalePrice ? (
+            {wholesaleApplies ? (
               <div className="product-detail-price-rows">
                 <ProductPriceRows
                   currencySymbol={settings.currencySymbol}
                   product={product}
-                  showWholesalePrice
+                  showWholesalePrice={false}
                 />
               </div>
             ) : null}
