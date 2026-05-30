@@ -351,6 +351,7 @@ type ExistingProductSnapshot = {
   id: string;
   imageUrl: string | null;
   localImageUrl: string | null;
+  syncEnabled: boolean;
   syncHash: string | null;
   syncQuickHash: string | null;
   syncStockHash: string | null;
@@ -450,6 +451,7 @@ async function loadExistingProductMap(products: PreparedSyncableProduct[]) {
       externalId: true,
       imageUrl: true,
       localImageUrl: true,
+      syncEnabled: true,
       syncHash: true,
       syncQuickHash: true,
       syncStockHash: true,
@@ -464,6 +466,7 @@ async function loadExistingProductMap(products: PreparedSyncableProduct[]) {
       id: product.id,
       imageUrl: product.imageUrl,
       localImageUrl: product.localImageUrl ?? getStoredLocalImageUrl(product.imageUrl),
+      syncEnabled: product.syncEnabled,
       syncHash: product.syncHash,
       syncQuickHash: product.syncQuickHash,
       syncStockHash: product.syncStockHash,
@@ -664,6 +667,14 @@ export async function syncFacturadorProducts(options: FacturadorSyncOptions = {}
               existingByExternal.get(
                 buildExternalKey(product.externalSource, product.externalId),
               ) ?? existingByCode.get(product.code);
+
+            if (existingSnapshot && existingSnapshot.syncEnabled === false) {
+              summary.skipped.push({
+                externalId: product.externalId,
+                reason: "Producto bloqueado localmente. Omitido hasta reactivación manual.",
+              });
+              return null;
+            }
 
             if (!existingSnapshot && isQuickMode) {
               summary.skipped.push({

@@ -124,6 +124,7 @@ export function buildRealProductPhotoWhere(): Prisma.ProductWhereInput {
 export function buildSellableProductWhere(): Prisma.ProductWhereInput {
   // CHANGE-CODE: CAT-001
   return {
+    syncEnabled: true,
     isVisible: true,
     stockUnits: { gt: 0 },
     AND: [buildRealProductPhotoWhere()],
