@@ -250,7 +250,7 @@ function QuoteForm({
             <BadgeCheck size={18} />
             <div>
               <strong>Cotización generada con éxito</strong>
-              <span>Te contactaremos vía WhatsApp.</span>
+              <span>{quoteMessage || "Te contactaremos vía WhatsApp."}</span>
             </div>
           </div>
       {quoteWhatsappHref ? (
@@ -481,12 +481,23 @@ export function CartDrawer({
           note: quoteDraft.note,
         }),
       });
-      const payload = (await response.json()) as {
+      const responseText = await response.text();
+      let payload: {
         message?: string;
         quoteNumber?: string | null;
         statusSteps?: QuoteStatusStep[];
         whatsappHref?: string | null;
-      };
+      } = {};
+
+      if (responseText.trim()) {
+        try {
+          payload = JSON.parse(responseText) as typeof payload;
+        } catch {
+          throw new Error(
+            `El servidor respondió ${response.status} con un formato inválido para la cotización.`,
+          );
+        }
+      }
 
       if (!response.ok) {
         throw new Error(payload.message ?? "No se pudo registrar la cotización.");

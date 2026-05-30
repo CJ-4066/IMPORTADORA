@@ -32,64 +32,64 @@ type QuoteCustomerPayload = {
 
 export async function POST(request: Request) {
   let localQuoteId: string | null = null;
-  const session = await getSession();
-  const shopper = session
-    ? await prisma.user.findUnique({
-        where: { id: session.userId },
-        select: { phone: true },
-      })
-    : null;
-  const payload = (await request.json()) as {
-    items?: unknown;
-    note?: string;
-    customer?: QuoteCustomerPayload;
-  };
-
-  let requestedItems: QuoteRequestItem[];
-
   try {
-    requestedItems = normalizeQuoteLineInputs(payload.items);
-  } catch (error) {
-    if (error instanceof QuoteLineValidationError) {
-      return NextResponse.json({ message: error.message }, { status: 400 });
+    const session = await getSession();
+    const shopper = session
+      ? await prisma.user.findUnique({
+          where: { id: session.userId },
+          select: { phone: true },
+        })
+      : null;
+    const payload = (await request.json()) as {
+      items?: unknown;
+      note?: string;
+      customer?: QuoteCustomerPayload;
+    };
+
+    let requestedItems: QuoteRequestItem[];
+
+    try {
+      requestedItems = normalizeQuoteLineInputs(payload.items);
+    } catch (error) {
+      if (error instanceof QuoteLineValidationError) {
+        return NextResponse.json({ message: error.message }, { status: 400 });
+      }
+
+      throw error;
     }
 
-    throw error;
-  }
+    if (!requestedItems.length) {
+      return NextResponse.json({ message: "No hay items para cotizar." }, { status: 400 });
+    }
 
-  if (!requestedItems.length) {
-    return NextResponse.json({ message: "No hay items para cotizar." }, { status: 400 });
-  }
+    const customerName = payload.customer?.name?.trim() || session?.name?.trim() || "";
+    const customerPhone = payload.customer?.phone?.trim() || shopper?.phone?.trim() || "";
+    const customerEmail = payload.customer?.email?.trim() || session?.email?.trim() || null;
+    const documentType = payload.customer?.documentType?.trim() || null;
+    const documentNumber = payload.customer?.documentNumber?.trim() || null;
+    const customerAddress = payload.customer?.address?.trim() || null;
 
-  const customerName = payload.customer?.name?.trim() || session?.name?.trim() || "";
-  const customerPhone = payload.customer?.phone?.trim() || shopper?.phone?.trim() || "";
-  const customerEmail = payload.customer?.email?.trim() || session?.email?.trim() || null;
-  const documentType = payload.customer?.documentType?.trim() || null;
-  const documentNumber = payload.customer?.documentNumber?.trim() || null;
-  const customerAddress = payload.customer?.address?.trim() || null;
+    if (customerName.length < 3) {
+      return NextResponse.json(
+        { message: "Ingresa el nombre o razón social del cliente para registrar la cotización." },
+        { status: 400 },
+      );
+    }
 
-  if (customerName.length < 3) {
-    return NextResponse.json(
-      { message: "Ingresa el nombre o razón social del cliente para registrar la cotización." },
-      { status: 400 },
-    );
-  }
+    if (customerPhone.length < 6) {
+      return NextResponse.json(
+        { message: "Ingresa un teléfono de contacto válido para registrar la cotización." },
+        { status: 400 },
+      );
+    }
 
-  if (customerPhone.length < 6) {
-    return NextResponse.json(
-      { message: "Ingresa un teléfono de contacto válido para registrar la cotización." },
-      { status: 400 },
-    );
-  }
+    if (Boolean(documentType) !== Boolean(documentNumber)) {
+      return NextResponse.json(
+        { message: "Si ingresas documento, completa también el tipo y el número." },
+        { status: 400 },
+      );
+    }
 
-  if (Boolean(documentType) !== Boolean(documentNumber)) {
-    return NextResponse.json(
-      { message: "Si ingresas documento, completa también el tipo y el número." },
-      { status: 400 },
-    );
-  }
-
-  try {
     const catalogProducts = await prisma.product.findMany({
       where: {
         code: {
@@ -267,15 +267,9 @@ export async function POST(request: Request) {
     return NextResponse.json({
       customerMode: result.customerMode,
       localQuoteId: localQuote.id,
-      message: [
-        messageBase,
-        customerModeLabel,
-        customerPdfNotification.message,
-        internalPdfNotification.message,
-        ...warnings,
-      ]
-        .filter(Boolean)
-        .join(" "),
+      message: quoteNumber
+        ? `Cotización ${quoteNumber} enviada correctamente. Te contactaremos vía WhatsApp.`
+        : "Cotización enviada correctamente. Te contactaremos vía WhatsApp.",
       pdfNotification: {
         message: customerPdfNotification.message,
         ok: customerPdfNotification.ok || internalPdfNotification.ok,
@@ -290,10 +284,6 @@ export async function POST(request: Request) {
       warnings,
     });
   } catch (error) {
-    if (error instanceof QuoteLineValidationError) {
-      return NextResponse.json({ message: error.message }, { status: 400 });
-    }
-
     if (localQuoteId) {
       await prisma.quote
         .update({
