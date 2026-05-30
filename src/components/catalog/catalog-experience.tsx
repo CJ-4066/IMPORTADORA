@@ -42,8 +42,9 @@ type ProductSectionProps = {
   compact?: boolean;
 };
 
-const FEATURED_SECTION_LIMIT = 6;
-const GRID_SECTION_LIMIT = 6;
+const FEATURED_SECTION_LIMIT = 10;
+const GRID_SECTION_LIMIT = 10;
+const CATEGORY_SECTION_MIN = 6;
 
 const CATEGORY_SECTION_LIMIT = 12;
 
@@ -131,7 +132,7 @@ function buildCategorySections(
         products: sortProductsByImageQuality(productsInCategory).slice(0, GRID_SECTION_LIMIT),
       };
     })
-    .filter((item) => item.productCount >= GRID_SECTION_LIMIT && item.products.length >= GRID_SECTION_LIMIT)
+    .filter((item) => item.productCount >= CATEGORY_SECTION_MIN && item.products.length >= CATEGORY_SECTION_MIN)
     .sort((left, right) => {
       const scoreDelta = right.bestSellerCount - left.bestSellerCount;
 
