@@ -3834,15 +3834,16 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
   justify-content: center;
   gap: 0.38rem;
   min-width: 0;
-  min-height: 38px;
-  padding: 0 0.78rem;
-  font-size: 0.78rem;
+  min-height: 42px;
+  padding: 0 0.8rem;
+  font-size: 0.8rem;
   line-height: 1.15;
   border-radius: 16px;
   touch-action: manipulation;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  width: 100%;
 }
 
 .product-actions .button:disabled {
@@ -4255,6 +4256,7 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   align-items: stretch;
+  gap: 0.6rem;
 }
 
 .product-detail-buy-actions .button {
@@ -10467,19 +10469,19 @@ body[data-admin-theme="dark"] .admin-complaints-empty {
 
   .product-detail-buy-actions {
     display: grid;
-    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
-    gap: 0.65rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.55rem;
     align-items: stretch;
   }
 
   .product-detail-buy-actions .button {
-    width: auto;
-    min-height: 52px;
-    padding: 0.7rem 0.95rem;
+    width: 100%;
+    min-height: 50px;
+    padding: 0.72rem 0.9rem;
     border-radius: 16px;
     font-size: 0.82rem;
     font-weight: 800;
-    box-shadow: 0 14px 28px rgba(var(--brand-ink-rgb), 0.08);
+    box-shadow: none;
   }
 
   .product-detail-buy-actions .button-primary {
