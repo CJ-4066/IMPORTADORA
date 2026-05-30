@@ -3859,8 +3859,6 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
 
 .product-card-action-label {
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
@@ -10419,7 +10417,7 @@ body[data-admin-theme="dark"] .admin-complaints-empty {
   }
 
   .product-card-action-label {
-    max-width: min(28vw, 6rem);
+    max-width: none;
   }
 
   .promo-banner-metrics {
@@ -11478,7 +11476,7 @@ body[data-admin-theme="dark"] .admin-complaints-empty {
   }
 
   .product-card-action-label {
-    max-width: min(24vw, 4.5rem);
+    max-width: none;
   }
 
   .mobile-toolbar {
