@@ -54,7 +54,7 @@ export function ProductCard({ product, settings }: ProductCardProps) {
       <div className="product-media">
         {primaryMedia && shouldShowMedia ? (
           <Link aria-label={`Ver detalle de ${displayName}`} className="product-media-link" href={`/producto/${product.slug}`}>
-            <div className="product-media-preview">
+            <div className="product-media-preview product-media-preview--detail-safe">
               {primaryMedia.type === "IMAGE" ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
