@@ -88,10 +88,10 @@ export function ProductDetailView({ product, settings }: ProductDetailViewProps)
   const activeMediaUrl = getSafeMediaUrl(activeMedia?.url);
   const maxQuantity = product.stockUnits;
   const safeQuantity = Math.min(Math.max(quantity, 1), Math.max(maxQuantity, 1));
-  const wholesaleApplies =
-    Boolean(product.wholesalePrice) &&
-    safeQuantity >= product.wholesaleMinQty;
+  const hasWholesalePrice = Boolean(product.wholesalePrice);
+  const wholesaleApplies = hasWholesalePrice && safeQuantity >= product.wholesaleMinQty;
   const discountPercent = getProductDiscountPercent(product);
+  const displayedWholesalePrice = product.wholesalePrice ?? product.unitPrice;
   const effectiveUnitPrice = wholesaleApplies
     ? product.wholesalePrice ?? product.unitPrice
     : product.unitPrice;
@@ -228,14 +228,19 @@ export function ProductDetailView({ product, settings }: ProductDetailViewProps)
           <div className="product-detail-price-box">
             <div
               className={`product-detail-price-main ${
-                wholesaleApplies ? "is-wholesale" : "is-unitary"
+                hasWholesalePrice ? "is-wholesale" : "is-unitary"
               }`}
             >
-              <span>{wholesaleApplies ? "Precio mayorista activo" : "Precio unitario"}</span>
-              <strong>{formatCurrency(effectiveUnitPrice, settings.currencySymbol)}</strong>
+              <span>{hasWholesalePrice ? "Precio mayorista" : "Precio unitario"}</span>
+              <strong>
+                {formatCurrency(
+                  hasWholesalePrice ? displayedWholesalePrice : effectiveUnitPrice,
+                  settings.currencySymbol,
+                )}
+              </strong>
             </div>
 
-            {wholesaleApplies ? (
+            {hasWholesalePrice ? (
               <div className="product-detail-price-rows">
                 <ProductPriceRows
                   currencySymbol={settings.currencySymbol}
