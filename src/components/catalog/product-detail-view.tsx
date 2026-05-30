@@ -13,7 +13,6 @@ import { isGenericProductPhotoUrl } from "@/lib/store-shared";
 import { formatCurrency } from "@/lib/utils";
 import {
   getProductDiscountPercent,
-  ProductPriceRows,
   ProductStockChip,
 } from "@/components/catalog/product-display";
 
@@ -91,10 +90,8 @@ export function ProductDetailView({ product, settings }: ProductDetailViewProps)
   const hasWholesalePrice = Boolean(product.wholesalePrice);
   const wholesaleApplies = hasWholesalePrice && safeQuantity >= product.wholesaleMinQty;
   const discountPercent = getProductDiscountPercent(product);
-  const displayedWholesalePrice = product.wholesalePrice ?? product.unitPrice;
-  const effectiveUnitPrice = wholesaleApplies
-    ? product.wholesalePrice ?? product.unitPrice
-    : product.unitPrice;
+  const wholesalePrice = product.wholesalePrice ?? product.unitPrice;
+  const effectiveUnitPrice = wholesaleApplies ? wholesalePrice : product.unitPrice;
   const total = effectiveUnitPrice * safeQuantity;
   const wholesaleSavings =
     wholesaleApplies && product.wholesalePrice !== null
@@ -226,27 +223,15 @@ export function ProductDetailView({ product, settings }: ProductDetailViewProps)
           </div>
 
           <div className="product-detail-price-box">
-            <div
-              className={`product-detail-price-main ${
-                hasWholesalePrice ? "is-wholesale" : "is-unitary"
-              }`}
-            >
-              <span>{hasWholesalePrice ? "Precio mayorista" : "Precio unitario"}</span>
-              <strong>
-                {formatCurrency(
-                  hasWholesalePrice ? displayedWholesalePrice : effectiveUnitPrice,
-                  settings.currencySymbol,
-                )}
-              </strong>
+            <div className="product-detail-price-main is-unitary">
+              <span>Precio unitario</span>
+              <strong>{formatCurrency(product.unitPrice, settings.currencySymbol)}</strong>
             </div>
 
             {hasWholesalePrice ? (
-              <div className="product-detail-price-rows">
-                <ProductPriceRows
-                  currencySymbol={settings.currencySymbol}
-                  product={product}
-                  showWholesalePrice={false}
-                />
+              <div className="product-detail-price-wholesale">
+                <span>Precio mayorista desde {product.wholesaleMinQty}</span>
+                <strong>{formatCurrency(wholesalePrice, settings.currencySymbol)}</strong>
               </div>
             ) : null}
 

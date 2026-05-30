@@ -4095,6 +4095,31 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
   color: var(--danger);
 }
 
+.product-detail-price-wholesale {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.product-detail-price-wholesale span,
+.product-detail-price-wholesale strong {
+  color: var(--success);
+}
+
+.product-detail-price-wholesale span {
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.product-detail-price-wholesale strong {
+  font-family: var(--font-display), sans-serif;
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
 .product-detail-price-rows {
   display: grid;
   gap: 0.35rem;
