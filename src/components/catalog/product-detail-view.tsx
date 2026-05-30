@@ -230,7 +230,7 @@ export function ProductDetailView({ product, settings }: ProductDetailViewProps)
 
             {hasWholesalePrice ? (
               <div className="product-detail-price-wholesale">
-                <span>Precio mayorista desde {product.wholesaleMinQty}</span>
+                <span>Precio mayorista a partir de {product.wholesaleMinQty} unidades</span>
                 <strong>{formatCurrency(wholesalePrice, settings.currencySymbol)}</strong>
               </div>
             ) : null}
