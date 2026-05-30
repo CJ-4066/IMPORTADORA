@@ -159,7 +159,6 @@ export async function getExactCatalogProductSlug(query: string) {
 
   const product = await prisma.product.findFirst({
     where: {
-      ...buildSellableProductWhere(),
       OR: [
         { code: { equals: trimmedQuery, mode: "insensitive" } },
         { externalCode: { equals: trimmedQuery, mode: "insensitive" } },
@@ -450,9 +449,6 @@ export async function getCatalogProductBySlug(slug: string) {
   const product = await prisma.product.findFirst({
     where: {
       slug,
-      isVisible: true,
-      stockUnits: { gt: 0 },
-      AND: [buildRealProductPhotoWhere()],
     },
     include: {
       media: {

@@ -91,22 +91,15 @@ export function HeaderSearch({ autoFocus = false }: HeaderSearchProps) {
       return `/producto/${localMatch.slug}`;
     }
 
-    const response = await fetch(`/api/catalog-suggest?q=${encodeURIComponent(trimmedQuery)}`);
+    const response = await fetch(`/api/catalog-exact?q=${encodeURIComponent(trimmedQuery)}`);
 
     if (!response.ok) {
       return `/?q=${encodeURIComponent(trimmedQuery)}`;
     }
 
-    const data = (await response.json()) as { suggestions?: CatalogSuggestion[] };
-    const remoteMatch = (data.suggestions ?? []).find((item) => {
-      const code = item.code.trim().toLowerCase();
-      const slug = item.slug.trim().toLowerCase();
-      const name = item.name.trim().toLowerCase();
+    const data = (await response.json()) as { slug?: string | null };
 
-      return normalizedQuery === code || normalizedQuery === slug || normalizedQuery === name;
-    });
-
-    return remoteMatch ? `/producto/${remoteMatch.slug}` : `/?q=${encodeURIComponent(trimmedQuery)}`;
+    return data.slug ? `/producto/${data.slug}` : `/?q=${encodeURIComponent(trimmedQuery)}`;
   }
 
   return (
