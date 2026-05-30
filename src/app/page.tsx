@@ -1,6 +1,8 @@
 import type { CSSProperties } from "react";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { getCatalogPageData } from "@/lib/store";
+import { getExactCatalogProductSlug } from "@/lib/store";
 import type { CatalogProduct } from "@/lib/store";
 import { CatalogExperience } from "@/components/catalog/catalog-experience";
 import { HeroCarousel } from "@/components/catalog/hero-carousel";
@@ -156,6 +158,13 @@ export default async function Home({ searchParams }: HomeProps) {
     params?.featured === "1" || normalizedCollection === "ofertas";
   const initialCartOpen = params?.drawer === "cart";
   const focusSearch = params?.focus === "search";
+  if (q) {
+    const exactSlug = await getExactCatalogProductSlug(q);
+
+    if (exactSlug) {
+      redirect(`/producto/${exactSlug}`);
+    }
+  }
   const [data, quoteDefaults] = await Promise.all([
     getCatalogPageData({
       query: resolvedQuery,

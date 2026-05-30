@@ -4,6 +4,7 @@ export {
   getCatalogPageData,
   getCatalogProductBySlug,
   getCatalogSuggestions,
+  getExactCatalogProductSlug,
   getBrandOptions,
   getCategoryOptions,
 } from "@/lib/store-catalog";

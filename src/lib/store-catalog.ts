@@ -150,6 +150,30 @@ export async function getCatalogPageData(input: {
   };
 }
 
+export async function getExactCatalogProductSlug(query: string) {
+  const trimmedQuery = query.trim();
+
+  if (!trimmedQuery) {
+    return null;
+  }
+
+  const product = await prisma.product.findFirst({
+    where: {
+      ...buildSellableProductWhere(),
+      OR: [
+        { code: { equals: trimmedQuery, mode: "insensitive" } },
+        { externalCode: { equals: trimmedQuery, mode: "insensitive" } },
+        { externalId: { equals: trimmedQuery, mode: "insensitive" } },
+        { slug: { equals: trimmedQuery, mode: "insensitive" } },
+        { name: { equals: trimmedQuery, mode: "insensitive" } },
+      ],
+    },
+    select: { slug: true },
+  });
+
+  return product?.slug ?? null;
+}
+
 async function buildHomeCategorySections(input: { isHomeView: boolean }) {
   if (!input.isHomeView) {
     return [] satisfies CatalogCategorySection[];
