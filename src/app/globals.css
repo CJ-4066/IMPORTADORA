@@ -3772,20 +3772,26 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
 .product-price-topline span {
   color: var(--muted);
   font-size: 0.76rem;
+  line-height: 1.2;
+  min-width: 0;
   text-transform: uppercase;
   letter-spacing: 0.08em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .product-price-topline strong {
   font-family: var(--font-display), sans-serif;
   font-size: 1rem;
   line-height: 1;
+  white-space: nowrap;
 }
 
 .price-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 0.65rem;
+  gap: 0.5rem;
   align-items: center;
 }
 
@@ -3795,13 +3801,18 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
   align-items: center;
   color: var(--muted);
   font-size: 0.76rem;
+  line-height: 1.2;
   min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .price-row strong {
   justify-self: end;
   text-align: right;
   white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 
 .product-actions,
@@ -4073,15 +4084,20 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
   align-items: end;
   justify-content: space-between;
   gap: 1rem;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 
 .product-detail-price-main span,
 .product-detail-total span {
   color: var(--muted);
   font-size: 0.8rem;
+  line-height: 1.2;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .product-detail-price-main strong,
@@ -4089,6 +4105,8 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
   font-family: var(--font-display), sans-serif;
   font-size: 1.35rem;
   line-height: 1;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 
 .product-detail-price-main.is-unitary span,
@@ -4106,7 +4124,7 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 
 .product-detail-price-wholesale span,
@@ -4116,14 +4134,21 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
 
 .product-detail-price-wholesale span {
   font-size: 0.8rem;
+  line-height: 1.2;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .product-detail-price-wholesale strong {
   font-family: var(--font-display), sans-serif;
   font-size: 1.05rem;
   line-height: 1;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 
 .product-detail-price-rows {
@@ -4136,7 +4161,7 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 
 .product-detail-price-savings span,
@@ -4146,14 +4171,21 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
 
 .product-detail-price-savings span {
   font-size: 0.8rem;
+  line-height: 1.2;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .product-detail-price-savings strong {
   font-family: var(--font-display), sans-serif;
   font-size: 1.05rem;
   line-height: 1;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 
 .product-detail-total.is-total span,
