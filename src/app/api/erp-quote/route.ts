@@ -175,12 +175,12 @@ export async function POST(request: Request) {
     });
     const pdfUrl = getQuotationPdfUrl(quotationRecord, result.response);
     const pdfFilename = getQuotationPdfFilename(quotationRecord, quoteNumber);
-    const whatsappHref = buildCustomerWhatsappHref({
+    const whatsappHref = buildAdvisorWhatsappHref({
       businessName: settings.businessName,
       currencySymbol: settings.currencySymbol,
       customerName,
-      phone: customerPhone,
       quoteNumber,
+      advisorPhone: settings.whatsappNumber,
       total,
       items,
     });
@@ -476,27 +476,28 @@ function getFirstStringFromUnknown(value: unknown, keys: string[]) {
   return null;
 }
 
-function buildCustomerWhatsappHref(input: {
+function buildAdvisorWhatsappHref(input: {
   businessName: string;
   currencySymbol: string;
   customerName: string;
-  phone: string;
+  advisorPhone: string;
   quoteNumber: string | null;
   total: number;
   items: PreparedCustomerWhatsappItem[];
 }) {
-  const phone = normalizeCustomerWhatsappNumber(input.phone);
+  const phone = normalizeCustomerWhatsappNumber(input.advisorPhone);
 
   if (!phone || phone.length < 11) {
     return null;
   }
 
   const text = [
-    `Hola ${input.customerName},`,
+    `Hola,`,
     input.quoteNumber
-      ? `tu cotización ${input.quoteNumber} ya fue registrada en ${input.businessName}.`
-      : `tu cotización ya fue registrada en ${input.businessName}.`,
+      ? `quiero revisar la cotización ${input.quoteNumber} registrada en ${input.businessName}.`
+      : `quiero revisar mi cotización registrada en ${input.businessName}.`,
     "",
+    `Cliente: ${input.customerName}`,
     ...input.items.map(
       (item) =>
         `- ${item.name} (${item.code}) x${item.quantity} · ${formatCurrency(item.unitPrice * item.quantity, input.currencySymbol)}`,
