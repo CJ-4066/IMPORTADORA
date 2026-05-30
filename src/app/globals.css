@@ -3918,8 +3918,8 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
 
 .product-detail-main {
   display: grid;
-  grid-template-columns: minmax(320px, 0.92fr) minmax(380px, 1.08fr);
-  gap: 1.15rem;
+  grid-template-columns: minmax(320px, 0.82fr) minmax(380px, 1.18fr);
+  gap: 1rem;
   align-items: stretch;
 }
 
@@ -3934,6 +3934,7 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
   align-content: start;
   justify-self: stretch;
   width: 100%;
+  max-width: 640px;
   padding: 0.85rem;
   border: 1px solid rgba(255, 255, 255, 0.5);
   border-radius: 32px;
@@ -3957,8 +3958,8 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
 .product-detail-stage {
   position: relative;
   min-height: 0;
-  aspect-ratio: 2 / 3.1;
-  max-height: min(74vh, 720px);
+  aspect-ratio: 1 / 1.18;
+  max-height: min(62vh, 560px);
   border-radius: 26px;
   overflow: hidden;
   background:
@@ -9688,6 +9689,10 @@ body[data-admin-theme="dark"] .admin-complaints-empty {
   .admin-shell,
   .auth-layout {
     grid-template-columns: 1fr;
+  }
+
+  .product-detail-gallery-card {
+    max-width: none;
   }
 
   .product-editor-grid,
