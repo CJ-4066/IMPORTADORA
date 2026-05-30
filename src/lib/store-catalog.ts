@@ -12,7 +12,12 @@ import {
   mapProduct,
   mapSuggestionResults,
 } from "@/lib/store-shared";
-import type { BrandOption, CatalogSalesSummary, CatalogSuggestion } from "@/lib/store-types";
+import type {
+  BrandOption,
+  CatalogCategorySection,
+  CatalogSalesSummary,
+  CatalogSuggestion,
+} from "@/lib/store-types";
 
 const EMPTY_SALES_SUMMARY: CatalogSalesSummary = {
   generatedAt: null,
@@ -47,7 +52,7 @@ export async function getCatalogPageData(input: {
   const bestSellerCodes = bestSellerSnapshot.codes;
   const shouldRankBestSellers = collection === "mas-vendidos" && bestSellerCodes.length > 0;
   const where = buildCatalogWhere(input, shouldRankBestSellers ? bestSellerCodes : []);
-  const [queriedProducts, bestSellerRows, totalResults, categoryRows, brandRows, visibleCount, featuredCount, settings, heroBanners] =
+  const [queriedProducts, bestSellerRows, totalResults, categoryRows, brandRows, visibleCount, featuredCount, settings, heroBanners, homeCategorySections] =
     await Promise.all([
       prisma.product.findMany({
         where,
@@ -99,6 +104,15 @@ export async function getCatalogPageData(input: {
       }),
       getStoreSettings(),
       getHeroBannerViews({ slot: "HERO" }),
+      buildHomeCategorySections({
+        isHomeView:
+          page === 1 &&
+          !input.query?.trim() &&
+          (input.category?.trim() || "all") === "all" &&
+          (input.brand?.trim() || "all") === "all" &&
+          !collection &&
+          !input.featuredOnly,
+      }),
     ]);
   const orderedProducts =
     shouldRankBestSellers ? rankProductsByCode(queriedProducts, bestSellerCodes) : queriedProducts;
@@ -132,7 +146,94 @@ export async function getCatalogPageData(input: {
     },
     settings,
     heroBanners,
+    homeCategorySections,
   };
+}
+
+async function buildHomeCategorySections(input: { isHomeView: boolean }) {
+  if (!input.isHomeView) {
+    return [] satisfies CatalogCategorySection[];
+  }
+
+  const categoriesByCount = await prisma.product.groupBy({
+    by: ["categoryId"],
+    where: {
+      categoryId: { not: null },
+      ...buildSellableProductWhere(),
+    },
+    _count: {
+      _all: true,
+    },
+    orderBy: {
+      _count: {
+        categoryId: "desc",
+      },
+    },
+    take: 12,
+  });
+
+  const categoryIds = categoriesByCount
+    .map((item) => item.categoryId)
+    .filter((value): value is string => Boolean(value));
+
+  if (!categoryIds.length) {
+    return [] satisfies CatalogCategorySection[];
+  }
+
+  const [categories, products] = await Promise.all([
+    prisma.category.findMany({
+      where: { id: { in: categoryIds } },
+      orderBy: [{ name: "asc" }, { id: "asc" }],
+    }),
+    prisma.product.findMany({
+      where: {
+        categoryId: { in: categoryIds },
+        ...buildSellableProductWhere(),
+      },
+      include: {
+        media: {
+          orderBy: { sortOrder: "asc" },
+        },
+      },
+      orderBy: [
+        { isFeatured: "desc" as const },
+        { updatedAt: "desc" as const },
+        { id: "asc" as const },
+      ],
+    }),
+  ]);
+
+  const productsByCategoryId = new Map<string, typeof products>();
+  for (const product of products) {
+    if (!product.categoryId) {
+      continue;
+    }
+
+    const bucket = productsByCategoryId.get(product.categoryId) ?? [];
+    bucket.push(product);
+    productsByCategoryId.set(product.categoryId, bucket);
+  }
+
+  const orderByCount = new Map(categoryIds.map((id, index) => [id, index]));
+
+  return categories
+    .map((category) => {
+      const categoryProducts = productsByCategoryId.get(category.id) ?? [];
+      return {
+        category: mapCategory(category),
+        productCount: categoryProducts.length,
+        products: categoryProducts.slice(0, 6).map(mapProduct),
+        sortIndex: orderByCount.get(category.id) ?? Number.MAX_SAFE_INTEGER,
+      };
+    })
+    .filter((item) => item.productCount >= 6)
+    .sort((left, right) => left.sortIndex - right.sortIndex)
+    .slice(0, 12)
+    .map((item) => ({
+      category: item.category,
+      productCount: item.productCount,
+      products: item.products,
+    }));
 }
 
 function shouldLoadBestSellerSnapshot(

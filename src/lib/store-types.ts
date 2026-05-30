@@ -110,6 +110,12 @@ export type AdminCategory = CategoryOption & {
   productCount: number;
 };
 
+export type CatalogCategorySection = {
+  category: CategoryOption;
+  productCount: number;
+  products: CatalogProduct[];
+};
+
 export type HeroSlideView = {
   imageUrl: string;
   title: string | null;

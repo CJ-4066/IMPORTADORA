@@ -5,6 +5,7 @@ import { useRef } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import type {
   CatalogProduct,
+  CatalogCategorySection,
   CatalogSalesSummary,
   CategoryOption,
   StoreSettingsView,
@@ -17,6 +18,7 @@ type CatalogExperienceProps = {
   bestSellerProducts?: CatalogProduct[];
   catalogTitle?: string;
   categories?: CategoryOption[];
+  categorySections?: CatalogCategorySection[];
   isSectionedView?: boolean;
   products: CatalogProduct[];
   salesSummary?: CatalogSalesSummary;
@@ -337,6 +339,7 @@ export function CatalogExperience({
   bestSellerProducts = [],
   catalogTitle,
   categories = [],
+  categorySections: homeCategorySections = [],
   isSectionedView = true,
   products,
   salesSummary,
@@ -366,11 +369,9 @@ export function CatalogExperience({
     0,
     FEATURED_SECTION_LIMIT,
   );
-  const categorySections = buildCategorySections(
-    categories,
-    storefrontProducts,
-    storefrontBestSellerProducts,
-  );
+  const categorySections = homeCategorySections.length
+    ? homeCategorySections
+    : buildCategorySections(categories, storefrontProducts, storefrontBestSellerProducts);
 
   return (
     <>
