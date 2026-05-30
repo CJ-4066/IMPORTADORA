@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { LoaderCircle, Search } from "lucide-react";
 import { getPublicProductName } from "@/lib/product-name";
@@ -11,6 +12,7 @@ type HeaderSearchProps = {
 };
 
 export function HeaderSearch({ autoFocus = false }: HeaderSearchProps) {
+  const router = useRouter();
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
@@ -75,8 +77,63 @@ export function HeaderSearch({ autoFocus = false }: HeaderSearchProps) {
     };
   }, [query]);
 
+  async function resolveSearchDestination(trimmedQuery: string) {
+    const normalizedQuery = trimmedQuery.toLowerCase();
+    const localMatch = suggestions.find((item) => {
+      const code = item.code.trim().toLowerCase();
+      const slug = item.slug.trim().toLowerCase();
+      const name = item.name.trim().toLowerCase();
+
+      return normalizedQuery === code || normalizedQuery === slug || normalizedQuery === name;
+    });
+
+    if (localMatch) {
+      return `/producto/${localMatch.slug}`;
+    }
+
+    const response = await fetch(`/api/catalog-suggest?q=${encodeURIComponent(trimmedQuery)}`);
+
+    if (!response.ok) {
+      return `/?q=${encodeURIComponent(trimmedQuery)}`;
+    }
+
+    const data = (await response.json()) as { suggestions?: CatalogSuggestion[] };
+    const remoteMatch = (data.suggestions ?? []).find((item) => {
+      const code = item.code.trim().toLowerCase();
+      const slug = item.slug.trim().toLowerCase();
+      const name = item.name.trim().toLowerCase();
+
+      return normalizedQuery === code || normalizedQuery === slug || normalizedQuery === name;
+    });
+
+    return remoteMatch ? `/producto/${remoteMatch.slug}` : `/?q=${encodeURIComponent(trimmedQuery)}`;
+  }
+
   return (
-    <form action="/" className="public-store-search-form" method="get" role="search">
+    <form
+      action="/"
+      className="public-store-search-form"
+      method="get"
+      onSubmit={async (event) => {
+        event.preventDefault();
+
+        const trimmedQuery = query.trim();
+
+        if (!trimmedQuery) {
+          return;
+        }
+
+        setLoading(true);
+
+        try {
+          const destination = await resolveSearchDestination(trimmedQuery);
+          router.push(destination);
+        } finally {
+          setLoading(false);
+        }
+      }}
+      role="search"
+    >
       <label
         className="public-store-search-field"
         onPointerDownCapture={() => focusSearchInput()}
