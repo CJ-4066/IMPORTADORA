@@ -1,4 +1,5 @@
 import type { CSSProperties } from "react";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CartDrawer } from "@/components/catalog/cart-drawer";
 import { ProductCard } from "@/components/catalog/product-card";
@@ -43,14 +44,38 @@ export default async function ProductDetailPage({
     "--brand-primary": data.settings.primaryColor,
     "--brand-accent": data.settings.accentColor,
   } as CSSProperties & Record<"--brand-primary" | "--brand-accent", string>;
+  const isAvailable = data.product.isVisible && data.product.stockUnits > 0 && data.product.syncEnabled;
 
   return (
     <main className="site-shell" style={themeVars}>
       <PublicStoreHeader />
 
-      <ProductDetailView key={data.product.slug} product={data.product} settings={data.settings} />
+      {isAvailable ? (
+        <ProductDetailView key={data.product.slug} product={data.product} settings={data.settings} />
+      ) : (
+        <section className="panel product-unavailable-panel">
+          <div className="stack-md">
+            <div className="stack-xs">
+              <p className="eyebrow">Producto no disponible</p>
+              <h1>{data.product.name}</h1>
+              <p className="muted">
+                Este producto existe en el sistema, pero no está disponible para compra en este momento.
+              </p>
+            </div>
 
-      {data.relatedProducts.length ? (
+            <div className="product-unavailable-actions">
+              <Link className="button button-secondary" href="/">
+                Volver al catálogo
+              </Link>
+              <Link className="button button-primary" href="/?focus=search">
+                Buscar otro producto
+              </Link>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {isAvailable && data.relatedProducts.length ? (
         <section className="panel related-products-panel">
           <div className="stack-sm">
             <p className="eyebrow">Sigue explorando</p>

@@ -4081,6 +4081,16 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
   white-space: pre-wrap;
 }
 
+.product-unavailable-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.product-unavailable-actions .button {
+  min-width: min(100%, 14rem);
+}
+
 .product-detail-price-box,
 .product-detail-buybox {
   display: grid;
