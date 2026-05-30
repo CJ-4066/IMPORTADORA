@@ -11558,11 +11558,11 @@ body[data-admin-theme="dark"] .admin-complaints-empty {
 .catalog-featured-slider {
   display: grid;
   grid-auto-flow: column;
-  grid-auto-columns: minmax(250px, 290px);
-  gap: 1rem;
+  grid-auto-columns: minmax(228px, 266px);
+  gap: 0.78rem;
   overflow-x: auto;
   overscroll-behavior-x: contain;
-  padding: 0.1rem 0 0.45rem;
+  padding: 0.1rem 0 0.35rem;
   scroll-padding-inline: 0.25rem;
   scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;
