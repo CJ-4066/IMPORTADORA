@@ -3540,7 +3540,7 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
   aspect-ratio: 2 / 3;
   min-height: 16rem;
   overflow: hidden;
-  padding: 0;
+  padding: 0.18rem;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(241, 245, 249, 0.9)),
     radial-gradient(circle at top left, rgba(var(--brand-rgb), 0.12), transparent 42%);
@@ -3550,7 +3550,7 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
 .product-media-preview video {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   object-position: center;
   display: block;
 }
@@ -10459,7 +10459,7 @@ body[data-admin-theme="dark"] .admin-complaints-empty {
     margin: 0;
     aspect-ratio: 2 / 3.05;
     min-height: clamp(15rem, 56vw, 19rem);
-    padding: 0;
+    padding: 0.15rem;
   }
 
   .product-copy h3 {
@@ -11307,7 +11307,7 @@ body[data-admin-theme="dark"] .admin-complaints-empty {
     margin: 0;
     min-height: clamp(10rem, 40vw, 12.2rem);
     aspect-ratio: 2 / 3.1;
-    padding: 0;
+    padding: 0.12rem;
   }
 
   .product-body {
