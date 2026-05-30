@@ -11847,10 +11847,6 @@ body[data-admin-theme="dark"] .admin-complaints-empty {
     width: 12px;
     height: 12px;
   }
-
-  .catalog-section-compact .product-card-action-label {
-    display: none;
-  }
 }
 
 @media (min-width: 393px) and (max-width: 430px) {
