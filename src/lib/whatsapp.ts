@@ -353,6 +353,20 @@ async function createManychatSubscriber(
     return { data: [{ id: existingSubscriberId }] };
   }
 
+  const validationMessage = extractManychatValidationMessage(payload);
+
+  if (validationMessage?.includes("Permission denied to import phone")) {
+    throw new Error(
+      "ManyChat bloqueó la importación del número por API. El contacto debe escribir primero al WhatsApp conectado o ManyChat debe habilitar la importación de contactos.",
+    );
+  }
+
+  if (validationMessage?.includes("This WhatsApp ID already exists")) {
+    throw new Error(
+      "ManyChat informó que el número ya existe, pero no quedó accesible por API. Necesitas que ese contacto haya interactuado antes con el WhatsApp conectado o que ManyChat habilite su importación.",
+    );
+  }
+
   const message =
     payload && typeof payload === "object" && "error" in payload
       ? extractMetaErrorMessage((payload as { error?: unknown }).error)
@@ -483,6 +497,44 @@ function getManychatMessageId(payload: unknown) {
 
   if (typeof directId === "number" || typeof directId === "string") {
     return String(directId);
+  }
+
+  return null;
+}
+
+function extractManychatValidationMessage(payload: unknown) {
+  if (!payload || typeof payload !== "object") {
+    return null;
+  }
+
+  const details = (payload as { details?: unknown }).details;
+
+  if (!details || typeof details !== "object") {
+    return null;
+  }
+
+  const messages = (details as { messages?: unknown }).messages;
+
+  if (!messages || typeof messages !== "object") {
+    return null;
+  }
+
+  const waId = (messages as { wa_id?: unknown }).wa_id;
+
+  if (waId && typeof waId === "object") {
+    const text = (waId as { message?: unknown }).message;
+    if (Array.isArray(text) && text.length && typeof text[0] === "string") {
+      return text[0];
+    }
+  }
+
+  const warning = (messages as { warning?: unknown }).warning;
+
+  if (warning && typeof warning === "object") {
+    const text = (warning as { message?: unknown }).message;
+    if (Array.isArray(text) && text.length && typeof text[0] === "string") {
+      return text[0];
+    }
   }
 
   return null;
