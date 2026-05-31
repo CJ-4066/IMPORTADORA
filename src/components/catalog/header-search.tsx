@@ -19,6 +19,13 @@ export function HeaderSearch({ autoFocus = false }: HeaderSearchProps) {
   const [open, setOpen] = useState(false);
   const [suggestions, setSuggestions] = useState<CatalogSuggestion[]>([]);
 
+  function resetSearchState() {
+    setQuery("");
+    setSuggestions([]);
+    setOpen(false);
+    setLoading(false);
+  }
+
   function focusSearchInput(shouldScroll = false) {
     const input = inputRef.current;
 
@@ -116,14 +123,15 @@ export function HeaderSearch({ autoFocus = false }: HeaderSearchProps) {
           return;
         }
 
-        setLoading(true);
+      setLoading(true);
 
-        try {
-          const destination = await resolveSearchDestination(trimmedQuery);
-          router.push(destination);
-        } finally {
-          setLoading(false);
-        }
+      try {
+        const destination = await resolveSearchDestination(trimmedQuery);
+        resetSearchState();
+        router.push(destination);
+      } finally {
+        setLoading(false);
+      }
       }}
       role="search"
     >
@@ -169,7 +177,7 @@ export function HeaderSearch({ autoFocus = false }: HeaderSearchProps) {
                   className="search-suggestion-item"
                   href={`/producto/${item.slug}`}
                   key={item.id}
-                  onClick={() => setOpen(false)}
+                  onClick={resetSearchState}
                 >
                   <div className="search-suggestion-main">
                     <strong>{getPublicProductName(item.name)}</strong>
