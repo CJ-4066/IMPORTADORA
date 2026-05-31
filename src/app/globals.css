@@ -4432,6 +4432,16 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
   flex: 0 0 auto;
 }
 
+.cart-drawer-body {
+  display: grid;
+  gap: 1rem;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding-right: 0.1rem;
+}
+
 .cart-header-clear {
   width: fit-content;
   min-width: 0;
@@ -4464,14 +4474,10 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
 
 .cart-list {
   display: grid;
-  flex: 1 1 auto;
   gap: 0.8rem;
   align-content: start;
   grid-auto-rows: max-content;
   min-height: 0;
-  overflow: auto;
-  overscroll-behavior: contain;
-  padding-right: 0.1rem;
 }
 
 .cart-item {
@@ -4618,7 +4624,6 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
 }
 
 .cart-footer {
-  margin-top: auto;
   flex-direction: column;
   align-items: stretch;
 }

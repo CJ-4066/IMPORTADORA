@@ -568,8 +568,9 @@ export function CartDrawer({
         onClear={clear}
       />
 
-      {orderLines.length ? (
-        <>
+      <div className="cart-drawer-body">
+        {orderLines.length ? (
+          <>
           <CartList
             currencySymbol={settings.currencySymbol}
             onRemove={removeItem}
@@ -602,9 +603,10 @@ export function CartDrawer({
             />
           ) : null}
         </>
-      ) : (
-        <EmptyCartState />
-      )}
+        ) : (
+          <EmptyCartState />
+        )}
+      </div>
     </aside>
   );
 }
