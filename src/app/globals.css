@@ -4278,6 +4278,8 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
   color: var(--muted);
   font-size: 0.8rem;
   line-height: 1.4;
+  width: 100%;
+  text-align: center;
 }
 
 .product-detail-buy-actions .button {
@@ -11505,6 +11507,12 @@ body[data-admin-theme="dark"] .admin-complaints-empty {
   .product-detail-description,
   .product-detail-specs {
     font-size: 0.76rem;
+  }
+
+  .product-detail-buy-note {
+    text-align: center;
+    justify-self: center;
+    max-width: 20rem;
   }
 
   .product-detail-code-row .pill,
