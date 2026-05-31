@@ -4638,7 +4638,7 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
 }
 
 .cart-quote-overlay {
-  position: fixed;
+  position: absolute;
   inset: 0;
   z-index: 65;
   display: grid;
@@ -5062,6 +5062,7 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
   }
 
   .cart-quote-overlay {
+    position: fixed;
     padding: 0.45rem;
   }
 
