@@ -3978,7 +3978,7 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
   place-items: center;
   width: 100%;
   height: 100%;
-  padding: 0.55rem;
+  padding: 0.8rem 0.8rem 1rem;
 }
 
 .product-detail-stage-media-button {
@@ -3998,7 +3998,7 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
 .product-detail-stage-zoom {
   position: absolute;
   left: 50%;
-  bottom: 0.75rem;
+  bottom: 0.62rem;
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
@@ -4045,7 +4045,7 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
   z-index: 120;
   display: grid;
   place-items: center;
-  padding: 1rem;
+  padding: 1.15rem;
   background: rgba(2, 6, 23, 0.76);
   backdrop-filter: blur(10px);
 }
@@ -4056,9 +4056,9 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
   place-items: center;
   width: min(96vw, 92rem);
   max-width: 96vw;
-  max-height: 92vh;
+  max-height: 94vh;
   height: auto;
-  padding: 0.9rem;
+  padding: 1rem;
   border-radius: 28px;
   background: rgba(255, 255, 255, 0.96);
   box-shadow: 0 2rem 5rem rgba(2, 6, 23, 0.3);
@@ -4067,7 +4067,7 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
 .product-detail-lightbox-media {
   width: 100%;
   height: auto;
-  max-height: calc(92vh - 1.8rem);
+  max-height: calc(94vh - 2rem);
   object-fit: contain;
   object-position: center;
   display: block;
