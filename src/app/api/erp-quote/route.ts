@@ -185,17 +185,6 @@ export async function POST(request: Request) {
       items,
     });
     const warnings = result.warnings.filter(Boolean);
-    const quotePdfNotification = await sendPdfNotification({
-      businessName: settings.businessName,
-      customerName,
-      currencySymbol: settings.currencySymbol,
-      pdfFilename,
-      pdfUrl,
-      quoteNumber,
-      contactName: customerName,
-      recipientNumber: customerPhone,
-      total,
-    });
     const messageBase = quoteNumber
       ? `Cotización ${quoteNumber} registrada en el ERP.`
       : "Cotización registrada en el ERP.";
@@ -215,8 +204,8 @@ export async function POST(request: Request) {
         text: customerModeLabel,
       },
       {
-        status: quotePdfNotification.sent ? "success" : "warning",
-        text: quotePdfNotification.message,
+        status: "warning",
+        text: "Enviando PDF por WhatsApp en segundo plano.",
       },
       ...warnings.map((warning) => ({
         status: "warning" as const,
@@ -230,9 +219,9 @@ export async function POST(request: Request) {
         erpCustomerMode: result.customerMode,
         erpExternalId: quoteExternalId,
         pdfNotification: toJson({
-          message: quotePdfNotification.message,
-          ok: quotePdfNotification.ok,
-          sent: quotePdfNotification.sent,
+          message: "Enviando PDF por WhatsApp en segundo plano.",
+          ok: true,
+          sent: false,
         }),
         quoteNumber,
         status: "ERP_REGISTERED",
@@ -241,6 +230,69 @@ export async function POST(request: Request) {
       },
     });
 
+    void sendPdfNotification({
+      businessName: settings.businessName,
+      customerName,
+      currencySymbol: settings.currencySymbol,
+      pdfFilename,
+      pdfUrl,
+      quoteNumber,
+      contactName: customerName,
+      recipientNumber: customerPhone,
+      total,
+    })
+      .then(async (quotePdfNotification) => {
+        const finalStatusSteps = [
+          {
+            status: "success" as const,
+            text: messageBase,
+          },
+          {
+            status: result.customerMode === "default" ? "warning" : "success",
+            text: customerModeLabel,
+          },
+          {
+            status: quotePdfNotification.sent ? "success" : "warning",
+            text: quotePdfNotification.message,
+          },
+          ...warnings.map((warning) => ({
+            status: "warning" as const,
+            text: warning,
+          })),
+        ];
+
+        await prisma.quote
+          .update({
+            where: { id: localQuote.id },
+            data: {
+              pdfNotification: toJson({
+                message: quotePdfNotification.message,
+                ok: quotePdfNotification.ok,
+                sent: quotePdfNotification.sent,
+              }),
+              statusSteps: toJson(finalStatusSteps),
+            },
+          })
+          .catch(() => null);
+      })
+      .catch(async (error) => {
+        await prisma.quote
+          .update({
+            where: { id: localQuote.id },
+            data: {
+              pdfNotification: toJson({
+                message:
+                  error instanceof Error
+                    ? error.message
+                    : "No se pudo enviar el PDF por WhatsApp API.",
+                ok: false,
+                sent: false,
+              }),
+            },
+          })
+          .catch(() => null);
+      });
+
     return NextResponse.json({
       customerMode: result.customerMode,
       localQuoteId: localQuote.id,
@@ -248,9 +300,9 @@ export async function POST(request: Request) {
         ? `Cotización ${quoteNumber} enviada correctamente. Te contactaremos vía WhatsApp.`
         : "Cotización enviada correctamente. Te contactaremos vía WhatsApp.",
       pdfNotification: {
-        message: quotePdfNotification.message,
-        ok: quotePdfNotification.ok,
-        sent: quotePdfNotification.sent,
+        message: "Enviando PDF por WhatsApp en segundo plano.",
+        ok: true,
+        sent: false,
       },
       quoteNumber,
       response: result.response,

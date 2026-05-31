@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   BadgeCheck,
   Minus,
@@ -393,6 +393,7 @@ export function CartDrawer({
   const [quoteMessageTone, setQuoteMessageTone] = useState<"success" | "error" | "neutral">("neutral");
   const [quoteStatusSteps, setQuoteStatusSteps] = useState<QuoteStatusStep[]>([]);
   const [quoteWhatsappHref, setQuoteWhatsappHref] = useState<string | null>(null);
+  const quoteSubmitPendingRef = useRef(false);
   const hasAccountDefaults = Boolean(quoteDefaults?.name?.trim() || quoteDefaults?.phone?.trim());
   const [quoteDraft, setQuoteDraft] = useState<QuoteDraft>(() => buildInitialQuoteDraft(settings, quoteDefaults));
 
@@ -475,10 +476,11 @@ export function CartDrawer({
   };
 
   const submitQuoteToErp = async () => {
-    if (!orderLines.length || !isQuoteReady || quoteState === "loading") {
+    if (!orderLines.length || !isQuoteReady || quoteState === "loading" || quoteSubmitPendingRef.current) {
       return;
     }
 
+    quoteSubmitPendingRef.current = true;
     setQuoteState("loading");
     setQuoteMessage("");
     setQuoteMessageTone("neutral");
@@ -545,6 +547,8 @@ export function CartDrawer({
           text: error instanceof Error ? error.message : "No se pudo enviar la cotización.",
         },
       ]);
+    } finally {
+      quoteSubmitPendingRef.current = false;
     }
   };
 
