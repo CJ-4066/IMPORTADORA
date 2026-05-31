@@ -4911,6 +4911,12 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
   margin-inline: auto;
 }
 
+.cart-quote-overlay-panel .cart-quote-account-note {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
 .summary-row {
   display: flex;
   justify-content: space-between;
