@@ -4435,7 +4435,9 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
 .cart-header-clear {
   width: fit-content;
   min-width: 0;
-  padding-inline: 0.9rem;
+  min-height: 2rem;
+  height: 2rem;
+  padding-inline: 0.8rem;
   color: var(--danger);
   border-color: rgba(197, 59, 53, 0.18);
   background: rgba(197, 59, 53, 0.08);
@@ -5033,9 +5035,9 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
   }
 
   .cart-header-clear {
-    min-height: 2.05rem;
-    height: 2.05rem;
-    padding-inline: 0.75rem;
+    min-height: 1.8rem;
+    height: 1.8rem;
+    padding-inline: 0.7rem;
     font-size: 0.66rem;
     border-radius: 11px;
   }
