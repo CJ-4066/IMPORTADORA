@@ -5208,6 +5208,7 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
   }
 
   .cart-quote-overlay-panel .cart-quote-account-note {
+    margin-top: 0.12rem;
     gap: 0.6rem;
     width: 100%;
     padding: 0.62rem 0.75rem;
@@ -5220,7 +5221,9 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
   .cart-quote-overlay-panel .cart-quote-success {
     gap: 0.35rem;
     width: 100%;
-    padding: 0.35rem 0.15rem 0.15rem;
+    margin-top: 0.35rem;
+    margin-bottom: 0.4rem;
+    padding: 0.15rem 0.15rem 0.05rem;
     border: 0;
     background: transparent;
     box-shadow: none;
