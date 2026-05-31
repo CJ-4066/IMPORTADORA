@@ -12338,6 +12338,10 @@ body[data-admin-theme="dark"] .admin-complaints-empty {
     gap: 0.55rem;
   }
 
+  .catalog-sections-layout .catalog-section-grid > .product-card:nth-child(n + 7) {
+    display: none;
+  }
+
   .catalog-section-compact .catalog-section-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.48rem;
@@ -12354,6 +12358,10 @@ body[data-admin-theme="dark"] .admin-complaints-empty {
   .catalog-section-compact .catalog-featured-slide {
     min-width: 0;
     scroll-snap-align: start;
+  }
+
+  .catalog-sections-layout .catalog-section-featured .catalog-featured-slide:nth-child(n + 7) {
+    display: none;
   }
 
   .catalog-section-compact .catalog-featured-slide .product-card {
