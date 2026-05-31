@@ -4902,6 +4902,8 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
     padding: 0 0.5rem;
     font-size: 0.66rem;
     border-radius: 11px;
+    width: 100%;
+    max-width: none;
   }
 
   .cart-drawer {
@@ -10869,7 +10871,7 @@ body[data-admin-theme="dark"] .admin-complaints-empty {
     display: grid;
     grid-template-columns: 1fr;
     gap: 0.35rem;
-    justify-items: center;
+    justify-items: stretch;
   }
 
   .cart-footer .button {
@@ -10878,7 +10880,8 @@ body[data-admin-theme="dark"] .admin-complaints-empty {
     padding: 0 0.52rem;
     font-size: 0.67rem;
     border-radius: 11px;
-    width: fit-content;
+    width: 100%;
+    max-width: none;
   }
 
   .cart-footer .button svg {
