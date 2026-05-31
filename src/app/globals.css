@@ -4666,6 +4666,10 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
   background: transparent;
 }
 
+.cart-drawer-body > .cart-footer {
+  margin-top: auto;
+}
+
 .cart-quote-overlay-panel .cart-quote-head,
 .cart-quote-overlay-panel .cart-quote-account-note {
   flex-direction: row;
@@ -4908,6 +4912,10 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
 }
 
 @media (max-width: 640px) {
+  .cart-drawer-body > .cart-footer {
+    margin-top: 0;
+  }
+
   .cart-footer-actions,
   .cart-quote-grid {
     grid-template-columns: 1fr;
