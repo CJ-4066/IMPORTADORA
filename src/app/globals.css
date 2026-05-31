@@ -3435,6 +3435,8 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
   border-radius: 20px;
   background: rgba(255, 255, 255, 0.98);
   box-shadow: 0 22px 46px rgba(var(--brand-ink-rgb), 0.14);
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .search-suggestion-item {
@@ -12425,6 +12427,47 @@ body[data-admin-theme="dark"] .admin-complaints-empty {
   .catalog-section-compact .product-actions .button svg {
     width: 12px;
     height: 12px;
+  }
+
+  .search-suggestions-panel {
+    top: calc(100% + 0.35rem);
+    gap: 0.28rem;
+    max-height: min(44vh, 19rem);
+    padding: 0.35rem;
+    border-radius: 16px;
+    box-shadow: 0 16px 32px rgba(var(--brand-ink-rgb), 0.12);
+  }
+
+  .search-suggestion-item {
+    align-items: flex-start;
+    gap: 0.55rem;
+    padding: 0.58rem 0.65rem;
+    border-radius: 13px;
+  }
+
+  .search-suggestion-main {
+    gap: 0.08rem;
+  }
+
+  .search-suggestion-main strong {
+    font-size: 0.82rem;
+    line-height: 1.18;
+  }
+
+  .search-suggestion-main span,
+  .search-suggestion-empty span {
+    font-size: 0.68rem;
+    line-height: 1.25;
+  }
+
+  .search-suggestion-item small {
+    display: none;
+  }
+
+  .search-suggestion-empty {
+    gap: 0.08rem;
+    padding: 0.65rem 0.7rem;
+    border-radius: 13px;
   }
 }
 
