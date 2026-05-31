@@ -4862,8 +4862,9 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
 
   .cart-footer-actions {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: 1fr;
     gap: 0.35rem;
+    width: 100%;
   }
 
   .cart-footer .button {
@@ -4931,6 +4932,7 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
 
   .cart-footer {
     gap: 0.5rem;
+    align-items: stretch;
   }
 
   .cart-quote-form {
@@ -5006,6 +5008,13 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
 
   .cart-footer-actions .button {
     width: 100%;
+  }
+
+  .cart-clear-button {
+    width: fit-content;
+    min-width: 9rem;
+    align-self: flex-end;
+    padding-inline: 0.85rem;
   }
 
   .cart-quote-submit,
