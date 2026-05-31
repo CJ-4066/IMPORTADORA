@@ -195,6 +195,10 @@ function CartFooter({
         </div>
       ) : null}
 
+      <button className="button button-ghost cart-clear-button" onClick={onClear} type="button">
+        Vaciar carrito
+      </button>
+
       {!quoteFormOpen ? (
         <div className="cart-footer-actions">
           <button
@@ -207,10 +211,6 @@ function CartFooter({
           </button>
         </div>
       ) : null}
-
-      <button className="button button-ghost cart-clear-button" onClick={onClear} type="button">
-        Vaciar carrito
-      </button>
     </div>
   );
 }
@@ -405,6 +405,44 @@ export function CartDrawer({
       window.removeEventListener(STORE_CART_OPEN_EVENT, handleOpen);
     };
   }, []);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    const scrollY = window.scrollY;
+    const { style: bodyStyle } = document.body;
+    const { style: htmlStyle } = document.documentElement;
+    const previousBody = {
+      overflow: bodyStyle.overflow,
+      position: bodyStyle.position,
+      top: bodyStyle.top,
+      left: bodyStyle.left,
+      right: bodyStyle.right,
+      width: bodyStyle.width,
+    };
+    const previousHtmlOverflow = htmlStyle.overflow;
+
+    htmlStyle.overflow = "hidden";
+    bodyStyle.overflow = "hidden";
+    bodyStyle.position = "fixed";
+    bodyStyle.top = `-${scrollY}px`;
+    bodyStyle.left = "0";
+    bodyStyle.right = "0";
+    bodyStyle.width = "100%";
+
+    return () => {
+      htmlStyle.overflow = previousHtmlOverflow;
+      bodyStyle.overflow = previousBody.overflow;
+      bodyStyle.position = previousBody.position;
+      bodyStyle.top = previousBody.top;
+      bodyStyle.left = previousBody.left;
+      bodyStyle.right = previousBody.right;
+      bodyStyle.width = previousBody.width;
+      window.scrollTo(0, scrollY);
+    };
+  }, [open]);
 
   const visibleItems = hydrated ? items : [];
   const orderLines: CartLine[] = visibleItems.map((item) => ({

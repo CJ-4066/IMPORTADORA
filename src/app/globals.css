@@ -4393,6 +4393,8 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
   padding: 1rem;
   gap: 1rem;
   overflow: hidden;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
   background: var(--brand-tint);
   box-shadow: -20px 0 60px rgba(var(--brand-ink-rgb), 0.18);
   transition: right 220ms ease;
@@ -4423,7 +4425,7 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
 
 .cart-footer-actions {
   width: 100%;
-  justify-content: center;
+  justify-content: stretch;
 }
 
 .cart-header-actions {
@@ -4448,6 +4450,7 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
   grid-auto-rows: max-content;
   min-height: 0;
   overflow: auto;
+  overscroll-behavior: contain;
   padding-right: 0.1rem;
 }
 
@@ -4597,6 +4600,7 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
 .cart-footer {
   margin-top: auto;
   flex-direction: column;
+  align-items: stretch;
 }
 
 .cart-quote-form {
