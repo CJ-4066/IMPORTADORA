@@ -267,6 +267,7 @@ function QuoteForm({
       ) : null}
 
       <div className="cart-quote-head">
+        <span aria-hidden="true" className="cart-quote-head-spacer" />
         <h3>Datos para cotización</h3>
         <button className="icon-button" onClick={onClose} type="button">
           <X size={16} />

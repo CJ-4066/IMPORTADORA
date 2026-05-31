@@ -4673,11 +4673,26 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
 }
 
 .cart-quote-overlay-panel .cart-quote-head {
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 0.75rem;
+  justify-content: initial;
 }
 
 .cart-quote-overlay-panel .cart-quote-head .icon-button {
-  align-self: auto;
+  justify-self: end;
+  align-self: center;
+}
+
+.cart-quote-overlay-panel .cart-quote-head h3 {
+  margin: 0;
+  text-align: center;
+}
+
+.cart-quote-head-spacer {
+  display: block;
+  min-width: 2.75rem;
 }
 
 .cart-quote-success {
