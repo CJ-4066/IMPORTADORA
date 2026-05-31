@@ -4390,7 +4390,11 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
   flex-direction: column;
   width: min(28rem, 100vw);
   height: 100vh;
+  height: 100dvh;
+  height: 100svh;
+  max-height: 100dvh;
   padding: 1rem;
+  padding-bottom: calc(1rem + env(safe-area-inset-bottom));
   gap: 1rem;
   overflow: hidden;
   overscroll-behavior: contain;
@@ -4971,6 +4975,7 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
 
   .cart-drawer {
     padding: 0.62rem;
+    padding-bottom: calc(0.62rem + env(safe-area-inset-bottom));
     gap: 0.62rem;
   }
 
