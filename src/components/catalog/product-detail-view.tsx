@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
-import { ArrowLeft, ImageIcon, Minus, Plus, ShoppingCart } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { ArrowLeft, CircleX, ImageIcon, Minus, Plus, ShoppingCart, ZoomIn } from "lucide-react";
 import { CartStoreBootstrap } from "@/components/catalog/cart-store-bootstrap";
 import { isCartStoreHydrated, rehydrateCartStore, useCartStore } from "@/components/catalog/cart-store";
 import { getSafeMediaUrl } from "@/lib/media-url";
@@ -78,12 +78,17 @@ export function ProductDetailView({ product, settings }: ProductDetailViewProps)
   const [activeIndex, setActiveIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [imageFailed, setImageFailed] = useState<Record<string, boolean>>({});
+  const [fullScreenMediaId, setFullScreenMediaId] = useState<string | null>(null);
 
   const safeActiveIndex = uniqueGallery.length
     ? Math.min(activeIndex, uniqueGallery.length - 1)
     : 0;
   const activeMedia = uniqueGallery[safeActiveIndex] ?? null;
   const activeMediaUrl = getSafeMediaUrl(activeMedia?.url);
+  const fullscreenMedia = fullScreenMediaId
+    ? uniqueGallery.find((item) => item.id === fullScreenMediaId) ?? null
+    : null;
+  const fullscreenMediaUrl = getSafeMediaUrl(fullscreenMedia?.url);
   const maxQuantity = product.stockUnits;
   const safeQuantity = Math.min(Math.max(quantity, 1), Math.max(maxQuantity, 1));
   const hasWholesalePrice = Boolean(product.wholesalePrice);
@@ -97,6 +102,26 @@ export function ProductDetailView({ product, settings }: ProductDetailViewProps)
       ? (Number(product.unitPrice) - Number(product.wholesalePrice)) * safeQuantity
       : 0;
   const hasSavings = wholesaleApplies && wholesaleSavings > 0;
+
+  useEffect(() => {
+    if (!fullScreenMediaId) {
+      return;
+    }
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setFullScreenMediaId(null);
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      document.body.style.overflow = "";
+    };
+  }, [fullScreenMediaId]);
 
   const handleAdd = async () => {
     if (maxQuantity <= 0) {
@@ -129,7 +154,12 @@ export function ProductDetailView({ product, settings }: ProductDetailViewProps)
           <div className="product-detail-stage">
             {activeMedia && activeMediaUrl && !(activeMedia.type === "IMAGE" && imageFailed[activeMedia.id]) ? (
               activeMedia.type === "IMAGE" ? (
-                <div className="product-detail-stage-media">
+                <button
+                  aria-label={`Abrir imagen ampliada de ${activeMedia.altText ?? displayName}`}
+                  className="product-detail-stage-media product-detail-stage-media-button"
+                  onClick={() => setFullScreenMediaId(activeMedia.id)}
+                  type="button"
+                >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     alt={activeMedia.altText ?? displayName}
@@ -143,7 +173,11 @@ export function ProductDetailView({ product, settings }: ProductDetailViewProps)
                     referrerPolicy="no-referrer"
                     src={activeMediaUrl}
                   />
-                </div>
+                  <span className="product-detail-stage-zoom">
+                    <ZoomIn size={16} />
+                    Ampliar
+                  </span>
+                </button>
               ) : (
                 <div className="product-detail-stage-media">
                   <video controls playsInline preload="metadata" src={activeMediaUrl} />
@@ -286,6 +320,43 @@ export function ProductDetailView({ product, settings }: ProductDetailViewProps)
           </div>
         </article>
       </div>
+
+      {fullscreenMedia && fullscreenMediaUrl ? (
+        <div
+          aria-modal="true"
+          className="product-detail-lightbox"
+          onClick={() => setFullScreenMediaId(null)}
+          role="dialog"
+        >
+          <div className="product-detail-lightbox-panel" onClick={(event) => event.stopPropagation()}>
+            <button
+              aria-label="Cerrar imagen ampliada"
+              className="icon-button product-detail-lightbox-close"
+              onClick={() => setFullScreenMediaId(null)}
+              type="button"
+            >
+              <CircleX size={18} />
+            </button>
+            {fullscreenMedia.type === "IMAGE" ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                alt={fullscreenMedia.altText ?? displayName}
+                className="product-detail-lightbox-media"
+                src={fullscreenMediaUrl}
+              />
+            ) : (
+              <video
+                autoPlay
+                className="product-detail-lightbox-media"
+                controls
+                playsInline
+                preload="metadata"
+                src={fullscreenMediaUrl}
+              />
+            )}
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }

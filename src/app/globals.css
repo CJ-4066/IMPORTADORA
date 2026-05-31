@@ -3981,6 +3981,41 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
   padding: 0.55rem;
 }
 
+.product-detail-stage-media-button {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  cursor: zoom-in;
+}
+
+.product-detail-stage-media-button:hover .product-detail-stage-zoom {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.product-detail-stage-zoom {
+  position: absolute;
+  left: 50%;
+  bottom: 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.42rem 0.72rem;
+  border-radius: 999px;
+  color: white;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  background: rgba(15, 23, 42, 0.62);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 0.65rem 1.4rem rgba(15, 23, 42, 0.18);
+  opacity: 0.92;
+  transform: translate(-50%, 3px);
+  transition: opacity 160ms ease, transform 160ms ease;
+}
+
 .product-detail-stage img,
 .product-detail-stage video {
   width: 100%;
@@ -4002,6 +4037,47 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
 .product-detail-stage-fallback span {
   max-width: 18ch;
   color: rgba(255, 255, 255, 0.74);
+}
+
+.product-detail-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(2, 6, 23, 0.76);
+  backdrop-filter: blur(10px);
+}
+
+.product-detail-lightbox-panel {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: min(96vw, 92rem);
+  height: min(92vh, 92rem);
+  padding: 0.9rem;
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 2rem 5rem rgba(2, 6, 23, 0.3);
+}
+
+.product-detail-lightbox-media {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+  display: block;
+  border-radius: 18px;
+}
+
+.product-detail-lightbox-close {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  z-index: 1;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 0.75rem 1.5rem rgba(15, 23, 42, 0.14);
 }
 
 .product-detail-thumbs {
