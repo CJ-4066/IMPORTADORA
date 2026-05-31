@@ -476,7 +476,12 @@ function AssistantWelcomeBanner({
           <Sparkles size={14} />
           Compra guiada
         </span>
-        <button aria-label="Ocultar mensaje" className="icon-button" onClick={onDismiss} type="button">
+        <button
+          aria-label="Ocultar mensaje"
+          className="icon-button icon-button-close"
+          onClick={onDismiss}
+          type="button"
+        >
           <X size={16} />
         </button>
       </div>
@@ -838,7 +843,7 @@ export function StoreAssistantPanel({
             <button className="button button-secondary button-chip" onClick={clearHistory} type="button">
               Limpiar chat
             </button>
-            <button className="icon-button" onClick={onClose} type="button">
+            <button className="icon-button icon-button-close" onClick={onClose} type="button">
               <X size={18} />
             </button>
           </div>

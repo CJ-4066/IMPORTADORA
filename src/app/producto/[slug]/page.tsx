@@ -64,7 +64,7 @@ export default async function ProductDetailPage({
             </div>
 
             <div className="product-unavailable-actions">
-              <Link className="button button-secondary" href="/">
+              <Link className="button button-catalog-back" href="/">
                 Volver al catálogo
               </Link>
               <Link className="button button-primary" href="/?focus=search">

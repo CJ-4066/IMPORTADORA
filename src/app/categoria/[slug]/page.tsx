@@ -76,7 +76,7 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
             <section className="empty-state">
               <h2>No hay productos disponibles</h2>
               <p className="muted">Esta categoria no tiene productos visibles con stock por ahora.</p>
-              <Link className="button button-secondary" href="/">
+              <Link className="button button-catalog-back" href="/">
                 Volver al catalogo
               </Link>
             </section>

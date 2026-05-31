@@ -331,7 +331,7 @@ export function ProductDetailView({ product, settings }: ProductDetailViewProps)
           <div className="product-detail-lightbox-panel" onClick={(event) => event.stopPropagation()}>
             <button
               aria-label="Cerrar imagen ampliada"
-              className="icon-button product-detail-lightbox-close"
+              className="icon-button icon-button-close product-detail-lightbox-close"
               onClick={() => setFullScreenMediaId(null)}
               type="button"
             >

@@ -107,7 +107,7 @@ function CartHeader({
         Vaciar carrito
       </button>
       <div className="cart-header-actions">
-        <button className="icon-button" onClick={onClose} type="button">
+        <button className="icon-button icon-button-close" onClick={onClose} type="button">
           ×
         </button>
       </div>
@@ -249,7 +249,7 @@ function QuoteForm({
       <div className="cart-quote-head">
         <span aria-hidden="true" className="cart-quote-head-spacer" />
         <h3>Datos para cotización</h3>
-        <button className="icon-button" onClick={onClose} type="button">
+        <button className="icon-button icon-button-close" onClick={onClose} type="button">
           <X size={16} />
         </button>
       </div>
