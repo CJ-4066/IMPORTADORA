@@ -4432,6 +4432,24 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
   flex: 0 0 auto;
 }
 
+.cart-header-clear {
+  width: fit-content;
+  min-width: 0;
+  padding-inline: 0.9rem;
+  color: var(--danger);
+  border-color: rgba(197, 59, 53, 0.18);
+  background: rgba(197, 59, 53, 0.08);
+}
+
+.cart-header-clear:hover {
+  background: rgba(197, 59, 53, 0.14);
+}
+
+.cart-header-clear:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .cart-header-actions .icon-button {
   min-width: 2.75rem;
   width: 2.75rem;
@@ -5014,11 +5032,12 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
     width: 100%;
   }
 
-  .cart-clear-button {
-    width: fit-content;
-    min-width: 9rem;
-    align-self: flex-end;
-    padding-inline: 0.85rem;
+  .cart-header-clear {
+    min-height: 2.05rem;
+    height: 2.05rem;
+    padding-inline: 0.75rem;
+    font-size: 0.66rem;
+    border-radius: 11px;
   }
 
   .cart-quote-submit,

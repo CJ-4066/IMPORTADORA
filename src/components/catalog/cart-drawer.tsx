@@ -88,16 +88,24 @@ function buildInitialQuoteDraft(
 }
 
 function CartHeader({
+  hasItems,
   onClose,
+  onClear,
 }: {
+  hasItems: boolean;
   onClose: () => void;
+  onClear: () => void;
 }) {
   return (
     <div className="cart-header">
-      <div>
-        <p className="eyebrow">Compra rápida</p>
-        <h2>Carrito de compra</h2>
-      </div>
+      <button
+        className="button button-ghost cart-header-clear"
+        disabled={!hasItems}
+        onClick={onClear}
+        type="button"
+      >
+        Vaciar carrito
+      </button>
       <div className="cart-header-actions">
         <button className="icon-button" onClick={onClose} type="button">
           ×
@@ -169,14 +177,12 @@ function CartList({
 
 function CartFooter({
   currencySymbol,
-  onClear,
   onOpenQuoteForm,
   quoteFormOpen,
   totalAmount,
   totalSavings,
 }: {
   currencySymbol: string;
-  onClear: () => void;
   onOpenQuoteForm: () => void;
   quoteFormOpen: boolean;
   totalAmount: number;
@@ -194,10 +200,6 @@ function CartFooter({
           <strong>{formatCurrency(totalSavings, currencySymbol)}</strong>
         </div>
       ) : null}
-
-      <button className="button button-ghost cart-clear-button" onClick={onClear} type="button">
-        Vaciar carrito
-      </button>
 
       {!quoteFormOpen ? (
         <div className="cart-footer-actions">
@@ -561,7 +563,9 @@ export function CartDrawer({
   return (
     <aside className={`cart-drawer ${open ? "is-open" : ""}`}>
       <CartHeader
+        hasItems={orderLines.length > 0}
         onClose={() => setOpen(false)}
+        onClear={clear}
       />
 
       {orderLines.length ? (
@@ -575,7 +579,6 @@ export function CartDrawer({
 
           <CartFooter
             currencySymbol={settings.currencySymbol}
-            onClear={clear}
             onOpenQuoteForm={openQuoteForm}
             quoteFormOpen={quoteFormOpen}
             totalAmount={totalAmount}
