@@ -5220,10 +5220,11 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
 
   .cart-quote-overlay-panel .cart-quote-success {
     gap: 0.85rem;
-    width: 100%;
+    width: min(100%, 44rem);
+    justify-self: center;
     margin-top: 0.35rem;
     margin-bottom: 0.55rem;
-    padding: 0.85rem 0.9rem 1.15rem;
+    padding: 0.95rem 1rem 1.2rem;
     border: 1px solid rgba(15, 157, 108, 0.18);
     border-radius: 18px;
     background:
