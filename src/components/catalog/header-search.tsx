@@ -97,9 +97,9 @@ export function HeaderSearch({ autoFocus = false }: HeaderSearchProps) {
       return `/?q=${encodeURIComponent(trimmedQuery)}`;
     }
 
-    const data = (await response.json()) as { slug?: string | null };
+    const data = (await response.json()) as { href?: string | null };
 
-    return data.slug ? `/producto/${data.slug}` : `/?q=${encodeURIComponent(trimmedQuery)}`;
+    return data.href ?? `/?q=${encodeURIComponent(trimmedQuery)}`;
   }
 
   return (

@@ -1,9 +1,12 @@
 import type { NextRequest } from "next/server";
-import { getExactCatalogProductSlug } from "@/lib/store";
+import { getCatalogSearchDestination } from "@/lib/store";
 
 export async function GET(request: NextRequest) {
   const query = request.nextUrl.searchParams.get("q") ?? "";
-  const slug = await getExactCatalogProductSlug(query);
+  const destination = await getCatalogSearchDestination(query);
 
-  return Response.json({ slug });
+  return Response.json({
+    href: destination?.href ?? null,
+    kind: destination?.kind ?? null,
+  });
 }

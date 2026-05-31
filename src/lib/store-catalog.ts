@@ -19,6 +19,24 @@ import type {
   CatalogSuggestion,
 } from "@/lib/store-types";
 
+type CatalogSearchDestination =
+  | { href: string; kind: "product" }
+  | { href: string; kind: "category" }
+  | { href: string; kind: "collection" };
+
+const COLLECTION_SEARCH_ALIASES: Array<{
+  href: string;
+  terms: string[];
+}> = [
+  { href: "/?collection=proyectores", terms: ["proyector", "proyectores", "projector", "projectors"] },
+  { href: "/?collection=drones", terms: ["dron", "drones"] },
+  { href: "/?collection=alexas", terms: ["alexa", "alexas", "echo"] },
+  {
+    href: "/?collection=consolas",
+    terms: ["consola", "consolas", "videojuego", "videojuegos", "game stick", "gamestick"],
+  },
+];
+
 const EMPTY_SALES_SUMMARY: CatalogSalesSummary = {
   generatedAt: null,
   hasDatedSales: false,
@@ -171,6 +189,77 @@ export async function getExactCatalogProductSlug(query: string) {
   });
 
   return product?.slug ?? null;
+}
+
+export async function getCatalogSearchDestination(query: string): Promise<CatalogSearchDestination | null> {
+  const trimmedQuery = query.trim();
+
+  if (!trimmedQuery) {
+    return null;
+  }
+
+  const normalizedQuery = normalizeCatalogSearchText(trimmedQuery);
+  const singularQuery = singularizeCatalogSearchText(normalizedQuery);
+
+  const exactProductSlug = await getExactCatalogProductSlug(trimmedQuery);
+  if (exactProductSlug) {
+    return { href: `/producto/${exactProductSlug}`, kind: "product" };
+  }
+
+  const categories = await prisma.category.findMany({
+    select: { name: true, slug: true },
+    orderBy: [{ name: "asc" }, { id: "asc" }],
+  });
+
+  const categoryMatch = categories.find((category) => {
+    const normalizedName = normalizeCatalogSearchText(category.name);
+    const normalizedSlug = normalizeCatalogSearchText(category.slug);
+    const singularName = singularizeCatalogSearchText(normalizedName);
+    const singularSlug = singularizeCatalogSearchText(normalizedSlug);
+
+    return (
+      normalizedQuery === normalizedName ||
+      normalizedQuery === normalizedSlug ||
+      singularQuery === normalizedName ||
+      singularQuery === normalizedSlug ||
+      normalizedQuery.includes(normalizedName) ||
+      normalizedName.includes(normalizedQuery) ||
+      normalizedQuery.includes(normalizedSlug) ||
+      normalizedSlug.includes(normalizedQuery) ||
+      singularQuery === singularName ||
+      singularQuery === singularSlug ||
+      singularQuery.includes(singularName) ||
+      singularQuery.includes(singularSlug)
+    );
+  });
+
+  if (categoryMatch) {
+    return { href: `/categoria/${categoryMatch.slug}`, kind: "category" };
+  }
+
+  const collectionMatch = COLLECTION_SEARCH_ALIASES.find((collection) =>
+    collection.terms.some((term) => {
+      const normalizedTerm = normalizeCatalogSearchText(term);
+      const singularTerm = singularizeCatalogSearchText(normalizedTerm);
+
+      return (
+        normalizedQuery === normalizedTerm ||
+        singularQuery === normalizedTerm ||
+        normalizedQuery === singularTerm ||
+        singularQuery === singularTerm ||
+        normalizedQuery.includes(normalizedTerm) ||
+        normalizedTerm.includes(normalizedQuery) ||
+        singularQuery.includes(normalizedTerm) ||
+        normalizedTerm.includes(singularQuery)
+      );
+    }),
+  );
+
+  if (collectionMatch) {
+    return { href: collectionMatch.href, kind: "collection" };
+  }
+
+  return null;
 }
 
 async function buildHomeCategorySections(input: { isHomeView: boolean }) {
@@ -443,6 +532,36 @@ export async function getCatalogSuggestions(query: string) {
   });
 
   return mapSuggestionResults(products, trimmedQuery);
+}
+
+function normalizeCatalogSearchText(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function singularizeCatalogSearchText(value: string) {
+  return value
+    .split(" ")
+    .map((token) => {
+      if (token.length <= 3) {
+        return token;
+      }
+
+      if (token.endsWith("es")) {
+        return token.slice(0, -2);
+      }
+
+      if (token.endsWith("s")) {
+        return token.slice(0, -1);
+      }
+
+      return token;
+    })
+    .join(" ");
 }
 
 export async function getCatalogProductBySlug(slug: string) {

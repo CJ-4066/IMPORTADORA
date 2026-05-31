@@ -4,6 +4,7 @@ export {
   getCatalogPageData,
   getCatalogProductBySlug,
   getCatalogSuggestions,
+  getCatalogSearchDestination,
   getExactCatalogProductSlug,
   getBrandOptions,
   getCategoryOptions,
