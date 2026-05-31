@@ -5220,12 +5220,9 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
   .cart-quote-overlay-panel .cart-quote-success {
     gap: 0.35rem;
     width: 100%;
-    padding: 0.5rem 0.62rem;
-    border-radius: 12px;
-    border-color: rgba(15, 157, 108, 0.14);
-    background:
-      linear-gradient(180deg, rgba(240, 253, 247, 0.72), rgba(255, 255, 255, 0.94)),
-      radial-gradient(circle at top right, rgba(15, 157, 108, 0.05), transparent 34%);
+    padding: 0.35rem 0.15rem 0.15rem;
+    border: 0;
+    background: transparent;
     box-shadow: none;
   }
 
@@ -5245,7 +5242,8 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
   .cart-quote-overlay-panel .cart-quote-whatsapp {
     width: fit-content;
     min-width: 0;
-    align-self: flex-start;
+    align-self: center;
+    justify-self: center;
     min-height: 2.25rem;
     padding-inline: 0.7rem;
     font-size: 0.72rem;
