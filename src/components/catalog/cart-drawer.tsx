@@ -265,15 +265,7 @@ function QuoteForm({
       ) : null}
 
       <div className="cart-quote-head">
-        <div className="stack-xs">
-          <p className="eyebrow">Generar cotización web</p>
-          <h3>Completa tus datos para enviar al ERP</h3>
-          <p className="muted">
-            {hasAccountDefaults
-              ? "Usaremos tus datos de cuenta como base. Completa lo mínimo para activar el envío."
-              : "Completa nombre y teléfono. El botón se activará solo cuando el formulario esté listo."}
-          </p>
-        </div>
+        <h3>Datos para cotización</h3>
         <button className="icon-button" onClick={onClose} type="button">
           <X size={16} />
         </button>
