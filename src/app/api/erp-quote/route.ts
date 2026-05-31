@@ -193,7 +193,7 @@ export async function POST(request: Request) {
       pdfUrl,
       quoteNumber,
       contactName: customerName,
-      recipientNumber: quoteWhatsappNumber,
+      recipientNumber: customerPhone,
       total,
     });
     const messageBase = quoteNumber
