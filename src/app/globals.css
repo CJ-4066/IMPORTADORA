@@ -5212,7 +5212,9 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
     width: 100%;
     padding: 0.62rem 0.75rem;
     border-radius: 14px;
-    background: rgba(var(--brand-rgb), 0.06);
+    background: transparent;
+    border: 0;
+    box-shadow: none;
   }
 
   .cart-quote-account-note-copy {
