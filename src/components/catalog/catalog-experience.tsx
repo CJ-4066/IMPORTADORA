@@ -390,13 +390,12 @@ export function CatalogExperience({
             compact
           />
 
-          {categorySections.map(({ category, productCount, products: categoryProducts }) => (
+          {categorySections.map(({ category, products: categoryProducts }) => (
             <ProductSection
               key={category.id}
               href={`/categoria/${category.slug}`}
               products={categoryProducts}
               settings={settings}
-              subtitle={`${productCount} producto${productCount === 1 ? "" : "s"} disponibles en el catálogo.`}
               title={category.name}
             />
           ))}
