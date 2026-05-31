@@ -4912,10 +4912,6 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
 }
 
 @media (max-width: 640px) {
-  .cart-drawer-body > .cart-footer {
-    margin-top: 0;
-  }
-
   .cart-footer-actions,
   .cart-quote-grid {
     grid-template-columns: 1fr;
