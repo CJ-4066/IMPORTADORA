@@ -10465,11 +10465,37 @@ body[data-admin-theme="dark"] .admin-complaints-empty {
   .product-detail-qty-row {
     justify-content: center;
     gap: 0.55rem;
+    width: 100%;
   }
 
   .product-detail-qty-control {
+    display: inline-grid;
+    grid-template-columns: 2.25rem minmax(2ch, auto) 2.25rem;
+    align-items: center;
+    justify-items: center;
+    gap: 0.35rem;
     width: fit-content;
+    padding: 0.35rem 0.45rem;
     margin-inline: auto;
+    border: 1px solid rgba(var(--brand-ink-rgb), 0.08);
+    box-shadow: 0 10px 20px rgba(var(--brand-ink-rgb), 0.08);
+  }
+
+  .product-detail-qty-control button {
+    width: 2.25rem;
+    height: 2.25rem;
+    background: rgba(var(--brand-ink-rgb), 0.06);
+  }
+
+  .product-detail-qty-control strong {
+    min-width: 2.25ch;
+    font-size: 0.92rem;
+  }
+
+  .product-detail-total {
+    width: 100%;
+    text-align: center;
+    justify-items: center;
   }
 
   .product-detail-main {
@@ -11444,6 +11470,11 @@ body[data-admin-theme="dark"] .admin-complaints-empty {
     font-size: clamp(1.06rem, 4.8vw, 1.4rem);
     line-height: 1.08;
     letter-spacing: 0;
+  }
+
+  .product-detail-qty-row {
+    align-items: center;
+    justify-content: center;
   }
 
   .product-detail-stage {
