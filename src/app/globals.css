@@ -10534,22 +10534,14 @@ body[data-admin-theme="dark"] .admin-complaints-empty {
     padding: 0.66rem;
   }
 
-  .product-detail-mode-row {
-    width: 100%;
-    justify-content: center;
-  }
-
   .product-detail-price-main,
   .product-detail-price-wholesale,
   .product-detail-price-savings {
     display: grid;
     grid-template-columns: 1fr;
     gap: 0.12rem;
-    align-items: center;
-    justify-items: center;
-    width: 100%;
-    max-width: 19rem;
-    margin-inline: auto;
+    align-items: start;
+    justify-items: start;
   }
 
   .product-detail-price-main strong {
@@ -10577,22 +10569,11 @@ body[data-admin-theme="dark"] .admin-complaints-empty {
     overflow: visible;
     text-overflow: clip;
     letter-spacing: 0.03em;
-    text-align: center;
-    width: 100%;
   }
 
   .product-detail-code-row .pill,
   .product-detail-code-row .product-code {
     font-size: 0.72rem;
-  }
-
-  .product-detail-buy-note {
-    text-align: center;
-    width: 100%;
-  }
-
-  .product-detail-buy-actions {
-    width: 100%;
   }
 
   .shopper-command-metrics,
