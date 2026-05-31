@@ -5217,6 +5217,43 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
     box-shadow: none;
   }
 
+  .cart-quote-overlay-panel .cart-quote-success {
+    gap: 0.45rem;
+    width: 100%;
+    padding: 0.62rem 0.72rem;
+    border-radius: 14px;
+    border-color: rgba(15, 157, 108, 0.14);
+    background:
+      linear-gradient(180deg, rgba(240, 253, 247, 0.82), rgba(255, 255, 255, 0.94)),
+      radial-gradient(circle at top right, rgba(15, 157, 108, 0.08), transparent 34%);
+    box-shadow: none;
+  }
+
+  .cart-quote-overlay-panel .cart-quote-success-copy {
+    gap: 0.55rem;
+  }
+
+  .cart-quote-overlay-panel .cart-quote-success-copy strong {
+    font-size: 0.84rem;
+  }
+
+  .cart-quote-overlay-panel .cart-quote-success-copy span {
+    font-size: 0.74rem;
+    line-height: 1.35;
+  }
+
+  .cart-quote-overlay-panel .cart-quote-whatsapp {
+    min-height: 2.55rem;
+    padding-inline: 0.9rem;
+    font-size: 0.78rem;
+    box-shadow: none;
+  }
+
+  .cart-quote-overlay-panel .cart-quote-whatsapp-icon {
+    width: 1.45rem;
+    height: 1.45rem;
+  }
+
   .cart-quote-account-note-copy {
     font-size: 0.78rem;
   }

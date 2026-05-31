@@ -246,6 +246,14 @@ function QuoteForm({
 }) {
   return (
     <section className="cart-quote-form">
+      <div className="cart-quote-head">
+        <span aria-hidden="true" className="cart-quote-head-spacer" />
+        <h3>Datos para cotización</h3>
+        <button className="icon-button" onClick={onClose} type="button">
+          <X size={16} />
+        </button>
+      </div>
+
       {quoteState === "success" ? (
         <div className="cart-quote-success" role="status" aria-live="polite">
           <div className="cart-quote-success-copy">
@@ -255,24 +263,16 @@ function QuoteForm({
               <span>{quoteMessage || "Te contactaremos vía WhatsApp."}</span>
             </div>
           </div>
-      {quoteWhatsappHref ? (
-        <a className="button cart-quote-whatsapp" href={quoteWhatsappHref} rel="noreferrer" target="_blank">
-          <span className="cart-quote-whatsapp-icon">
-            <WhatsAppIcon />
-          </span>
-          Contactar asesor por WhatsApp
-        </a>
-      ) : null}
+          {quoteWhatsappHref ? (
+            <a className="button cart-quote-whatsapp" href={quoteWhatsappHref} rel="noreferrer" target="_blank">
+              <span className="cart-quote-whatsapp-icon">
+                <WhatsAppIcon />
+              </span>
+              Contactar asesor por WhatsApp
+            </a>
+          ) : null}
         </div>
       ) : null}
-
-      <div className="cart-quote-head">
-        <span aria-hidden="true" className="cart-quote-head-spacer" />
-        <h3>Datos para cotización</h3>
-        <button className="icon-button" onClick={onClose} type="button">
-          <X size={16} />
-        </button>
-      </div>
 
       {hasAccountDefaults ? (
         <div className="cart-quote-account-note">
