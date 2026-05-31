@@ -124,11 +124,6 @@ export function ProductDetailView({ product, settings }: ProductDetailViewProps)
               <ArrowLeft size={16} />
               Volver al catálogo
             </Link>
-            {product.category ? (
-              <Link className="pill product-detail-category-link" href={`/?category=${encodeURIComponent(product.category)}`}>
-                {product.category}
-              </Link>
-            ) : null}
           </div>
 
           <div className="product-detail-stage">
@@ -154,13 +149,13 @@ export function ProductDetailView({ product, settings }: ProductDetailViewProps)
                   <video controls playsInline preload="metadata" src={activeMediaUrl} />
                 </div>
               )
-            ) : (
-              <div className="product-detail-stage product-detail-stage-fallback">
-                <ImageIcon size={36} />
-                <strong>{product.category ?? "Producto"}</strong>
-                <span>{displayName}</span>
-              </div>
-            )}
+              ) : (
+                <div className="product-detail-stage product-detail-stage-fallback">
+                  <ImageIcon size={36} />
+                <strong>Producto</strong>
+                  <span>{displayName}</span>
+                </div>
+              )}
           </div>
 
           {uniqueGallery.length > 1 ? (

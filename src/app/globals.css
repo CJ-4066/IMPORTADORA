@@ -10895,7 +10895,7 @@ body[data-admin-theme="dark"] .admin-complaints-empty {
   }
 
   .product-detail-stage {
-    aspect-ratio: 4 / 4.6;
+    aspect-ratio: 1 / 1.24;
   }
 
   .store-assistant-panel {
@@ -11771,12 +11771,12 @@ body[data-admin-theme="dark"] .admin-complaints-empty {
   }
 
   .product-detail-stage {
-    aspect-ratio: 1 / 1.08;
-    max-height: 305px;
+    aspect-ratio: 1 / 1.28;
+    max-height: 330px;
   }
 
   .product-detail-stage-media {
-    padding: 0.16rem;
+    padding: 0.1rem;
   }
 
   .product-detail-thumb {
