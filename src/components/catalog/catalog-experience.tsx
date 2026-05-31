@@ -247,10 +247,6 @@ function ProductSection({
         </div>
 
         <div className="catalog-section-actions">
-          <Link className="catalog-section-link" href={href}>
-            Ver más
-          </Link>
-
           {featured ? (
             <div
               className="catalog-slider-controls"
@@ -275,6 +271,10 @@ function ProductSection({
               </button>
             </div>
           ) : null}
+
+          <Link className="catalog-section-link" href={href}>
+            Ver más
+          </Link>
         </div>
       </div>
 
