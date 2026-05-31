@@ -12322,11 +12322,11 @@ body[data-admin-theme="dark"] .admin-complaints-empty {
   }
 
   .catalog-slider-controls {
-    order: 2;
+    order: 1;
   }
 
   .catalog-section-link {
-    order: 1;
+    order: 2;
   }
 
   .catalog-featured-slider {
