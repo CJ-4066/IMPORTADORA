@@ -5243,16 +5243,20 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
   }
 
   .cart-quote-overlay-panel .cart-quote-whatsapp {
+    width: fit-content;
+    min-width: 0;
+    align-self: flex-start;
     min-height: 2.25rem;
-    padding-inline: 0.78rem;
+    padding-inline: 0.7rem;
     font-size: 0.72rem;
     box-shadow: none;
-    gap: 0.48rem;
+    gap: 0.42rem;
+    border-radius: 999px;
   }
 
   .cart-quote-overlay-panel .cart-quote-whatsapp-icon {
-    width: 1.2rem;
-    height: 1.2rem;
+    width: 1rem;
+    height: 1rem;
   }
 
   .cart-quote-account-note-copy {
