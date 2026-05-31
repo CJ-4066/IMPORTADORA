@@ -9,9 +9,8 @@ import {
   QuoteLineValidationError,
 } from "@/lib/quote-pricing";
 import { getStoreSettings } from "@/lib/store";
-import { cleanWhatsappNumber, formatCurrency } from "@/lib/utils";
+import { cleanWhatsappNumber, formatCurrency, PUBLIC_WHATSAPP_NUMBER } from "@/lib/utils";
 import {
-  getWhatsappAlertTarget,
   isWhatsappApiConfigured,
   sendQuotePdfToWhatsapp,
 } from "@/lib/whatsapp";
@@ -175,18 +174,18 @@ export async function POST(request: Request) {
     });
     const pdfUrl = getQuotationPdfUrl(quotationRecord, result.response);
     const pdfFilename = getQuotationPdfFilename(quotationRecord, quoteNumber);
+    const quoteWhatsappNumber = cleanWhatsappNumber(PUBLIC_WHATSAPP_NUMBER);
     const whatsappHref = buildAdvisorWhatsappHref({
       businessName: settings.businessName,
       currencySymbol: settings.currencySymbol,
       customerName,
       quoteNumber,
-      advisorPhone: settings.whatsappNumber,
+      advisorPhone: quoteWhatsappNumber,
       total,
       items,
     });
     const warnings = result.warnings.filter(Boolean);
-    const internalWhatsappNumber = getWhatsappAlertTarget(settings.whatsappNumber);
-    const customerPdfNotification = await sendPdfNotification({
+    const quotePdfNotification = await sendPdfNotification({
       businessName: settings.businessName,
       customerName,
       currencySymbol: settings.currencySymbol,
@@ -194,27 +193,9 @@ export async function POST(request: Request) {
       pdfUrl,
       quoteNumber,
       contactName: customerName,
-      recipientNumber: customerPhone,
+      recipientNumber: quoteWhatsappNumber,
       total,
     });
-    const internalPdfNotification =
-      internalWhatsappNumber && internalWhatsappNumber !== customerPhone
-        ? await sendPdfNotification({
-            businessName: settings.businessName,
-            customerName,
-            currencySymbol: settings.currencySymbol,
-            pdfFilename,
-            pdfUrl,
-            quoteNumber,
-            contactName: customerName,
-            recipientNumber: internalWhatsappNumber,
-            total,
-          })
-        : {
-            message: "Alerta interna omitida porque coincide con el número del cliente.",
-            ok: true,
-            sent: false,
-          };
     const messageBase = quoteNumber
       ? `Cotización ${quoteNumber} registrada en el ERP.`
       : "Cotización registrada en el ERP.";
@@ -234,12 +215,8 @@ export async function POST(request: Request) {
         text: customerModeLabel,
       },
       {
-        status: customerPdfNotification.sent ? "success" : "warning",
-        text: customerPdfNotification.message,
-      },
-      {
-        status: internalPdfNotification.sent ? "success" : "warning",
-        text: internalPdfNotification.message,
+        status: quotePdfNotification.sent ? "success" : "warning",
+        text: quotePdfNotification.message,
       },
       ...warnings.map((warning) => ({
         status: "warning" as const,
@@ -253,11 +230,9 @@ export async function POST(request: Request) {
         erpCustomerMode: result.customerMode,
         erpExternalId: quoteExternalId,
         pdfNotification: toJson({
-          message: customerPdfNotification.message,
-          ok: customerPdfNotification.ok || internalPdfNotification.ok,
-          sent: customerPdfNotification.sent,
-          customer: customerPdfNotification,
-          internal: internalPdfNotification,
+          message: quotePdfNotification.message,
+          ok: quotePdfNotification.ok,
+          sent: quotePdfNotification.sent,
         }),
         quoteNumber,
         status: "ERP_REGISTERED",
@@ -273,11 +248,9 @@ export async function POST(request: Request) {
         ? `Cotización ${quoteNumber} enviada correctamente. Te contactaremos vía WhatsApp.`
         : "Cotización enviada correctamente. Te contactaremos vía WhatsApp.",
       pdfNotification: {
-        message: customerPdfNotification.message,
-        ok: customerPdfNotification.ok || internalPdfNotification.ok,
-        sent: customerPdfNotification.sent,
-        customer: customerPdfNotification,
-        internal: internalPdfNotification,
+        message: quotePdfNotification.message,
+        ok: quotePdfNotification.ok,
+        sent: quotePdfNotification.sent,
       },
       quoteNumber,
       response: result.response,
