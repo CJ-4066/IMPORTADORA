@@ -4232,31 +4232,11 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
   gap: 0.42rem;
 }
 
-.product-detail-mode-row,
 .product-detail-buy-actions,
 .product-detail-qty-row {
   display: flex;
   gap: 0.75rem;
   flex-wrap: wrap;
-}
-
-.mode-chip {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.45rem;
-  min-height: 38px;
-  padding: 0 0.82rem;
-  border: 1px solid rgba(var(--brand-ink-rgb), 0.1);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.84);
-  color: var(--foreground);
-}
-
-.mode-chip.is-active {
-  color: white;
-  border-color: transparent;
-  background: linear-gradient(135deg, var(--brand-primary), var(--brand-accent));
 }
 
 .product-detail-qty-row {

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { ArrowLeft, ImageIcon, Minus, Plus, ShoppingCart, Tags } from "lucide-react";
+import { ArrowLeft, ImageIcon, Minus, Plus, ShoppingCart } from "lucide-react";
 import { STORE_CART_OPEN_EVENT } from "@/components/catalog/cart-events";
 import { CartStoreBootstrap } from "@/components/catalog/cart-store-bootstrap";
 import { isCartStoreHydrated, rehydrateCartStore, useCartStore } from "@/components/catalog/cart-store";
@@ -248,13 +248,6 @@ export function ProductDetailView({ product, settings }: ProductDetailViewProps)
           </div>
 
           <div className="product-detail-buybox">
-            <div className="product-detail-mode-row">
-              <span className="mode-chip is-active">
-                <Tags size={16} />
-                Unidad
-              </span>
-            </div>
-
             <div className="product-detail-qty-row">
               <div className="product-detail-qty-control">
                 <button
