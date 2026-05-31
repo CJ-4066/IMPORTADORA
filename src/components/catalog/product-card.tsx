@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useState } from "react";
 import { Bot, ImageIcon, Minus, Plus, ShoppingCart } from "lucide-react";
-import { STORE_CART_OPEN_EVENT } from "@/components/catalog/cart-events";
 import {
   STORE_ASSISTANT_OPEN_EVENT,
   type StoreAssistantOpenDetail,
@@ -33,9 +32,6 @@ export function ProductCard({ product, settings }: ProductCardProps) {
     }
 
     addItem(product, "unit", quantity);
-    window.requestAnimationFrame(() => {
-      window.dispatchEvent(new CustomEvent(STORE_CART_OPEN_EVENT));
-    });
     setQuantity(1);
   };
 

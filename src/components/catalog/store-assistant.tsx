@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { LoaderCircle, Send, ShoppingCart, Sparkles, X } from "lucide-react";
-import { STORE_CART_OPEN_EVENT } from "@/components/catalog/cart-events";
 import {
   isCartStoreHydrated,
   rehydrateCartStore,
@@ -341,9 +340,6 @@ function AssistantProductCard({ product }: AssistantProductCardProps) {
     );
 
     setAdded(true);
-    window.requestAnimationFrame(() => {
-      window.dispatchEvent(new CustomEvent(STORE_CART_OPEN_EVENT));
-    });
   };
 
   return (

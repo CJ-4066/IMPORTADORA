@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { ArrowLeft, ImageIcon, Minus, Plus, ShoppingCart } from "lucide-react";
-import { STORE_CART_OPEN_EVENT } from "@/components/catalog/cart-events";
 import { CartStoreBootstrap } from "@/components/catalog/cart-store-bootstrap";
 import { isCartStoreHydrated, rehydrateCartStore, useCartStore } from "@/components/catalog/cart-store";
 import { getSafeMediaUrl } from "@/lib/media-url";
@@ -113,10 +112,6 @@ export function ProductDetailView({ product, settings }: ProductDetailViewProps)
     for (let index = 1; index < safeQuantity; index += 1) {
       addItem(product, "unit");
     }
-
-    window.requestAnimationFrame(() => {
-      window.dispatchEvent(new CustomEvent(STORE_CART_OPEN_EVENT));
-    });
   };
 
   return (

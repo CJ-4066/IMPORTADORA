@@ -1,7 +1,6 @@
 "use client";
 
 import { RotateCcw } from "lucide-react";
-import { STORE_CART_OPEN_EVENT } from "@/components/catalog/cart-events";
 import {
   isCartStoreHydrated,
   rehydrateCartStore,
@@ -42,10 +41,6 @@ export function ReorderQuoteButton({
     for (const item of availableItems) {
       addItem(item.product, "unit", item.quantity);
     }
-
-    window.requestAnimationFrame(() => {
-      window.dispatchEvent(new CustomEvent(STORE_CART_OPEN_EVENT));
-    });
   };
 
   return (
