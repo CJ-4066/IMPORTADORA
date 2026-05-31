@@ -9708,6 +9708,8 @@ body[data-admin-theme="dark"] .admin-complaints-empty {
 
   .product-detail-gallery-card {
     max-width: none;
+    justify-self: center;
+    width: min(100%, 640px);
   }
 
   .product-editor-grid,
@@ -10460,6 +10462,65 @@ body[data-admin-theme="dark"] .admin-complaints-empty {
     grid-template-columns: 1fr;
   }
 
+  .product-detail-main {
+    gap: 0.6rem;
+  }
+
+  .product-detail-gallery-card {
+    width: min(100%, 560px);
+    padding: 0.62rem;
+  }
+
+  .product-detail-copy-card {
+    padding: 0.82rem;
+  }
+
+  .product-detail-copy-card h1 {
+    font-size: clamp(1.02rem, 4.4vw, 1.28rem);
+    line-height: 1.08;
+  }
+
+  .product-detail-stage {
+    aspect-ratio: 1 / 1.12;
+    max-height: 290px;
+  }
+
+  .product-detail-stage-media {
+    padding: 0.12rem;
+  }
+
+  .product-detail-thumb {
+    min-height: 68px;
+  }
+
+  .product-detail-price-box,
+  .product-detail-buybox {
+    padding: 0.66rem;
+  }
+
+  .product-detail-price-main strong {
+    font-size: 1.05rem;
+  }
+
+  .product-detail-price-wholesale strong,
+  .product-detail-price-savings strong {
+    font-size: 0.92rem;
+  }
+
+  .product-detail-price-main span,
+  .product-detail-price-wholesale span,
+  .product-detail-price-savings span,
+  .product-detail-buy-note,
+  .product-detail-description,
+  .product-detail-specs {
+    font-size: 0.72rem;
+  }
+
+  .product-detail-code-row .pill,
+  .product-detail-code-row .product-code {
+    font-size: 0.72rem;
+  }
+
   .shopper-command-metrics,
   .shopper-category-grid,
   .shopper-product-strip {
@@ -10530,17 +10591,17 @@ body[data-admin-theme="dark"] .admin-complaints-empty {
 
   .product-detail-buy-actions {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: 1fr;
     gap: 0.55rem;
     align-items: stretch;
   }
 
   .product-detail-buy-actions .button {
     width: 100%;
-    min-height: 50px;
-    padding: 0.72rem 0.9rem;
+    min-height: 46px;
+    padding: 0.68rem 0.85rem;
     border-radius: 16px;
-    font-size: 0.82rem;
+    font-size: 0.78rem;
     font-weight: 800;
     box-shadow: none;
   }
@@ -11347,22 +11408,49 @@ body[data-admin-theme="dark"] .admin-complaints-empty {
   .product-detail-gallery-card,
   .product-detail-price-box,
   .product-detail-buybox {
-    padding: 0.78rem;
+    padding: 0.7rem;
   }
 
   .product-detail-copy-card h1 {
-    font-size: clamp(1.2rem, 6.2vw, 1.7rem);
-    line-height: 1.05;
+    font-size: clamp(1.06rem, 4.8vw, 1.4rem);
+    line-height: 1.08;
     letter-spacing: 0;
   }
 
   .product-detail-stage {
-    aspect-ratio: 1 / 1.24;
-    max-height: 350px;
+    aspect-ratio: 1 / 1.08;
+    max-height: 305px;
   }
 
   .product-detail-stage-media {
-    padding: 0.35rem;
+    padding: 0.16rem;
+  }
+
+  .product-detail-thumb {
+    min-height: 72px;
+  }
+
+  .product-detail-price-main strong {
+    font-size: 1.12rem;
+  }
+
+  .product-detail-price-wholesale strong,
+  .product-detail-price-savings strong {
+    font-size: 0.98rem;
+  }
+
+  .product-detail-price-main span,
+  .product-detail-price-wholesale span,
+  .product-detail-price-savings span,
+  .product-detail-buy-note,
+  .product-detail-description,
+  .product-detail-specs {
+    font-size: 0.76rem;
+  }
+
+  .product-detail-code-row .pill,
+  .product-detail-code-row .product-code {
+    font-size: 0.74rem;
   }
 
   .metric-card,
