@@ -10260,7 +10260,7 @@ body[data-admin-theme="dark"] .admin-complaints-empty {
     margin: 0;
     position: fixed;
     right: 0.75rem;
-    bottom: 6.6rem;
+    bottom: 5.8rem;
     z-index: 38;
     transform: none;
   }
@@ -10268,7 +10268,7 @@ body[data-admin-theme="dark"] .admin-complaints-empty {
   .store-side-actions.store-side-actions-product {
     position: fixed;
     right: 0.75rem;
-    bottom: 6.35rem;
+    bottom: 5.55rem;
     grid-template-columns: 1fr;
     width: min(4.7rem, calc(100vw - 1.5rem));
     margin: 0;
