@@ -4666,6 +4666,20 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
   background: transparent;
 }
 
+.cart-quote-overlay-panel .cart-quote-head,
+.cart-quote-overlay-panel .cart-quote-account-note {
+  flex-direction: row;
+  align-items: center;
+}
+
+.cart-quote-overlay-panel .cart-quote-head {
+  justify-content: space-between;
+}
+
+.cart-quote-overlay-panel .cart-quote-head .icon-button {
+  align-self: auto;
+}
+
 .cart-quote-success {
   display: grid;
   gap: 0.75rem;
@@ -5029,6 +5043,18 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
 
   .cart-quote-overlay-panel {
     border-radius: 18px;
+  }
+
+  .cart-quote-overlay-panel .cart-quote-form {
+    padding: 0.85rem;
+  }
+
+  .cart-quote-overlay-panel .cart-quote-head {
+    gap: 0.55rem;
+  }
+
+  .cart-quote-overlay-panel .cart-quote-account-note {
+    align-items: center;
   }
 
   .field-stack {
