@@ -4902,6 +4902,15 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
   background: #c83d4b;
 }
 
+.cart-quote-overlay-panel .cart-quote-form {
+  max-width: 100%;
+}
+
+.cart-quote-overlay-panel .cart-quote-head,
+.cart-quote-overlay-panel .cart-quote-account-note {
+  margin-inline: auto;
+}
+
 .summary-row {
   display: flex;
   justify-content: space-between;
@@ -5153,6 +5162,109 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
   .cart-quote-submit {
     min-height: 2.05rem;
     height: 2.05rem;
+  }
+}
+
+@media (min-width: 761px) {
+  .cart-quote-overlay {
+    padding: 1rem;
+  }
+
+  .cart-quote-overlay-panel {
+    align-self: center;
+    max-width: 52rem;
+    max-height: calc(100% - 2rem);
+    margin-inline: auto;
+    border-radius: 20px;
+  }
+
+  .cart-quote-overlay-panel .cart-quote-form {
+    gap: 0.7rem;
+    padding: 0.9rem 1rem 0.95rem;
+  }
+
+  .cart-quote-overlay-panel .cart-quote-head {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 0.55rem;
+    align-items: center;
+    width: 100%;
+  }
+
+  .cart-quote-overlay-panel .cart-quote-head h3 {
+    font-size: 1rem;
+    letter-spacing: -0.01em;
+  }
+
+  .cart-quote-overlay-panel .cart-quote-head .icon-button {
+    width: 2.35rem;
+    height: 2.35rem;
+  }
+
+  .cart-quote-overlay-panel .cart-quote-account-note {
+    gap: 0.6rem;
+    width: 100%;
+    padding: 0.62rem 0.75rem;
+    border-radius: 14px;
+    background: rgba(var(--brand-rgb), 0.06);
+  }
+
+  .cart-quote-account-note-copy {
+    font-size: 0.78rem;
+  }
+
+  .cart-quote-grid {
+    gap: 0.6rem;
+  }
+
+  .field-stack span {
+    font-size: 0.76rem;
+  }
+
+  .field-stack input,
+  .field-stack select,
+  .field-stack textarea {
+    min-height: 2.55rem;
+    padding: 0.68rem 0.82rem;
+    border-radius: 12px;
+    font-size: 0.85rem;
+  }
+
+  .field-stack textarea {
+    min-height: 4.8rem;
+  }
+
+  .cart-quote-actions {
+    justify-content: flex-end;
+  }
+
+  .cart-quote-submit {
+    width: auto;
+    min-width: 15rem;
+    margin-inline: 0;
+    padding-inline: 1rem;
+  }
+
+  .cart-quote-success {
+    gap: 0.6rem;
+    padding: 0.82rem 0.9rem;
+    border-radius: 16px;
+  }
+
+  .cart-quote-success-copy strong {
+    font-size: 0.9rem;
+  }
+
+  .cart-quote-success-copy span {
+    font-size: 0.8rem;
+  }
+
+  .cart-quote-status {
+    gap: 0.34rem;
+  }
+
+  .cart-quote-status-item {
+    font-size: 0.78rem;
   }
 }
 
