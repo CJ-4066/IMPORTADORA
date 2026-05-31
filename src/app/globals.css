@@ -5187,6 +5187,7 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
   .cart-quote-overlay-panel .cart-quote-form {
     gap: 0.7rem;
     padding: 0.9rem 1rem 0.95rem;
+    align-content: start;
   }
 
   .cart-quote-overlay-panel .cart-quote-head {
@@ -5219,31 +5220,34 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
   }
 
   .cart-quote-overlay-panel .cart-quote-success {
-    gap: 0.05rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
     width: min(100%, 24rem);
     justify-self: center;
+    align-self: start;
     margin-top: 0.02rem;
     margin-bottom: 0.12rem;
-    padding: 0.5rem 0.56rem 0.58rem;
+    padding: 0.72rem 0.82rem 0.82rem;
     border: 1px solid rgba(15, 157, 108, 0.18);
-    border-radius: 16px;
+    border-radius: 28px;
     background:
-      linear-gradient(180deg, rgba(236, 253, 245, 0.95), rgba(255, 255, 255, 0.96)),
-      radial-gradient(circle at top right, rgba(15, 157, 108, 0.14), transparent 34%);
-    box-shadow: 0 10px 22px rgba(15, 157, 108, 0.08);
+      linear-gradient(180deg, rgba(236, 253, 245, 0.68), rgba(255, 255, 255, 0.9)),
+      radial-gradient(circle at top right, rgba(15, 157, 108, 0.12), transparent 34%);
+    box-shadow: 0 8px 18px rgba(15, 157, 108, 0.06);
   }
 
   .cart-quote-overlay-panel .cart-quote-success-copy {
-    gap: 0.3rem;
+    gap: 0.55rem;
   }
 
   .cart-quote-overlay-panel .cart-quote-success-copy strong {
-    font-size: 0.74rem;
+    font-size: 0.82rem;
   }
 
   .cart-quote-overlay-panel .cart-quote-success-copy span {
-    font-size: 0.65rem;
-    line-height: 1.18;
+    font-size: 0.75rem;
+    line-height: 1.28;
   }
 
   .cart-quote-overlay-panel .cart-quote-whatsapp {
@@ -5251,19 +5255,19 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
     min-width: 0;
     align-self: stretch;
     justify-self: stretch;
-    margin-top: 0;
-    min-height: 40px;
-    height: 40px;
-    padding: 0 0.82rem;
-    font-size: 0.79rem;
-    box-shadow: 0 0.7rem 1.3rem rgba(24, 179, 86, 0.16);
-    gap: 0.45rem;
+    margin-top: 0.25rem;
+    min-height: 46px;
+    height: 46px;
+    padding: 0 0.95rem;
+    font-size: 0.85rem;
+    box-shadow: 0 0.85rem 1.45rem rgba(24, 179, 86, 0.16);
+    gap: 0.55rem;
     border-radius: 999px;
   }
 
   .cart-quote-overlay-panel .cart-quote-whatsapp-icon {
-    width: 1rem;
-    height: 1rem;
+    width: 1.1rem;
+    height: 1.1rem;
   }
 
   .cart-quote-account-note-copy {
