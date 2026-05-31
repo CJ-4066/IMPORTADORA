@@ -471,15 +471,6 @@ export function CartDrawer({
 
   const openQuoteForm = () => {
     setQuoteFormOpen(true);
-
-    window.requestAnimationFrame(() => {
-      window.requestAnimationFrame(() => {
-        document.querySelector(".cart-quote-form")?.scrollIntoView({
-          behavior: "smooth",
-          block: "start",
-        });
-      });
-    });
   };
 
   const submitQuoteToErp = async () => {
@@ -571,22 +562,38 @@ export function CartDrawer({
       <div className="cart-drawer-body">
         {orderLines.length ? (
           <>
-          <CartList
-            currencySymbol={settings.currencySymbol}
-            onRemove={removeItem}
-            onSetQuantity={setQuantity}
-            orderLines={orderLines}
-          />
+            <CartList
+              currencySymbol={settings.currencySymbol}
+              onRemove={removeItem}
+              onSetQuantity={setQuantity}
+              orderLines={orderLines}
+            />
 
-          <CartFooter
-            currencySymbol={settings.currencySymbol}
-            onOpenQuoteForm={openQuoteForm}
-            quoteFormOpen={quoteFormOpen}
-            totalAmount={totalAmount}
-            totalSavings={totalSavings}
-          />
+            <CartFooter
+              currencySymbol={settings.currencySymbol}
+              onOpenQuoteForm={openQuoteForm}
+              quoteFormOpen={quoteFormOpen}
+              totalAmount={totalAmount}
+              totalSavings={totalSavings}
+            />
+          </>
+        ) : (
+          <EmptyCartState />
+        )}
+      </div>
 
-          {quoteFormOpen ? (
+      {quoteFormOpen ? (
+        <div
+          className="cart-quote-overlay"
+          onClick={() => setQuoteFormOpen(false)}
+          role="presentation"
+        >
+          <div
+            aria-modal="true"
+            className="cart-quote-overlay-panel"
+            onClick={(event) => event.stopPropagation()}
+            role="dialog"
+          >
             <QuoteForm
               draft={quoteDraft}
               hasAccountDefaults={hasAccountDefaults}
@@ -601,12 +608,9 @@ export function CartDrawer({
               quoteStatusSteps={quoteStatusSteps}
               quoteWhatsappHref={quoteWhatsappHref}
             />
-          ) : null}
-        </>
-        ) : (
-          <EmptyCartState />
-        )}
-      </div>
+          </div>
+        </div>
+      ) : null}
     </aside>
   );
 }
