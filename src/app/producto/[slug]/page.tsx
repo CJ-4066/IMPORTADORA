@@ -77,11 +77,7 @@ export default async function ProductDetailPage({
 
       {isAvailable && data.relatedProducts.length ? (
         <section className="panel related-products-panel">
-          <div className="stack-sm">
-            <p className="eyebrow">Sigue explorando</p>
-            <h2>Productos relacionados</h2>
-            <p className="muted">Más opciones dentro de la misma línea para completar el pedido.</p>
-          </div>
+          <h2>Productos relacionados</h2>
 
           <div className="catalog-grid">
             {data.relatedProducts.map((product) => (
