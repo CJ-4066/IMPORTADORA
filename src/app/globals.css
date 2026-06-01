@@ -3994,7 +3994,6 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
 
 .product-detail-stage-media-button:hover .product-detail-stage-zoom {
   opacity: 1;
-  transform: translateY(0);
 }
 
 .product-detail-stage-zoom {
@@ -4014,8 +4013,8 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
   backdrop-filter: blur(12px);
   box-shadow: 0 0.65rem 1.4rem rgba(15, 23, 42, 0.18);
   opacity: 0.92;
-  transform: translate(-50%, 3px);
-  transition: opacity 160ms ease, transform 160ms ease;
+  transform: translate(-50%, 0);
+  transition: opacity 160ms ease;
 }
 
 .product-detail-stage img,
