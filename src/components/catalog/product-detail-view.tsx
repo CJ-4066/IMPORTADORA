@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, CircleX, ImageIcon, Minus, Plus, ShoppingCart, ZoomIn } from "lucide-react";
+import { CircleX, ImageIcon, Minus, Plus, ShoppingCart, ZoomIn } from "lucide-react";
 import { CartStoreBootstrap } from "@/components/catalog/cart-store-bootstrap";
 import { isCartStoreHydrated, rehydrateCartStore, useCartStore } from "@/components/catalog/cart-store";
 import { getSafeMediaUrl } from "@/lib/media-url";
@@ -144,13 +144,6 @@ export function ProductDetailView({ product, settings }: ProductDetailViewProps)
       <CartStoreBootstrap />
       <div className="product-detail-main">
         <div className="product-detail-gallery-card">
-          <div className="product-detail-breadcrumb">
-            <Link className="button button-ghost" href="/">
-              <ArrowLeft size={16} />
-              Volver al catálogo
-            </Link>
-          </div>
-
           <div className="product-detail-stage">
             {activeMedia && activeMediaUrl && !(activeMedia.type === "IMAGE" && imageFailed[activeMedia.id]) ? (
               activeMedia.type === "IMAGE" ? (
