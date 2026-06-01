@@ -4084,7 +4084,7 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
   right: 0.75rem;
   z-index: 1;
   background: rgba(255, 255, 255, 0.94);
-  box-shadow: 0 0.75rem 1.5rem rgba(15, 23, 42, 0.14);
+  box-shadow: none;
 }
 
 .product-detail-thumbs {
@@ -4443,7 +4443,7 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
 .icon-button-close {
   color: #ffffff;
   background: linear-gradient(180deg, #ff5b52 0%, #dc2626 100%);
-  box-shadow: 0 12px 24px rgba(220, 38, 38, 0.2);
+  box-shadow: none;
 }
 
 .icon-button-close:hover,
