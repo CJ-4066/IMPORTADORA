@@ -10,10 +10,6 @@ import {
 } from "@/lib/quote-pricing";
 import { getStoreSettings } from "@/lib/store";
 import { cleanWhatsappNumber, formatCurrency, PUBLIC_WHATSAPP_NUMBER } from "@/lib/utils";
-import {
-  isWhatsappApiConfigured,
-  sendQuotePdfToWhatsapp,
-} from "@/lib/whatsapp";
 
 type QuoteRequestItem = {
   code: string;
@@ -168,12 +164,6 @@ export async function POST(request: Request) {
     });
     const quoteNumber = getQuoteNumber(result.response);
     const quoteExternalId = getQuoteExternalId(result.response);
-    const quotationRecord = await client.findQuotationRecord({
-      externalId: quoteExternalId,
-      quoteNumber,
-    });
-    const pdfUrl = getQuotationPdfUrl(quotationRecord, result.response);
-    const pdfFilename = getQuotationPdfFilename(quotationRecord, quoteNumber);
     const quoteWhatsappNumber = cleanWhatsappNumber(PUBLIC_WHATSAPP_NUMBER);
     const whatsappHref = buildAdvisorWhatsappHref({
       businessName: settings.businessName,
@@ -203,10 +193,6 @@ export async function POST(request: Request) {
         status: result.customerMode === "default" ? "warning" : "success",
         text: customerModeLabel,
       },
-      {
-        status: "warning",
-        text: "Enviando PDF por WhatsApp en segundo plano.",
-      },
       ...warnings.map((warning) => ({
         status: "warning" as const,
         text: warning,
@@ -218,11 +204,6 @@ export async function POST(request: Request) {
         erpCustomerId: result.customerId,
         erpCustomerMode: result.customerMode,
         erpExternalId: quoteExternalId,
-        pdfNotification: toJson({
-          message: "Enviando PDF por WhatsApp en segundo plano.",
-          ok: true,
-          sent: false,
-        }),
         quoteNumber,
         status: "ERP_REGISTERED",
         statusSteps: toJson(statusSteps),
@@ -230,80 +211,12 @@ export async function POST(request: Request) {
       },
     });
 
-    void sendPdfNotification({
-      businessName: settings.businessName,
-      customerName,
-      currencySymbol: settings.currencySymbol,
-      pdfFilename,
-      pdfUrl,
-      quoteNumber,
-      contactName: customerName,
-      recipientNumber: customerPhone,
-      total,
-    })
-      .then(async (quotePdfNotification) => {
-        const finalStatusSteps = [
-          {
-            status: "success" as const,
-            text: messageBase,
-          },
-          {
-            status: result.customerMode === "default" ? "warning" : "success",
-            text: customerModeLabel,
-          },
-          {
-            status: quotePdfNotification.sent ? "success" : "warning",
-            text: quotePdfNotification.message,
-          },
-          ...warnings.map((warning) => ({
-            status: "warning" as const,
-            text: warning,
-          })),
-        ];
-
-        await prisma.quote
-          .update({
-            where: { id: localQuote.id },
-            data: {
-              pdfNotification: toJson({
-                message: quotePdfNotification.message,
-                ok: quotePdfNotification.ok,
-                sent: quotePdfNotification.sent,
-              }),
-              statusSteps: toJson(finalStatusSteps),
-            },
-          })
-          .catch(() => null);
-      })
-      .catch(async (error) => {
-        await prisma.quote
-          .update({
-            where: { id: localQuote.id },
-            data: {
-              pdfNotification: toJson({
-                message:
-                  error instanceof Error
-                    ? error.message
-                    : "No se pudo enviar el PDF por WhatsApp API.",
-                ok: false,
-                sent: false,
-              }),
-            },
-          })
-          .catch(() => null);
-      });
-
     return NextResponse.json({
       customerMode: result.customerMode,
       localQuoteId: localQuote.id,
       message: quoteNumber
-        ? `Cotización ${quoteNumber} enviada correctamente. Te contactaremos vía WhatsApp.`
-        : "Cotización enviada correctamente. Te contactaremos vía WhatsApp.",
-      pdfNotification: {
-        message: "Enviando PDF por WhatsApp en segundo plano.",
-        ok: true,
-        sent: false,
-      },
+        ? `Cotización ${quoteNumber} registrada en el ERP. Te contactaremos vía WhatsApp.`
+        : "Cotización registrada en el ERP. Te contactaremos vía WhatsApp.",
       quoteNumber,
       response: result.response,
       statusSteps,
@@ -378,95 +291,8 @@ function getQuoteExternalId(payload: unknown): string | null {
   return null;
 }
 
-function getQuotationPdfUrl(record: unknown, payload: unknown) {
-  return getFirstStringFromUnknown(record, ["print_a4"]) ?? getFirstStringFromUnknown(payload, ["print_a4"]);
-}
-
-function getQuotationPdfFilename(record: unknown, quoteNumber: string | null) {
-  const filename = getFirstStringFromUnknown(record, ["filename"]);
-
-  if (filename) {
-    return filename.endsWith(".pdf") ? filename : `${filename}.pdf`;
-  }
-
-  return quoteNumber ? `${quoteNumber}.pdf` : "cotizacion.pdf";
-}
-
 function toJson(value: unknown): Prisma.InputJsonValue {
   return JSON.parse(JSON.stringify(value ?? null)) as Prisma.InputJsonValue;
-}
-
-async function sendPdfNotification(input: {
-  businessName: string;
-  contactName: string;
-  customerName: string;
-  currencySymbol: string;
-  pdfFilename: string;
-  pdfUrl: string | null;
-  quoteNumber: string | null;
-  recipientNumber: string | null;
-  total: number;
-}) {
-  if (!input.pdfUrl) {
-    return {
-      message: "El ERP no devolvió un PDF imprimible para enviar por WhatsApp.",
-      ok: false,
-      sent: false,
-    };
-  }
-
-  if (!input.recipientNumber) {
-    return {
-      message: "Falta configurar el número destino de alerta para WhatsApp.",
-      ok: false,
-      sent: false,
-    };
-  }
-
-  if (!isWhatsappApiConfigured()) {
-    return {
-      message: "La cotización quedó registrada, pero falta configurar la WhatsApp API para enviar el PDF automáticamente.",
-      ok: false,
-      sent: false,
-    };
-  }
-
-  const summary = [
-    input.quoteNumber
-      ? `Cotización ${input.quoteNumber} registrada en ${input.businessName}.`
-      : `Cotización registrada en ${input.businessName}.`,
-    `Cliente: ${input.customerName}`,
-    `Total referencial: ${formatCurrency(input.total, input.currencySymbol)}`,
-  ].join("\n");
-  const fallbackText = `${summary}\nPDF: ${input.pdfUrl}`;
-
-  try {
-    const result = await sendQuotePdfToWhatsapp({
-      bodyText: summary,
-      fallbackText,
-      contactName: input.contactName,
-      filename: input.pdfFilename,
-      pdfUrl: input.pdfUrl,
-      to: input.recipientNumber,
-    });
-
-    return {
-      message: "PDF enviado automáticamente por WhatsApp API.",
-      messageId: result.messageId,
-      ok: true,
-      provider: result.provider,
-      sent: true,
-    };
-  } catch (error) {
-    return {
-      message:
-        error instanceof Error
-          ? `No se pudo enviar el PDF por WhatsApp API: ${error.message}`
-          : "No se pudo enviar el PDF por WhatsApp API.",
-      ok: false,
-      sent: false,
-    };
-  }
 }
 
 function normalizeCustomerWhatsappNumber(value: string) {
@@ -481,28 +307,6 @@ function normalizeCustomerWhatsappNumber(value: string) {
   }
 
   return digits;
-}
-
-function getFirstStringFromUnknown(value: unknown, keys: string[]) {
-  if (!value || typeof value !== "object") {
-    return null;
-  }
-
-  const record = value as Record<string, unknown>;
-
-  for (const key of keys) {
-    const candidate = record[key];
-
-    if (typeof candidate === "string" && candidate.trim()) {
-      return candidate.trim();
-    }
-  }
-
-  if (record.data && typeof record.data === "object") {
-    return getFirstStringFromUnknown(record.data, keys);
-  }
-
-  return null;
 }
 
 function buildAdvisorWhatsappHref(input: {

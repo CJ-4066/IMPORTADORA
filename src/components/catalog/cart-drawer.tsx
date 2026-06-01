@@ -343,7 +343,7 @@ function QuoteForm({
           onClick={onSubmit}
           type="button"
         >
-          {quoteState === "loading" ? "Enviando..." : "Solicitar cotización"}
+          {quoteState === "loading" ? "Registrando..." : "Solicitar cotización"}
         </button>
 
       </div>
