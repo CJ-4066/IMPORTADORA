@@ -30,7 +30,7 @@ export function isWhatsappApiConfigured() {
   const provider = process.env.WHATSAPP_PROVIDER?.trim();
 
   if (provider === "manychat") {
-    return Boolean(process.env.MANYCHAT_API_KEY?.trim() || process.env.WHATSAPP_ACCESS_TOKEN?.trim());
+    return Boolean(process.env.MANYCHAT_API_KEY?.trim());
   }
 
   return Boolean(
@@ -114,11 +114,11 @@ export async function sendQuotePdfToWhatsapp(
 async function sendQuotePdfToManychat(
   input: QuotePdfNotificationInput,
 ): Promise<WhatsappSendResult> {
-  const apiKey = process.env.MANYCHAT_API_KEY?.trim() || process.env.WHATSAPP_ACCESS_TOKEN?.trim();
+  const apiKey = process.env.MANYCHAT_API_KEY?.trim();
   const apiBaseUrl = process.env.MANYCHAT_API_BASE_URL?.trim() || "https://api.manychat.com";
 
   if (!apiKey) {
-    throw new Error("Falta configurar MANYCHAT_API_KEY o WHATSAPP_ACCESS_TOKEN para usar ManyChat.");
+    throw new Error("Falta configurar MANYCHAT_API_KEY para usar ManyChat.");
   }
 
   const to = normalizeWhatsappRecipient(input.to);
