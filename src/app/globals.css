@@ -11057,6 +11057,7 @@ body[data-admin-theme="dark"] .admin-complaints-empty {
     grid-template-columns: 1fr;
     gap: 0.55rem;
     align-items: stretch;
+    margin-top: 0.25rem;
   }
 
   .product-detail-buy-actions .button {
@@ -11081,6 +11082,36 @@ body[data-admin-theme="dark"] .admin-complaints-empty {
 
   .product-card {
     border-radius: 22px;
+  }
+
+  .related-products-panel {
+    gap: 0.7rem;
+    padding: 0.95rem;
+  }
+
+  .related-products-panel .catalog-grid {
+    gap: 0.5rem;
+  }
+
+  .related-products-panel .product-card {
+    border-radius: 16px;
+  }
+
+  .related-products-panel .product-media-preview {
+    min-height: clamp(8.5rem, 34vw, 11rem);
+    aspect-ratio: 2 / 3.2;
+    padding: 0.12rem;
+  }
+
+  .related-products-panel .product-body {
+    gap: 0.42rem;
+    padding: 0.5rem;
+  }
+
+  .related-products-panel .product-actions .button {
+    min-height: 30px;
+    padding: 0 0.45rem;
+    font-size: 0.64rem;
   }
 
   .product-media {
