@@ -812,9 +812,9 @@ body {
   min-height: 1.15rem;
   padding: 0 0.28rem;
   border-radius: 999px;
-  color: var(--brand-primary);
-  background: rgba(255, 255, 255, 0.98);
-  border: 1px solid rgba(var(--brand-primary-rgb), 0.18);
+  color: #ffffff;
+  background: linear-gradient(180deg, #ff5b52 0%, #dc2626 100%);
+  border: 1px solid rgba(220, 38, 38, 0.18);
   font-size: 0.68rem;
   font-weight: 800;
   line-height: 1;
