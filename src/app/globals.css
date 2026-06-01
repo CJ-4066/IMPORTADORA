@@ -3627,18 +3627,18 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
 }
 
 .product-stock-chip.is-ready {
-  color: #bbf7d0;
-  background: rgba(22, 163, 74, 0.24);
+  color: #111827;
+  background: rgba(34, 197, 94, 0.18);
 }
 
 .product-stock-chip.is-low {
-  color: var(--brand-text-on-dark);
-  background: rgba(var(--brand-rgb), 0.24);
+  color: #111827;
+  background: rgba(248, 113, 113, 0.2);
 }
 
 .product-stock-chip.is-empty {
-  color: #fecaca;
-  background: rgba(220, 38, 38, 0.28);
+  color: #111827;
+  background: rgba(239, 68, 68, 0.28);
 }
 
 .pill {

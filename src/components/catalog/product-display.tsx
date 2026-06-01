@@ -10,11 +10,11 @@ export function getProductDiscountPercent(product: CatalogProduct) {
 
 export function getProductStockState(product: CatalogProduct) {
   const tone =
-    product.stockUnits <= 0 ? "is-empty" : product.stockUnits <= 12 ? "is-low" : "is-ready";
+    product.stockUnits <= 0 ? "is-empty" : product.stockUnits <= 5 ? "is-low" : "is-ready";
   const label =
     product.stockUnits <= 0
       ? "Sin stock"
-      : product.stockUnits <= 12
+      : product.stockUnits <= 5
         ? `Stock bajo: ${product.stockUnits}`
         : `${product.stockUnits} disponibles`;
 
