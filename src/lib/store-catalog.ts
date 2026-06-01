@@ -1,6 +1,7 @@
 import { getErpBestSellerSnapshot } from "@/lib/erp-sales";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { BLOCKED_PUBLIC_PRODUCT_CODES } from "@/lib/public-product-blocklist";
 import {
   PUBLIC_PAGE_SIZE,
   buildWhere,
@@ -177,6 +178,9 @@ export async function getExactCatalogProductSlug(query: string) {
 
   const product = await prisma.product.findFirst({
     where: {
+      NOT: {
+        code: { in: BLOCKED_PUBLIC_PRODUCT_CODES },
+      },
       OR: [
         { code: { equals: trimmedQuery, mode: "insensitive" } },
         { externalCode: { equals: trimmedQuery, mode: "insensitive" } },
@@ -462,6 +466,11 @@ function getCollectionWhere(collection?: string): Prisma.ProductWhereInput | nul
 function buildBestSellerProductsWhere(bestSellerCodes: string[]) {
   return {
     AND: [
+      {
+        NOT: {
+          code: { in: BLOCKED_PUBLIC_PRODUCT_CODES },
+        },
+      },
       { isVisible: true },
       { stockUnits: { gt: 0 } },
       buildRealProductPhotoWhere(),
@@ -517,6 +526,9 @@ export async function getCatalogSuggestions(query: string) {
 
   const products = await prisma.product.findMany({
     where: {
+      NOT: {
+        code: { in: BLOCKED_PUBLIC_PRODUCT_CODES },
+      },
       isVisible: true,
       stockUnits: { gt: 0 },
       AND: [buildRealProductPhotoWhere()],
@@ -568,6 +580,9 @@ export async function getCatalogProductBySlug(slug: string) {
   const product = await prisma.product.findFirst({
     where: {
       slug,
+      NOT: {
+        code: { in: BLOCKED_PUBLIC_PRODUCT_CODES },
+      },
     },
     include: {
       media: {
@@ -584,6 +599,9 @@ export async function getCatalogProductBySlug(slug: string) {
     getStoreSettings(),
     prisma.product.findMany({
       where: {
+        NOT: {
+          code: { in: BLOCKED_PUBLIC_PRODUCT_CODES },
+        },
         id: { not: product.id },
         isVisible: true,
         stockUnits: { gt: 0 },
@@ -622,6 +640,9 @@ export async function getCategoryOptions() {
 export async function getBrandOptions() {
   const brands = await prisma.product.findMany({
     where: {
+      NOT: {
+        code: { in: BLOCKED_PUBLIC_PRODUCT_CODES },
+      },
       isVisible: true,
       stockUnits: { gt: 0 },
       brand: { not: null },

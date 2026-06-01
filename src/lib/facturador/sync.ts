@@ -15,6 +15,7 @@ import type {
   SyncableProduct,
 } from "@/lib/facturador/types";
 import { mirrorProductImageToLocal } from "@/lib/product-image-storage";
+import { isBlockedPublicProductCode } from "@/lib/public-product-blocklist";
 import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/utils";
 
@@ -667,6 +668,39 @@ export async function syncFacturadorProducts(options: FacturadorSyncOptions = {}
               existingByExternal.get(
                 buildExternalKey(product.externalSource, product.externalId),
               ) ?? existingByCode.get(product.code);
+
+            if (isBlockedPublicProductCode(product.code)) {
+              if (!existingSnapshot) {
+                summary.skipped.push({
+                  externalId: product.externalId,
+                  reason: "Producto bloqueado para storefront. Omitido por regla interna.",
+                });
+                return null;
+              }
+
+              const hiddenProduct = {
+                ...product,
+                categoryId,
+                imageUrl: product.imageUrl ?? null,
+                isVisible: false,
+                sourceImageUrl: existingSnapshot.imageUrl ?? product.imageUrl ?? null,
+                localImageUrl:
+                  existingSnapshot.localImageUrl ??
+                  getStoredLocalImageUrl(existingSnapshot.imageUrl) ??
+                  null,
+                stockUnits: 0,
+                syncEnabled: false,
+              };
+
+              return {
+                ...hiddenProduct,
+                imageUrl: hiddenProduct.localImageUrl ?? hiddenProduct.sourceImageUrl ?? null,
+                syncHash: buildProductSyncHash(hiddenProduct),
+                syncQuickHash: buildProductQuickSyncHash(hiddenProduct),
+                syncStockHash: buildProductStockSyncHash(hiddenProduct),
+                writeAction: existingSnapshot ? ("updated" as const) : ("created" as const),
+              };
+            }
 
             if (existingSnapshot && existingSnapshot.syncEnabled === false) {
               summary.skipped.push({

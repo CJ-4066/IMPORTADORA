@@ -29,6 +29,7 @@ import {
   getPreferredProductImageUrl,
   isGenericProductMediaUrl,
 } from "@/lib/product-media";
+import { BLOCKED_PUBLIC_PRODUCT_CODES } from "@/lib/public-product-blocklist";
 
 export const PUBLIC_PAGE_SIZE = 24;
 export const ADMIN_PAGE_SIZE = 10;
@@ -127,6 +128,11 @@ export function buildSellableProductWhere(): Prisma.ProductWhereInput {
     syncEnabled: true,
     isVisible: true,
     stockUnits: { gt: 0 },
+    NOT: {
+      code: {
+        in: BLOCKED_PUBLIC_PRODUCT_CODES,
+      },
+    },
     AND: [buildRealProductPhotoWhere()],
   };
 }
