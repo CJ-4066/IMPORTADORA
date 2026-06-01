@@ -10692,28 +10692,28 @@ body[data-admin-theme="dark"] .admin-complaints-empty {
   .store-side-action {
     flex-direction: row;
     min-width: 0;
-    min-height: 2.18rem;
-    min-width: 3.85rem;
+    min-height: 2.42rem;
+    min-width: 4.2rem;
     width: auto;
-    padding: 0.2rem 0.3rem;
-    border-radius: 13px;
+    padding: 0.25rem 0.38rem;
+    border-radius: 15px;
     box-shadow: 0 9px 18px rgba(var(--brand-ink-rgb), 0.09);
   }
 
   .store-side-action span {
-    font-size: 0.5rem;
+    font-size: 0.57rem;
   }
 
   .store-side-action svg {
-    width: 15px;
-    height: 15px;
+    width: 17px;
+    height: 17px;
     flex: 0 0 auto;
   }
 
   .store-side-actions-product .store-side-action {
     flex-direction: column;
-    min-height: 2.35rem;
-    padding: 0.24rem 0.2rem;
+    min-height: 2.62rem;
+    padding: 0.3rem 0.24rem;
   }
 
   .account-popover-menu {
