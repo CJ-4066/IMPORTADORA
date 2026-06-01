@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, ExternalLink, FileText, MessageCircle, UserRound } from "lucide-react";
 import { getAdminQuoteById } from "@/lib/store";
 import type { AdminQuoteDetailView, AdminQuoteStatusStepView } from "@/lib/store";
-import { formatCurrency } from "@/lib/utils";
+import { buildWhatsappHrefFromPhone, formatCurrency } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -62,6 +62,12 @@ export default async function AdminQuoteDetailPage({ params }: AdminQuoteDetailP
   }
 
   const timeline = getTimeline(quote);
+  const customerWhatsappHref = buildWhatsappHrefFromPhone(
+    quote.customerPhone,
+    quote.quoteNumber
+      ? `Hola ${quote.customerName}, te contacto por tu cotización ${quote.quoteNumber}.`
+      : `Hola ${quote.customerName}, te contacto por tu cotización.`,
+  );
 
   return (
     <section className="admin-quote-detail">
@@ -70,10 +76,10 @@ export default async function AdminQuoteDetailPage({ params }: AdminQuoteDetailP
           <ArrowLeft size={16} />
           Volver
         </Link>
-        {quote.whatsappHref ? (
+        {customerWhatsappHref ? (
           <a
             className="button button-primary"
-            href={quote.whatsappHref}
+            href={customerWhatsappHref}
             rel="noreferrer"
             target="_blank"
           >

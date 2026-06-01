@@ -40,6 +40,40 @@ export function cleanWhatsappNumber(value: string) {
 
 export const PUBLIC_WHATSAPP_NUMBER = "51955252609";
 
+export function normalizeWhatsappPhone(phone: string | null | undefined) {
+  const digits = phone ? cleanWhatsappNumber(phone) : "";
+
+  if (!digits) {
+    return null;
+  }
+
+  if (digits.startsWith("51")) {
+    return digits;
+  }
+
+  if (digits.length === 9) {
+    return `51${digits}`;
+  }
+
+  return digits;
+}
+
+export function buildWhatsappHrefFromPhone(phone: string | null | undefined, text?: string) {
+  const normalizedPhone = normalizeWhatsappPhone(phone);
+
+  if (!normalizedPhone) {
+    return null;
+  }
+
+  const base = `https://wa.me/${normalizedPhone}`;
+
+  if (!text) {
+    return base;
+  }
+
+  return `${base}?text=${encodeURIComponent(text)}`;
+}
+
 export function buildPublicWhatsappHref(text?: string) {
   const base = `https://wa.me/${PUBLIC_WHATSAPP_NUMBER}`;
 
