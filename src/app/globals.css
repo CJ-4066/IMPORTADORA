@@ -12435,7 +12435,7 @@ body[data-admin-theme="dark"] .admin-complaints-empty {
   height: 100%;
 }
 
-@media (max-width: 1680px) {
+@media (max-width: 1440px) {
   .catalog-section-grid {
     grid-template-columns: repeat(8, minmax(0, 1fr));
   }
