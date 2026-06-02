@@ -11200,8 +11200,22 @@ body[data-admin-theme="dark"] .admin-complaints-empty {
   }
 
   .related-products-panel .product-media-preview {
-    height: clamp(7.9rem, 29vw, 9.2rem);
-    padding: 0;
+    height: clamp(8.9rem, 32vw, 10.4rem);
+    padding: 0.12rem;
+  }
+
+  .related-products-panel .product-media-preview--detail-safe {
+    height: clamp(8.9rem, 32vw, 10.4rem);
+    padding: 0.12rem;
+  }
+
+  .related-products-panel .product-media-preview img,
+  .related-products-panel .product-media-preview video,
+  .related-products-panel .product-media-preview--detail-safe img,
+  .related-products-panel .product-media-preview--detail-safe video {
+    inset: 0.12rem;
+    width: calc(100% - 0.24rem);
+    height: calc(100% - 0.24rem);
   }
 
   .related-products-panel .product-body {
