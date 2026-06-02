@@ -3566,6 +3566,8 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
   position: relative;
   display: flex;
   flex-direction: column;
+  width: calc(100% - 0.4rem);
+  margin-inline: auto;
   min-height: 100%;
   border: 1px solid rgba(var(--brand-ink-rgb), 0.09);
   border-radius: 18px;
