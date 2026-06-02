@@ -12554,17 +12554,17 @@ body[data-admin-theme="dark"] .admin-complaints-empty {
 
   .catalog-section-featured.catalog-section-compact .product-media-preview,
   .catalog-section-featured.catalog-section-compact .product-media-preview--detail-safe {
-    height: clamp(10.8rem, 43vw, 13.4rem);
-    padding: 0.24rem;
+    height: 15.75rem;
+    padding: 0.3rem;
   }
 
   .catalog-section-featured.catalog-section-compact .product-media-preview img,
   .catalog-section-featured.catalog-section-compact .product-media-preview video,
   .catalog-section-featured.catalog-section-compact .product-media-preview--detail-safe img,
   .catalog-section-featured.catalog-section-compact .product-media-preview--detail-safe video {
-    inset: 0.24rem;
-    width: calc(100% - 0.48rem);
-    height: calc(100% - 0.48rem);
+    inset: 0.3rem;
+    width: calc(100% - 0.6rem);
+    height: calc(100% - 0.6rem);
   }
 
   .catalog-section-featured.catalog-section-compact .product-body {
