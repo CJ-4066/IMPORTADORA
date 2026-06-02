@@ -3616,7 +3616,7 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
 .product-media-preview video {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   object-position: center;
   display: block;
 }
