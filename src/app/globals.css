@@ -3609,9 +3609,9 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
 }
 
 .product-media-preview--detail-safe {
-  aspect-ratio: 1 / 1.18;
-  min-height: 15rem;
-  padding: 0.18rem;
+  aspect-ratio: 1 / 1.28;
+  min-height: 16rem;
+  padding: 0.14rem;
 }
 
 .product-media-preview--detail-safe img,
@@ -12121,9 +12121,9 @@ body[data-admin-theme="dark"] .admin-complaints-empty {
   }
 
   .product-media-preview--detail-safe {
-    min-height: clamp(11rem, 36vw, 14rem);
-    aspect-ratio: 1 / 1.08;
-    padding: 0.12rem;
+    min-height: clamp(11.5rem, 38vw, 15rem);
+    aspect-ratio: 1 / 1.22;
+    padding: 0.1rem;
   }
 
   .product-body {
@@ -12503,10 +12503,10 @@ body[data-admin-theme="dark"] .admin-complaints-empty {
   }
 
   .catalog-section-compact .product-media-preview {
-    margin: -0.42rem -0.42rem 0.34rem;
-    aspect-ratio: 2 / 2.55;
-    min-height: clamp(8.1rem, 32vw, 10rem);
-    padding: 0.28rem;
+    margin: 0 0 0.34rem;
+    aspect-ratio: 2 / 2.8;
+    min-height: clamp(8.8rem, 34vw, 11.4rem);
+    padding: 0.14rem;
   }
 
   .catalog-section-compact .product-body {
