@@ -13190,6 +13190,33 @@ body[data-admin-theme="dark"] .admin-complaints-empty {
   }
 }
 
+@media (min-width: 1025px) {
+  .product-detail-stage {
+    aspect-ratio: auto;
+    max-height: none;
+    overflow: visible;
+  }
+
+  .product-detail-stage-media {
+    padding: 0.3rem 0.3rem 0.45rem;
+  }
+
+  .product-detail-stage-media-button {
+    width: 100%;
+    height: auto;
+    overflow: visible;
+  }
+
+  .product-detail-stage img,
+  .product-detail-stage video {
+    width: 100%;
+    height: auto;
+    max-height: none;
+    object-fit: contain;
+    object-position: center center;
+  }
+}
+
 @media (min-width: 921px) {
   .public-store-header-shell .public-store-bar {
     position: relative;
