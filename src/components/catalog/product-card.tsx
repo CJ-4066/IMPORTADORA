@@ -2,16 +2,16 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Bot, ImageIcon, Minus, Plus, ShoppingCart } from "lucide-react";
+import { Bot, Minus, Plus, ShoppingCart } from "lucide-react";
 import {
   STORE_ASSISTANT_OPEN_EVENT,
   type StoreAssistantOpenDetail,
 } from "@/components/catalog/assistant-events";
 import { isCartStoreHydrated, rehydrateCartStore, useCartStore } from "@/components/catalog/cart-store";
-import { getSafeMediaUrl } from "@/lib/media-url";
 import { getPublicProductName } from "@/lib/product-name";
 import type { CatalogProduct, StoreSettingsView } from "@/lib/store";
 import { ProductPriceRows } from "@/components/catalog/product-display";
+import { ProductMediaFrame } from "@/components/catalog/product-media-frame";
 
 type ProductCardProps = {
   product: CatalogProduct;
@@ -20,12 +20,8 @@ type ProductCardProps = {
 
 export function ProductCard({ product, settings }: ProductCardProps) {
   const addItem = useCartStore((state) => state.addItem);
-  const primaryMedia = product.primaryMedia;
-  const primaryMediaUrl = getSafeMediaUrl(primaryMedia?.url);
   const displayName = getPublicProductName(product.name);
-  const [imageFailed, setImageFailed] = useState(false);
   const [quantity, setQuantity] = useState(1);
-  const shouldShowMedia = primaryMedia && primaryMediaUrl && !(primaryMedia.type === "IMAGE" && imageFailed);
   const handleAddToCart = async () => {
     if (!isCartStoreHydrated()) {
       await rehydrateCartStore();
@@ -47,35 +43,7 @@ export function ProductCard({ product, settings }: ProductCardProps) {
 
   return (
     <article className="product-card">
-      <div className="product-media">
-        {primaryMedia && shouldShowMedia ? (
-          <Link aria-label={`Ver detalle de ${displayName}`} className="product-media-link" href={`/producto/${product.slug}`}>
-            <div className="product-media-preview product-media-preview--detail-safe">
-              {primaryMedia.type === "IMAGE" ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  alt={primaryMedia.altText ?? displayName}
-                  decoding="async"
-                  loading="lazy"
-                  onError={() => setImageFailed(true)}
-                  referrerPolicy="no-referrer"
-                  src={primaryMediaUrl}
-                />
-              ) : (
-                <video muted playsInline preload="metadata" src={primaryMediaUrl} />
-              )}
-            </div>
-          </Link>
-        ) : (
-          <Link aria-label={`Ver detalle de ${displayName}`} className="product-media-link" href={`/producto/${product.slug}`}>
-            <div className="product-media-preview product-media-placeholder">
-              <ImageIcon size={28} />
-              <strong>{product.category ?? "Catálogo"}</strong>
-              <span>{displayName}</span>
-            </div>
-          </Link>
-        )}
-      </div>
+      <ProductMediaFrame displayName={displayName} href={`/producto/${product.slug}`} product={product} />
 
       <div className="product-body">
         <div className="stack-sm product-copy-shell">

@@ -2,8 +2,8 @@ import { randomUUID } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { NextResponse } from "next/server";
-import sharp from "sharp";
 import { requireAdmin } from "@/lib/auth";
+import { createNormalizedProductImage } from "@/lib/product-image-normalization";
 
 export const runtime = "nodejs";
 
@@ -90,7 +90,7 @@ async function writeOptimizedImageVariants(
   outputDir: string,
   fileBase: string,
 ) {
-  const image = sharp(inputBuffer, { animated: true }).rotate();
+  const image = await createNormalizedProductImage(inputBuffer);
   const metadata = await image.metadata();
   const optimizedPath = path.join(outputDir, `${fileBase}.webp`);
   const mobilePath = path.join(outputDir, `${fileBase}-mobile.webp`);

@@ -1,7 +1,7 @@
 import { mkdir } from "node:fs/promises";
 import path from "node:path";
-import sharp from "sharp";
 import { slugify } from "@/lib/utils";
+import { createNormalizedProductImage } from "@/lib/product-image-normalization";
 
 const PRODUCT_IMAGE_DIR = path.join(process.cwd(), "public", "uploads", "products");
 const GENERIC_PRODUCT_IMAGE_MARKERS = [
@@ -97,8 +97,8 @@ export async function mirrorProductImageToLocal(
     const filePath = path.join(PRODUCT_IMAGE_DIR, `${fileBase}.webp`);
 
     await mkdir(PRODUCT_IMAGE_DIR, { recursive: true });
-    await sharp(buffer, { animated: true })
-      .rotate()
+    const image = await createNormalizedProductImage(buffer);
+    await image
       .resize({ width: 1400, withoutEnlargement: true })
       .webp({ quality: 84 })
       .toFile(filePath);
