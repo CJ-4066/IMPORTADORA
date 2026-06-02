@@ -12371,10 +12371,11 @@ body[data-admin-theme="dark"] .admin-complaints-empty {
   scroll-padding-inline: 0.25rem;
   scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
 }
 
 .catalog-featured-slider::-webkit-scrollbar {
-  height: 0.55rem;
+  display: none;
 }
 
 .catalog-featured-slider::-webkit-scrollbar-track {
