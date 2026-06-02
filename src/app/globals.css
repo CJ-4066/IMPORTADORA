@@ -13333,7 +13333,7 @@ body[data-admin-theme="dark"] .admin-complaints-empty {
 
 @media (max-width: 760px) {
   .product-detail-gallery-card {
-    width: min(100%, 33rem);
+    width: min(100%, 31rem);
     justify-self: center;
   }
 
@@ -13341,7 +13341,7 @@ body[data-admin-theme="dark"] .admin-complaints-empty {
     display: grid;
     place-items: center;
     overflow: hidden !important;
-    max-height: min(64vh, 31rem) !important;
+    max-height: min(58vh, 28rem) !important;
   }
 
   .product-detail-stage-media,
@@ -13355,8 +13355,8 @@ body[data-admin-theme="dark"] .admin-complaints-empty {
   .product-detail-stage video {
     width: auto !important;
     height: auto !important;
-    max-width: 88% !important;
-    max-height: min(58vh, 27rem) !important;
+    max-width: 82% !important;
+    max-height: min(52vh, 24rem) !important;
     margin: 0 auto !important;
   }
 }
