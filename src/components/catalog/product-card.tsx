@@ -96,7 +96,7 @@ export function ProductCard({ product, settings }: ProductCardProps) {
           </button>
           <button className="button button-secondary" onClick={openAssistantForProduct} type="button">
             <Bot size={16} />
-            Consultar
+            <span className="product-card-action-label">Consultar</span>
           </button>
         </div>
       </div>
