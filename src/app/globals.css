@@ -1056,6 +1056,31 @@ body {
   }
 }
 
+@media (max-width: 1320px) {
+  .store-side-actions-product {
+    right: 0.65rem;
+    bottom: calc(0.95rem + env(safe-area-inset-bottom, 0px));
+    gap: 0.28rem;
+    width: min(3.2rem, calc(100vw - 1.3rem));
+  }
+
+  .store-side-actions-product .store-side-action {
+    min-height: 2.45rem;
+    padding: 0.22rem 0.18rem;
+    border-radius: 13px;
+  }
+
+  .store-side-actions-product .store-side-action span {
+    font-size: 0.54rem;
+    line-height: 1;
+  }
+
+  .store-side-actions-product .store-side-action svg {
+    width: 15px;
+    height: 15px;
+  }
+}
+
 .store-side-action-back {
   color: var(--foreground);
   background:
