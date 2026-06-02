@@ -4604,11 +4604,12 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
 }
 
 .cart-drawer-body {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 1rem;
   flex: 1 1 auto;
   min-height: 0;
-  overflow: auto;
+  overflow: hidden;
   overscroll-behavior: contain;
   padding-right: 0.1rem;
 }
@@ -4648,7 +4649,10 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
   gap: 0.8rem;
   align-content: start;
   grid-auto-rows: max-content;
+  flex: 1 1 auto;
   min-height: 0;
+  overflow: auto;
+  padding-right: 0.1rem;
 }
 
 .cart-item {
@@ -4838,7 +4842,9 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
 }
 
 .cart-drawer-body > .cart-footer {
-  margin-top: auto;
+  margin-top: 0;
+  flex: 0 0 auto;
+  padding-top: 0.2rem;
 }
 
 .cart-quote-overlay-panel .cart-quote-head,
