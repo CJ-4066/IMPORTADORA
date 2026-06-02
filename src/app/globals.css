@@ -11010,6 +11010,7 @@ body[data-admin-theme="dark"] .admin-complaints-empty {
     place-items: center;
     width: 100%;
     height: auto;
+    overflow: visible;
   }
 
   .product-detail-stage img,
@@ -11098,7 +11099,8 @@ body[data-admin-theme="dark"] .admin-complaints-empty {
   }
 
   .product-detail-stage {
-    aspect-ratio: 1 / 1.24;
+    aspect-ratio: auto;
+    max-height: none;
   }
 
   .store-assistant-panel {
