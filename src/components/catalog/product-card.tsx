@@ -23,8 +23,6 @@ export function ProductCard({ product, settings }: ProductCardProps) {
   const primaryMedia = product.primaryMedia;
   const primaryMediaUrl = getSafeMediaUrl(primaryMedia?.url);
   const displayName = getPublicProductName(product.name);
-  const normalizedCategory = (product.category ?? "").toLowerCase();
-  const needsMediaNudge = /auricul|audifon/.test(normalizedCategory);
   const [imageFailed, setImageFailed] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const shouldShowMedia = primaryMedia && primaryMediaUrl && !(primaryMedia.type === "IMAGE" && imageFailed);
@@ -52,9 +50,7 @@ export function ProductCard({ product, settings }: ProductCardProps) {
       <div className="product-media">
         {primaryMedia && shouldShowMedia ? (
           <Link aria-label={`Ver detalle de ${displayName}`} className="product-media-link" href={`/producto/${product.slug}`}>
-            <div
-              className={`product-media-preview product-media-preview--detail-safe${needsMediaNudge ? " is-media-nudged-right" : ""}`}
-            >
+            <div className="product-media-preview product-media-preview--detail-safe">
               {primaryMedia.type === "IMAGE" ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
