@@ -11925,14 +11925,14 @@ body[data-admin-theme="dark"] .admin-complaints-empty {
   }
 
   .product-detail-stage {
-    aspect-ratio: 1 / 1.28;
-    max-height: 330px;
+    aspect-ratio: 1 / 1.2;
+    max-height: 56vh;
   }
 
   .product-detail-stage-media {
     display: grid;
     place-items: center;
-    padding: 0.1rem;
+    padding: 0.12rem;
   }
 
   .product-detail-thumb {
