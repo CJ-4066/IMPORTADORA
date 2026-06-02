@@ -3601,11 +3601,10 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
   position: relative;
   margin: 0;
   width: 100%;
-  height: 15.75rem;
+  height: auto;
   overflow: hidden;
   padding: 0;
-  display: grid;
-  place-items: center;
+  display: block;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(241, 245, 249, 0.9)),
     radial-gradient(circle at top left, rgba(var(--brand-rgb), 0.12), transparent 42%);
@@ -3613,11 +3612,10 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
 
 .product-media-preview--detail-safe {
   width: 100%;
-  height: 15.75rem;
+  height: auto;
   overflow: hidden;
   padding: 0;
-  display: grid;
-  place-items: center;
+  display: block;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(241, 245, 249, 0.9)),
     radial-gradient(circle at top left, rgba(var(--brand-rgb), 0.12), transparent 42%);
@@ -3625,13 +3623,13 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
 
 .product-media-preview--detail-safe img,
 .product-media-preview--detail-safe video {
-  position: absolute;
-  inset: 0;
-  margin: auto;
+  position: static;
+  inset: auto;
+  margin: 0;
   width: 100%;
-  height: 100%;
-  max-width: 100%;
-  max-height: 100%;
+  height: auto;
+  max-width: none;
+  max-height: none;
   object-fit: contain;
   object-position: center center;
   display: block;
@@ -3639,13 +3637,13 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
 
 .product-media-preview img,
 .product-media-preview video {
-  position: absolute;
-  inset: 0;
-  margin: auto;
+  position: static;
+  inset: auto;
+  margin: 0;
   width: 100%;
-  height: 100%;
-  max-width: 100%;
-  max-height: 100%;
+  height: auto;
+  max-width: none;
+  max-height: none;
   object-fit: contain;
   object-position: center center;
   display: block;
@@ -11204,7 +11202,7 @@ body[data-admin-theme="dark"] .admin-complaints-empty {
   }
 
   .related-products-panel .product-media-preview {
-    height: clamp(7.9rem, 29vw, 9.2rem);
+    height: auto;
     padding: 0;
   }
 
@@ -11226,7 +11224,7 @@ body[data-admin-theme="dark"] .admin-complaints-empty {
   .product-media-preview {
     margin: 0;
     height: clamp(13rem, 50vw, 17rem);
-    padding: 0;
+    padding: 0.22rem;
   }
 
   .product-copy h3 {
@@ -12131,12 +12129,12 @@ body[data-admin-theme="dark"] .admin-complaints-empty {
 
   .product-media-preview {
     margin: 0;
-    height: clamp(10.8rem, 43vw, 13.4rem);
+    height: auto;
     padding: 0;
   }
 
   .product-media-preview--detail-safe {
-    height: clamp(10.8rem, 43vw, 13.4rem);
+    height: auto;
     padding: 0;
   }
 
@@ -12518,12 +12516,12 @@ body[data-admin-theme="dark"] .admin-complaints-empty {
 
   .catalog-section-compact .product-media-preview {
     margin: 0 0 0.34rem;
-    height: clamp(9rem, 35vw, 11.8rem);
+    height: auto;
     padding: 0;
   }
 
   .catalog-section-compact .product-media-preview--detail-safe {
-    height: clamp(9rem, 35vw, 11.8rem);
+    height: auto;
     padding: 0;
   }
 
