@@ -12510,6 +12510,8 @@ body[data-admin-theme="dark"] .admin-complaints-empty {
 
   .catalog-section-compact .product-media {
     padding: 0;
+    background: transparent;
+    color: inherit;
   }
 
   .catalog-section-compact .product-media-preview {
