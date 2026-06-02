@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import type { Prisma } from "@prisma/client";
 import { FacturadorClient } from "@/lib/facturador/client";
 import { getSession } from "@/lib/auth";
@@ -148,80 +148,130 @@ export async function POST(request: Request) {
       },
     });
     localQuoteId = localQuote.id;
-
-    const client = new FacturadorClient();
-    const result = await client.createQuotation({
-      customer: {
-        address: customerAddress,
-        documentNumber,
-        documentType,
-        email: customerEmail,
-        name: customerName,
-        phone: customerPhone,
-      },
-      items,
-      note,
-    });
-    const quoteNumber = getQuoteNumber(result.response);
-    const quoteExternalId = getQuoteExternalId(result.response);
     const quoteWhatsappNumber = cleanWhatsappNumber(PUBLIC_WHATSAPP_NUMBER);
-    const whatsappHref = buildAdvisorWhatsappHref({
+    const queuedWhatsappHref = buildAdvisorWhatsappHref({
       businessName: settings.businessName,
       currencySymbol: settings.currencySymbol,
       customerName,
-      quoteNumber,
+      quoteNumber: null,
       advisorPhone: quoteWhatsappNumber,
       total,
       items,
     });
-    const warnings = result.warnings.filter(Boolean);
-    const messageBase = quoteNumber
-      ? `Cotización ${quoteNumber} registrada en el ERP.`
-      : "Cotización registrada en el ERP.";
-    const customerModeLabel =
-      result.customerMode === "created"
-        ? "Cliente creado en ERP."
-        : result.customerMode === "existing"
-          ? "Cliente vinculado al registro existente."
-          : "Se usó el cliente genérico del ERP.";
-    const statusSteps = [
+
+    const queuedStatusSteps = [
       {
-        status: "success",
-        text: messageBase,
+        status: "success" as const,
+        text: "Cotización recibida. Se registrará en el ERP en segundo plano.",
       },
       {
-        status: result.customerMode === "default" ? "warning" : "success",
-        text: customerModeLabel,
+        status: "success" as const,
+        text: "Te contactaremos vía WhatsApp.",
       },
-      ...warnings.map((warning) => ({
-        status: "warning" as const,
-        text: warning,
-      })),
     ];
-    await prisma.quote.update({
-      where: { id: localQuote.id },
-      data: {
-        erpCustomerId: result.customerId,
-        erpCustomerMode: result.customerMode,
-        erpExternalId: quoteExternalId,
-        quoteNumber,
-        status: "ERP_REGISTERED",
-        statusSteps: toJson(statusSteps),
-        whatsappHref,
-      },
+
+    after(async () => {
+      try {
+        const client = new FacturadorClient();
+        const result = await client.createQuotation({
+          customer: {
+            address: customerAddress,
+            documentNumber,
+            documentType,
+            email: customerEmail,
+            name: customerName,
+            phone: customerPhone,
+          },
+          items,
+          note,
+        });
+
+        const quoteNumber = getQuoteNumber(result.response);
+        const quoteExternalId = getQuoteExternalId(result.response);
+        const whatsappHref = buildAdvisorWhatsappHref({
+          businessName: settings.businessName,
+          currencySymbol: settings.currencySymbol,
+          customerName,
+          quoteNumber,
+          advisorPhone: quoteWhatsappNumber,
+          total,
+          items,
+        });
+        const warnings = result.warnings.filter(Boolean);
+        const messageBase = quoteNumber
+          ? `Cotización ${quoteNumber} registrada en el ERP.`
+          : "Cotización registrada en el ERP.";
+        const customerModeLabel =
+          result.customerMode === "created"
+            ? "Cliente creado en ERP."
+            : result.customerMode === "existing"
+              ? "Cliente vinculado al registro existente."
+              : "Se usó el cliente genérico del ERP.";
+        const statusSteps = [
+          {
+            status: "success" as const,
+            text: messageBase,
+          },
+          {
+            status: result.customerMode === "default" ? ("warning" as const) : ("success" as const),
+            text: customerModeLabel,
+          },
+          ...warnings.map(
+            (warning) =>
+              ({
+                status: "warning" as const,
+                text: warning,
+              }),
+          ),
+        ];
+
+        await prisma.quote.update({
+          where: { id: localQuote.id },
+          data: {
+            erpCustomerId: result.customerId,
+            erpCustomerMode: result.customerMode,
+            erpExternalId: quoteExternalId,
+            quoteNumber,
+            status: "ERP_REGISTERED",
+            statusSteps: toJson(statusSteps),
+            whatsappHref,
+          },
+        });
+      } catch (error) {
+        if (localQuoteId) {
+          await prisma.quote
+            .update({
+              where: { id: localQuoteId },
+              data: {
+                errorMessage:
+                  error instanceof Error
+                    ? error.message
+                    : "No se pudo registrar la cotización en el ERP.",
+                status: "ERROR",
+                statusSteps: toJson([
+                  {
+                    status: "error",
+                    text:
+                      error instanceof Error
+                        ? error.message
+                        : "No se pudo registrar la cotización en el ERP.",
+                  },
+                ]),
+              },
+            })
+            .catch(() => null);
+        }
+      }
     });
 
     return NextResponse.json({
-      customerMode: result.customerMode,
       localQuoteId: localQuote.id,
-      message: quoteNumber
-        ? `Cotización ${quoteNumber} registrada en el ERP. Te contactaremos vía WhatsApp.`
-        : "Cotización registrada en el ERP. Te contactaremos vía WhatsApp.",
-      quoteNumber,
-      response: result.response,
-      statusSteps,
-      whatsappHref,
-      warnings,
+      message: "Cotización recibida. La estamos registrando en el ERP.",
+      quoteNumber: null,
+      response: null,
+      statusSteps: queuedStatusSteps,
+      whatsappHref: queuedWhatsappHref,
+      warnings: [],
     });
   } catch (error) {
     if (localQuoteId) {
