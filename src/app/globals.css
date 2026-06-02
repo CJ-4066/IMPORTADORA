@@ -13393,10 +13393,13 @@ body[data-admin-theme="dark"] .admin-complaints-empty {
     aspect-ratio: auto;
     max-height: none;
     overflow: visible;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
   }
 
   .product-detail-stage-media {
-    padding: 0.22rem 0.22rem 0.55rem;
+    padding: 0;
   }
 
   .product-detail-stage-media-button {
@@ -13412,6 +13415,10 @@ body[data-admin-theme="dark"] .admin-complaints-empty {
     max-height: none;
     object-fit: contain;
     object-position: center center;
+  }
+
+  .product-detail-stage-zoom {
+    bottom: 0.5rem;
   }
 }
 
