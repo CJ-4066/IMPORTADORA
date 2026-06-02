@@ -958,7 +958,7 @@ body {
   bottom: 6.25rem;
   z-index: 38;
   display: grid;
-  gap: 0.7rem;
+  gap: clamp(0.45rem, 0.6vw, 0.7rem);
 }
 
 .store-side-actions-product {
@@ -972,18 +972,18 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.3rem;
-  min-width: 4.8rem;
-  min-height: 4.6rem;
-  padding: 0.75rem 0.8rem;
+  gap: clamp(0.18rem, 0.35vw, 0.3rem);
+  min-width: clamp(3.15rem, 4vw, 4.8rem);
+  min-height: clamp(3rem, 4vw, 4.6rem);
+  padding: clamp(0.4rem, 0.6vw, 0.75rem) clamp(0.45rem, 0.65vw, 0.8rem);
   border: 1px solid rgba(var(--brand-ink-rgb), 0.08);
-  border-radius: 1.35rem;
+  border-radius: clamp(1rem, 1.2vw, 1.35rem);
   background: rgba(255, 255, 255, 0.96);
   box-shadow: 0 20px 44px rgba(var(--brand-ink-rgb), 0.16);
 }
 
 .store-side-action span {
-  font-size: 0.76rem;
+  font-size: clamp(0.62rem, 0.68vw, 0.76rem);
   font-weight: 700;
   line-height: 1.1;
   text-align: center;
@@ -1021,6 +1021,39 @@ body {
 .store-side-action-search svg,
 .store-side-action-search span {
   color: var(--brand-primary);
+}
+
+@media (max-width: 1360px) {
+  .store-side-actions {
+    right: 0.8rem;
+    bottom: calc(1.55rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .store-side-actions-product {
+    right: 0.8rem;
+    bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .store-side-action {
+    min-width: 3.35rem;
+    min-height: 3.1rem;
+    padding: 0.42rem 0.48rem;
+    border-radius: 1rem;
+  }
+
+  .store-side-action span {
+    font-size: 0.63rem;
+  }
+
+  .store-side-action svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .store-side-actions-product .store-side-action {
+    min-height: 2.9rem;
+    padding: 0.34rem 0.28rem;
+  }
 }
 
 .store-side-action-back {
