@@ -10917,14 +10917,14 @@ body[data-admin-theme="dark"] .admin-complaints-empty {
   }
 
   .product-detail-stage {
-    aspect-ratio: auto;
-    max-height: none;
+    aspect-ratio: 1 / 1.2;
+    max-height: 56vh;
   }
 
   .product-detail-stage-media {
     display: grid;
     place-items: center;
-    padding: 0;
+    padding: 0.12rem;
   }
 
   .product-detail-stage-media-button {
@@ -10934,7 +10934,9 @@ body[data-admin-theme="dark"] .admin-complaints-empty {
 
   .product-detail-stage img,
   .product-detail-stage video {
-    height: auto;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
     max-height: none;
   }
 
