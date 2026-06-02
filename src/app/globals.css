@@ -13163,6 +13163,33 @@ body[data-admin-theme="dark"] .admin-complaints-empty {
   display: block !important;
 }
 
+@media (max-width: 1024px) {
+  .product-detail-stage {
+    aspect-ratio: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  .product-detail-stage-media {
+    padding: 0.14rem !important;
+  }
+
+  .product-detail-stage-media-button {
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  .product-detail-stage img,
+  .product-detail-stage video {
+    width: 100% !important;
+    height: auto !important;
+    max-height: none !important;
+    object-fit: contain !important;
+    object-position: center center !important;
+  }
+}
+
 @media (min-width: 921px) {
   .public-store-header-shell .public-store-bar {
     position: relative;
