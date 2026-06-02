@@ -42,7 +42,7 @@ type ProductSectionProps = {
   compact?: boolean;
 };
 
-const FEATURED_SECTION_LIMIT = 8;
+const FEATURED_SECTION_LIMIT = 10;
 const GRID_SECTION_LIMIT = 8;
 const CATEGORY_SECTION_MIN = 6;
 
