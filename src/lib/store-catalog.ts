@@ -176,23 +176,107 @@ export async function getExactCatalogProductSlug(query: string) {
     return null;
   }
 
-  const product = await prisma.product.findFirst({
+  const normalizedQuery = normalizeCatalogSearchText(trimmedQuery);
+  const compactQuery = compactCatalogSearchText(trimmedQuery);
+  const searchConditions: Prisma.ProductWhereInput[] = [
+    { code: { equals: trimmedQuery, mode: "insensitive" } },
+    { externalCode: { equals: trimmedQuery, mode: "insensitive" } },
+    { externalId: { equals: trimmedQuery, mode: "insensitive" } },
+    { slug: { equals: trimmedQuery, mode: "insensitive" } },
+    { name: { equals: trimmedQuery, mode: "insensitive" } },
+    { code: { contains: trimmedQuery, mode: "insensitive" } },
+    { externalCode: { contains: trimmedQuery, mode: "insensitive" } },
+    { externalId: { contains: trimmedQuery, mode: "insensitive" } },
+    { slug: { contains: trimmedQuery, mode: "insensitive" } },
+    { name: { contains: trimmedQuery, mode: "insensitive" } },
+  ];
+
+  if (compactQuery) {
+    searchConditions.push(
+      { code: { contains: compactQuery, mode: "insensitive" } },
+      { externalCode: { contains: compactQuery, mode: "insensitive" } },
+      { externalId: { contains: compactQuery, mode: "insensitive" } },
+      { slug: { contains: compactQuery, mode: "insensitive" } },
+    );
+  }
+
+  const candidates = await prisma.product.findMany({
     where: {
       NOT: {
         code: { in: BLOCKED_PUBLIC_PRODUCT_CODES },
       },
-      OR: [
-        { code: { equals: trimmedQuery, mode: "insensitive" } },
-        { externalCode: { equals: trimmedQuery, mode: "insensitive" } },
-        { externalId: { equals: trimmedQuery, mode: "insensitive" } },
-        { slug: { equals: trimmedQuery, mode: "insensitive" } },
-        { name: { equals: trimmedQuery, mode: "insensitive" } },
-      ],
+      OR: searchConditions,
     },
-    select: { slug: true },
+    select: {
+      slug: true,
+      code: true,
+      externalCode: true,
+      externalId: true,
+      name: true,
+    },
+    orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
+    take: 20,
   });
 
-  return product?.slug ?? null;
+  if (!candidates.length) {
+    return null;
+  }
+
+  const scoredCandidates = candidates
+    .map((product) => {
+      const values = [product.code, product.externalCode, product.externalId, product.slug, product.name]
+        .filter((value): value is string => Boolean(value))
+        .map((value) => ({
+          raw: value,
+          normalized: normalizeCatalogSearchText(value),
+          compact: compactCatalogSearchText(value),
+        }));
+
+      let score = 0;
+
+      for (const value of values) {
+        if (normalizedQuery && value.normalized === normalizedQuery) {
+          score = Math.max(score, value.raw === product.code ? 100 : 95);
+        }
+
+        if (compactQuery && value.compact === compactQuery) {
+          score = Math.max(score, value.raw === product.code ? 100 : 95);
+        }
+
+        if (normalizedQuery && value.normalized.startsWith(normalizedQuery)) {
+          score = Math.max(score, value.raw === product.code ? 85 : 78);
+        }
+
+        if (compactQuery && value.compact.startsWith(compactQuery)) {
+          score = Math.max(score, value.raw === product.code ? 85 : 78);
+        }
+
+        if (normalizedQuery && value.normalized.includes(normalizedQuery)) {
+          score = Math.max(score, value.raw === product.code ? 72 : 64);
+        }
+
+        if (compactQuery && value.compact.includes(compactQuery)) {
+          score = Math.max(score, value.raw === product.code ? 72 : 64);
+        }
+      }
+
+      return { product, score };
+    })
+    .filter((item) => item.score > 0)
+    .sort((left, right) => right.score - left.score);
+
+  if (!scoredCandidates.length) {
+    return null;
+  }
+
+  const topScore = scoredCandidates[0].score;
+  const topCandidates = scoredCandidates.filter((item) => item.score === topScore);
+
+  if (topCandidates.length > 1) {
+    return null;
+  }
+
+  return scoredCandidates[0]?.product.slug ?? null;
 }
 
 export async function getCatalogSearchDestination(query: string): Promise<CatalogSearchDestination | null> {
@@ -574,6 +658,14 @@ function singularizeCatalogSearchText(value: string) {
       return token;
     })
     .join(" ");
+}
+
+function compactCatalogSearchText(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "");
 }
 
 export async function getCatalogProductBySlug(slug: string) {
