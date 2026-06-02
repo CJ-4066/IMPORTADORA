@@ -3611,24 +3611,22 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
 .product-media-preview--detail-safe {
   aspect-ratio: 1 / 1.18;
   min-height: 15rem;
-  padding: 0;
+  padding: 0.18rem;
 }
 
 .product-media-preview--detail-safe img,
 .product-media-preview--detail-safe video {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   object-position: center center;
   display: block;
 }
 
 .product-media-preview img,
 .product-media-preview video {
-  width: auto;
-  height: auto;
-  max-width: 100%;
-  max-height: 100%;
+  width: 100%;
+  height: 100%;
   object-fit: contain;
   object-position: center center;
   display: block;
@@ -12125,6 +12123,7 @@ body[data-admin-theme="dark"] .admin-complaints-empty {
   .product-media-preview--detail-safe {
     min-height: clamp(11rem, 36vw, 14rem);
     aspect-ratio: 1 / 1.08;
+    padding: 0.12rem;
   }
 
   .product-body {
