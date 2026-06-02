@@ -3597,8 +3597,8 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
 
 .product-media-preview {
   margin: 0;
-  aspect-ratio: 2 / 2.45;
-  min-height: 14rem;
+  aspect-ratio: 2 / 2.25;
+  min-height: 15rem;
   overflow: hidden;
   padding: 0.22rem;
   display: grid;
@@ -11174,8 +11174,8 @@ body[data-admin-theme="dark"] .admin-complaints-empty {
   }
 
   .related-products-panel .product-media-preview {
-    min-height: clamp(6.75rem, 29vw, 8.75rem);
-    aspect-ratio: 2 / 2.72;
+    min-height: clamp(7.9rem, 29vw, 9.2rem);
+    aspect-ratio: 2 / 2.5;
     padding: 0.14rem;
   }
 
@@ -11196,8 +11196,8 @@ body[data-admin-theme="dark"] .admin-complaints-empty {
 
   .product-media-preview {
     margin: 0;
-    aspect-ratio: 2 / 2.55;
-    min-height: clamp(12.25rem, 48vw, 16rem);
+    aspect-ratio: 2 / 2.35;
+    min-height: clamp(13rem, 50vw, 17rem);
     padding: 0.18rem;
   }
 
@@ -11304,8 +11304,8 @@ body[data-admin-theme="dark"] .admin-complaints-empty {
   }
 
   .product-media-preview {
-    min-height: clamp(9.5rem, 46vw, 12.2rem);
-    aspect-ratio: 1 / 1.18;
+    min-height: clamp(10rem, 46vw, 12.8rem);
+    aspect-ratio: 1 / 1.22;
   }
 }
 
@@ -12492,8 +12492,8 @@ body[data-admin-theme="dark"] .admin-complaints-empty {
 
   .catalog-section-compact .product-media-preview {
     margin: -0.42rem -0.42rem 0.34rem;
-    aspect-ratio: 2 / 2.8;
-    min-height: clamp(7.75rem, 31vw, 9.6rem);
+    aspect-ratio: 2 / 2.55;
+    min-height: clamp(8.1rem, 32vw, 10rem);
     padding: 0.28rem;
   }
 
