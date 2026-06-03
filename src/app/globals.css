@@ -10298,30 +10298,54 @@ body[data-admin-theme="dark"] .admin-complaints-empty {
 }
 
 @media (max-width: 767px) {
+  .hero-banner-carousel {
+    min-height: clamp(220px, 68vw, 300px);
+    aspect-ratio: 4 / 3.15;
+  }
+
   .hero-banner-visual {
-    min-height: clamp(320px, 92vw, 520px);
+    min-height: clamp(220px, 68vw, 300px);
+    border-radius: 22px;
+  }
+
+  .hero-banner-visual-media,
+  .hero-banner-visual-media img {
+    object-fit: contain;
+    object-position: center center;
+  }
+
+  .hero-banner-visual-media {
+    padding: 0.4rem;
+    background:
+      linear-gradient(180deg, rgba(8, 12, 24, 0.08), rgba(8, 12, 24, 0.45)),
+      rgba(var(--brand-ink-rgb), 0.04);
+  }
+
+  .hero-banner-carousel-slide .hero-banner-visual-media img {
+    transform: none;
   }
 
   .hero-banner-visual-overlay {
-    padding: 0.9rem;
-    background: linear-gradient(180deg, rgba(8, 12, 24, 0.06) 8%, rgba(8, 12, 24, 0.74) 100%);
+    padding: 0.75rem;
+    background: linear-gradient(180deg, rgba(8, 12, 24, 0.04) 10%, rgba(8, 12, 24, 0.72) 100%);
   }
 
   .hero-banner-visual-copy {
-    gap: 0.45rem;
+    gap: 0.4rem;
   }
 
   .hero-banner-visual-copy h2 {
-    font-size: clamp(1.45rem, 7vw, 2rem);
+    font-size: clamp(1.3rem, 6.2vw, 1.85rem);
   }
 
   .hero-banner-description {
-    font-size: 0.88rem;
+    font-size: 0.84rem;
   }
 
   .hero-banner-cta {
     width: 100%;
     justify-content: center;
+    min-height: 2.4rem;
   }
 }
 
