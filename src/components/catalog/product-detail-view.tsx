@@ -42,8 +42,32 @@ function getFallbackMedia(product: CatalogProduct): ProductMediaView | null {
       : null;
 }
 
-function normalizeMediaUrl(value: string | null | undefined) {
-  return value?.trim().toLowerCase() ?? "";
+function getMediaIdentity(value: string | null | undefined) {
+  const normalized = value?.trim();
+
+  if (!normalized) {
+    return "";
+  }
+
+  try {
+    const url = new URL(normalized, "https://placeholder.local");
+    const pathname = url.pathname.toLowerCase();
+    const match = pathname.match(/^(.*?)(\.[a-z0-9]+)$/i);
+    const withoutExtension = match ? match[1] : pathname;
+    const extension = match?.[2] ?? "";
+    const canonicalBase = withoutExtension
+      .replace(/-(mobile|thumb|thumbnail|small|sm|preview|desktop|full|sq|square|lg|large|medium|md)$/i, "")
+      .replace(/@[0-9.]+x$/i, "");
+
+    return `${url.hostname}${canonicalBase}${extension}`.toLowerCase();
+  } catch {
+    return normalized
+      .toLowerCase()
+      .split("?")[0]
+      .split("#")[0]
+      .replace(/-(mobile|thumb|thumbnail|small|sm|preview|desktop|full|sq|square|lg|large|medium|md)(\.[a-z0-9]+)$/i, "$2")
+      .replace(/@[0-9.]+x(\.[a-z0-9]+)$/i, "$1");
+  }
 }
 
 export function ProductDetailView({ product, settings }: ProductDetailViewProps) {
@@ -64,7 +88,7 @@ export function ProductDetailView({ product, settings }: ProductDetailViewProps)
     const seen = new Set<string>();
 
     return gallery.filter((item) => {
-      const key = normalizeMediaUrl(item.url);
+      const key = getMediaIdentity(item.url);
 
       if (!key || seen.has(key)) {
         return false;
@@ -74,6 +98,26 @@ export function ProductDetailView({ product, settings }: ProductDetailViewProps)
       return true;
     });
   }, [gallery]);
+
+  const uniqueImageGallery = useMemo(
+    () => uniqueGallery.filter((item) => item.type === "IMAGE"),
+    [uniqueGallery],
+  );
+
+  const uniqueImageIdentities = useMemo(() => {
+    const seen = new Set<string>();
+
+    return uniqueImageGallery.filter((item) => {
+      const key = getMediaIdentity(item.url);
+
+      if (!key || seen.has(key)) {
+        return false;
+      }
+
+      seen.add(key);
+      return true;
+    });
+  }, [uniqueImageGallery]);
 
   const [activeIndex, setActiveIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
@@ -85,6 +129,9 @@ export function ProductDetailView({ product, settings }: ProductDetailViewProps)
     : 0;
   const activeMedia = uniqueGallery[safeActiveIndex] ?? null;
   const activeMediaUrl = getSafeMediaUrl(activeMedia?.url);
+  const activeImageIndex = uniqueImageGallery.findIndex(
+    (item) => getMediaIdentity(item.url) === getMediaIdentity(activeMedia?.url),
+  );
   const fullscreenMedia = fullScreenMediaId
     ? uniqueGallery.find((item) => item.id === fullScreenMediaId) ?? null
     : null;
@@ -185,29 +232,35 @@ export function ProductDetailView({ product, settings }: ProductDetailViewProps)
               )}
           </div>
 
-          {uniqueGallery.length > 1 ? (
+          {uniqueImageIdentities.length > 1 ? (
             <div className="product-detail-thumbs">
-              {uniqueGallery.map((media, index) => (
-                <button
-                  className={`product-detail-thumb ${index === safeActiveIndex ? "is-active" : ""}`}
-                  key={media.id}
-                  onClick={() => setActiveIndex(index)}
-                  type="button"
-                >
-                  {media.type === "IMAGE" && !imageFailed[media.id] ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      alt={media.altText ?? `${displayName} ${index + 1}`}
-                      decoding="async"
-                      loading="lazy"
-                      referrerPolicy="no-referrer"
-                      src={getSafeMediaUrl(media.url) ?? media.url}
-                    />
-                  ) : (
-                    <span>{media.type === "VIDEO" ? "Video" : "Vista"}</span>
-                  )}
-                </button>
-              ))}
+              {uniqueImageIdentities.map((media) => {
+                const mediaIndex = uniqueGallery.findIndex(
+                  (item) => getMediaIdentity(item.url) === getMediaIdentity(media.url),
+                );
+
+                return (
+                  <button
+                    className={`product-detail-thumb ${mediaIndex === safeActiveIndex || mediaIndex === activeImageIndex ? "is-active" : ""}`}
+                    key={media.id}
+                    onClick={() => setActiveIndex(mediaIndex >= 0 ? mediaIndex : 0)}
+                    type="button"
+                  >
+                    {media.type === "IMAGE" && !imageFailed[media.id] ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        alt={media.altText ?? `${displayName}`}
+                        decoding="async"
+                        loading="lazy"
+                        referrerPolicy="no-referrer"
+                        src={getSafeMediaUrl(media.url) ?? media.url}
+                      />
+                    ) : (
+                      <span>{media.type === "VIDEO" ? "Video" : "Vista"}</span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
           ) : null}
         </div>

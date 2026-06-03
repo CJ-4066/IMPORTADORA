@@ -218,21 +218,17 @@ export function mapProduct(product: ProductWithMedia): CatalogProduct {
     .map(mapMedia);
   const localImageUrl = product.localImageUrl?.trim() ?? "";
   const sourceImageUrl = product.sourceImageUrl?.trim() ?? product.imageUrl?.trim() ?? "";
-  const localMedia = localImageUrl
-    ? {
-        id: "local-image",
-        type: "IMAGE" as const,
-        url: localImageUrl,
-        altText: product.name,
-        sortOrder: -1,
-      }
-    : null;
   const realMedia = media.find((item) => !isGenericProductPhotoUrl(item.url));
-  const mediaWithPrimary = localMedia
-    ? [localMedia, ...media.filter((item) => item.url.trim() !== localImageUrl)]
-    : media;
   const primaryMedia =
-    localMedia ??
+    (localImageUrl
+      ? {
+          id: "local-image",
+          type: "IMAGE" as const,
+          url: localImageUrl,
+          altText: product.name,
+          sortOrder: -1,
+        }
+      : null) ??
     realMedia ??
     (sourceImageUrl && !isGenericProductPhotoUrl(sourceImageUrl)
       ? {
@@ -261,7 +257,7 @@ export function mapProduct(product: ProductWithMedia): CatalogProduct {
     }),
     sourceImageUrl: sourceImageUrl || null,
     localImageUrl: localImageUrl || null,
-    media: mediaWithPrimary,
+    media,
     primaryMedia,
     unitLabel: product.unitLabel,
     unitPrice: Number(product.unitPrice),

@@ -4078,7 +4078,7 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
   place-items: center;
   width: 100%;
   height: 100%;
-  padding: 0.35rem 0.35rem 0.5rem;
+  padding: 0;
 }
 
 .product-detail-stage-media-button {
@@ -4118,12 +4118,19 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
   transition: opacity 160ms ease;
 }
 
-.product-detail-stage img,
+.product-detail-stage img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 18%;
+  display: block;
+}
+
 .product-detail-stage video {
   width: 100%;
   height: 100%;
   object-fit: contain;
-  object-position: 56% center;
+  object-position: center center;
   display: block;
 }
 
@@ -11029,7 +11036,7 @@ body[data-admin-theme="dark"] .admin-complaints-empty {
   .product-detail-stage-media {
     display: grid;
     place-items: center;
-    padding: 0.14rem;
+    padding: 0;
   }
 
   .product-detail-stage-media-button {
@@ -11037,14 +11044,22 @@ body[data-admin-theme="dark"] .admin-complaints-empty {
     place-items: center;
     width: 100%;
     height: auto;
-    overflow: visible;
+    overflow: hidden;
   }
 
-  .product-detail-stage img,
+  .product-detail-stage img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center 40%;
+    max-height: none;
+  }
+
   .product-detail-stage video {
     width: 100%;
-    height: auto;
+    height: 100%;
     object-fit: contain;
+    object-position: center center;
     max-height: none;
   }
 
@@ -13334,28 +13349,37 @@ body[data-admin-theme="dark"] .admin-complaints-empty {
 
 @media (max-width: 1024px) {
   .product-detail-stage {
-    aspect-ratio: auto !important;
-    max-height: none !important;
-    overflow: visible !important;
+    display: grid;
+    place-items: center;
+    aspect-ratio: 1 / 1.12 !important;
+    max-height: min(34vh, 22rem) !important;
+    overflow: hidden !important;
   }
 
   .product-detail-stage-media {
-    padding: 0.14rem !important;
+    padding: 0 !important;
   }
 
   .product-detail-stage-media-button {
     width: 100% !important;
     height: 100% !important;
-    overflow: visible !important;
+    overflow: hidden !important;
   }
 
-  .product-detail-stage img,
+  .product-detail-stage img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    object-position: center 18% !important;
+    margin: 0 !important;
+  }
+
   .product-detail-stage video {
     width: 100% !important;
     height: 100% !important;
-    max-height: none !important;
     object-fit: contain !important;
-    object-position: 56% center !important;
+    object-position: center center !important;
+    margin: 0 !important;
   }
 }
 
@@ -13376,22 +13400,27 @@ body[data-admin-theme="dark"] .admin-complaints-empty {
   .product-detail-stage-media-button {
     display: grid;
     place-items: center;
-    padding: 0.55rem !important;
+    padding: 0 !important;
   }
 
   .product-detail-stage-media-button {
     height: 100% !important;
   }
 
-  .product-detail-stage img,
+  .product-detail-stage img {
+    width: 100% !important;
+    height: 100% !important;
+    margin: 0 !important;
+    object-fit: cover !important;
+    object-position: center 18% !important;
+  }
+
   .product-detail-stage video {
     width: 100% !important;
     height: 100% !important;
-    max-width: none !important;
-    max-height: none !important;
     margin: 0 !important;
     object-fit: contain !important;
-    object-position: 56% center !important;
+    object-position: center center !important;
   }
 }
 
@@ -13411,7 +13440,7 @@ body[data-admin-theme="dark"] .admin-complaints-empty {
   .product-detail-stage {
     aspect-ratio: auto;
     max-height: none;
-    overflow: visible;
+    overflow: hidden;
     border-radius: 0;
     background: transparent;
     box-shadow: none;
@@ -13424,16 +13453,27 @@ body[data-admin-theme="dark"] .admin-complaints-empty {
   .product-detail-stage-media-button {
     width: 100%;
     height: 100%;
-    overflow: visible;
+    overflow: hidden;
   }
 
-  .product-detail-stage img,
+  .product-detail-stage img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center 18%;
+    margin: 0;
+    max-width: none;
+    max-height: none;
+  }
+
   .product-detail-stage video {
     width: 100%;
     height: 100%;
-    max-height: none;
     object-fit: contain;
-    object-position: 56% center;
+    object-position: center center;
+    margin: 0;
+    max-width: none;
+    max-height: none;
   }
 
   .product-detail-stage-zoom {
