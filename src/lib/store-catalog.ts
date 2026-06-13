@@ -205,6 +205,7 @@ export async function getExactCatalogProductSlug(query: string) {
       NOT: {
         code: { in: BLOCKED_PUBLIC_PRODUCT_CODES },
       },
+      isVisible: true,
       OR: searchConditions,
     },
     select: {
@@ -613,7 +614,6 @@ export async function getCatalogSuggestions(query: string) {
         code: { in: BLOCKED_PUBLIC_PRODUCT_CODES },
       },
       isVisible: true,
-      AND: [buildRealProductPhotoWhere()],
       OR: [
         { code: { contains: trimmedQuery, mode: "insensitive" } },
         { name: { contains: trimmedQuery, mode: "insensitive" } },
