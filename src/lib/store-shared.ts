@@ -123,11 +123,9 @@ export function buildRealProductPhotoWhere(): Prisma.ProductWhereInput {
 }
 
 export function buildSellableProductWhere(): Prisma.ProductWhereInput {
-  // CHANGE-CODE: CAT-001
+  // Productos públicos: marcados como visibles.
   return {
-    syncEnabled: true,
     isVisible: true,
-    stockUnits: { gt: 0 },
     NOT: {
       code: {
         in: BLOCKED_PUBLIC_PRODUCT_CODES,

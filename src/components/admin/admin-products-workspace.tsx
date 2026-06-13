@@ -579,7 +579,7 @@ export function AdminProductsWorkspace({
               {products.map((product) => {
                 const hasPhoto = product.hasPhoto;
                 const hasStock = product.stockUnits > 0;
-                const isEffectivelyVisible = product.isVisible && hasPhoto && hasStock;
+                const isEffectivelyVisible = product.isVisible;
                 const needsReview = !hasPhoto || !hasStock;
 
                 return (
@@ -753,13 +753,11 @@ export function AdminProductsWorkspace({
                   className="button button-secondary button-chip"
                   disabled={pendingAction !== null}
                   onClick={() => {
-                    void runSingleAction(activeProduct.isVisible && activeProduct.hasPhoto ? "hide" : "show", activeProduct.id);
+                    void runSingleAction(activeProduct.isVisible ? "hide" : "show", activeProduct.id);
                   }}
                   type="button"
                 >
-                  {activeProduct.isVisible && activeProduct.hasPhoto && activeProduct.stockUnits > 0
-                    ? "Ocultar"
-                    : "Mostrar"}
+                  {activeProduct.isVisible ? "Ocultar" : "Mostrar"}
                 </button>
                 <button
                   className="button button-secondary button-chip"

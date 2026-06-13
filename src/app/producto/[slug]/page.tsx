@@ -44,7 +44,7 @@ export default async function ProductDetailPage({
     "--brand-primary": data.settings.primaryColor,
     "--brand-accent": data.settings.accentColor,
   } as CSSProperties & Record<"--brand-primary" | "--brand-accent", string>;
-  const isAvailable = data.product.isVisible && data.product.stockUnits > 0 && data.product.syncEnabled;
+  const isAvailable = data.product.isVisible;
 
   return (
     <main className="site-shell" style={themeVars}>

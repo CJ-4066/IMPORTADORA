@@ -556,7 +556,6 @@ function buildBestSellerProductsWhere(bestSellerCodes: string[]) {
         },
       },
       { isVisible: true },
-      { stockUnits: { gt: 0 } },
       buildRealProductPhotoWhere(),
       {
         OR: [
@@ -614,7 +613,6 @@ export async function getCatalogSuggestions(query: string) {
         code: { in: BLOCKED_PUBLIC_PRODUCT_CODES },
       },
       isVisible: true,
-      stockUnits: { gt: 0 },
       AND: [buildRealProductPhotoWhere()],
       OR: [
         { code: { contains: trimmedQuery, mode: "insensitive" } },
@@ -696,7 +694,6 @@ export async function getCatalogProductBySlug(slug: string) {
         },
         id: { not: product.id },
         isVisible: true,
-        stockUnits: { gt: 0 },
         ...(product.categoryId
           ? { categoryId: product.categoryId }
           : product.category
@@ -736,7 +733,6 @@ export async function getBrandOptions() {
         code: { in: BLOCKED_PUBLIC_PRODUCT_CODES },
       },
       isVisible: true,
-      stockUnits: { gt: 0 },
       brand: { not: null },
       AND: [buildRealProductPhotoWhere()],
     },
