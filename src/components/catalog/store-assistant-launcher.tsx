@@ -82,7 +82,7 @@ export function StoreAssistantLauncher({ businessName }: StoreAssistantLauncherP
         onTouchStart={preloadPanel}
         type="button"
       >
-        <Bot size={20} />
+        <Bot size={18} />
         <span>Asistente</span>
       </button>
 
