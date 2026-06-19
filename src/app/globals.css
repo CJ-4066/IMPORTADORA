@@ -13184,6 +13184,18 @@ body[data-admin-theme="dark"] .admin-complaints-empty {
   display: block;
 }
 
+.public-store-header-shell .public-store-account-switch-link {
+  color: #ffffff !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+.public-store-header-shell .public-store-account-switch-link svg,
+.public-store-header-shell .public-store-account-switch-link span {
+  color: #ffffff !important;
+}
+
 .public-store-header-shell .public-store-account-popover > .account-popover-trigger {
   min-width: 6.25rem;
   min-height: 3.4rem;
