@@ -1050,11 +1050,18 @@ body {
 }
 
 .store-side-action-whatsapp-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: block;
   width: var(--store-whatsapp-float-icon-size);
   height: var(--store-whatsapp-float-icon-size);
+  background: transparent;
+  border: 0;
+  border-radius: 9999px;
+  box-shadow: none;
+  outline: 0;
+  overflow: visible;
+  padding: 0;
+  flex: 0 0 auto;
+  color: #ffffff;
 }
 
 .store-side-action-cart {
@@ -1076,6 +1083,13 @@ body {
   width: 100%;
   height: 100%;
   display: block;
+  background: transparent;
+  border: 0;
+  border-radius: 9999px;
+  box-shadow: none;
+  outline: 0;
+  overflow: visible;
+  padding: 0;
   color: #ffffff;
   filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.14));
 }
