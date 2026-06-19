@@ -63,7 +63,7 @@ function WhatsAppIcon() {
   return (
     <svg
       className="store-side-action-whatsapp-icon"
-      viewBox="16 16 32 32"
+      viewBox="12 12 40 40"
       aria-hidden="true"
       focusable="false"
       preserveAspectRatio="xMidYMid meet"
