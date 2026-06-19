@@ -26,18 +26,22 @@ export function PublicStoreHeaderShell({ children }: PublicStoreHeaderShellProps
   const [collapsed, setCollapsed] = useState(false);
 
   useEffect(() => {
+    const media = window.matchMedia("(max-width: 920px)");
+
     const updateCollapsedState = () => {
-      setCollapsed(window.scrollY > 18);
+      setCollapsed(!media.matches && window.scrollY > 18);
     };
 
     updateCollapsedState();
 
     window.addEventListener("scroll", updateCollapsedState, { passive: true });
     window.addEventListener("resize", updateCollapsedState);
+    media.addEventListener("change", updateCollapsedState);
 
     return () => {
       window.removeEventListener("scroll", updateCollapsedState);
       window.removeEventListener("resize", updateCollapsedState);
+      media.removeEventListener("change", updateCollapsedState);
     };
   }, []);
 

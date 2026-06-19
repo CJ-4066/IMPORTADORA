@@ -23,7 +23,8 @@ import type {
 type CatalogSearchDestination =
   | { href: string; kind: "product" }
   | { href: string; kind: "category" }
-  | { href: string; kind: "collection" };
+  | { href: string; kind: "collection" }
+  | { href: string; kind: "brand" };
 
 const COLLECTION_SEARCH_ALIASES: Array<{
   href: string;
@@ -290,6 +291,11 @@ export async function getCatalogSearchDestination(query: string): Promise<Catalo
   const normalizedQuery = normalizeCatalogSearchText(trimmedQuery);
   const singularQuery = singularizeCatalogSearchText(normalizedQuery);
 
+  const brandMatch = await getBrandSearchDestination(trimmedQuery);
+  if (brandMatch) {
+    return brandMatch;
+  }
+
   const exactProductSlug = await getExactCatalogProductSlug(trimmedQuery);
   if (exactProductSlug) {
     return { href: `/producto/${exactProductSlug}`, kind: "product" };
@@ -349,6 +355,53 @@ export async function getCatalogSearchDestination(query: string): Promise<Catalo
   }
 
   return null;
+}
+
+async function getBrandSearchDestination(
+  query: string,
+): Promise<{ href: string; kind: "brand" } | null> {
+  const normalizedQuery = normalizeCatalogSearchText(query);
+  const compactQuery = compactCatalogSearchText(query);
+
+  if (!normalizedQuery && !compactQuery) {
+    return null;
+  }
+
+  const brands = await prisma.product.findMany({
+    where: {
+      NOT: {
+        code: { in: BLOCKED_PUBLIC_PRODUCT_CODES },
+      },
+      isVisible: true,
+      brand: { not: null },
+      AND: [buildRealProductPhotoWhere()],
+    },
+    distinct: ["brand"],
+    orderBy: [{ brand: "asc" }, { id: "asc" }],
+    select: { brand: true },
+  });
+
+  const normalizedMatches = brands
+    .map((item) => item.brand?.trim())
+    .filter((value): value is string => Boolean(value))
+    .filter((brandName) => {
+      const normalizedBrand = normalizeCatalogSearchText(brandName);
+      const compactBrand = compactCatalogSearchText(brandName);
+
+      return (
+        normalizedQuery === normalizedBrand ||
+        compactQuery === compactBrand
+      );
+    });
+
+  if (normalizedMatches.length !== 1) {
+    return null;
+  }
+
+  return {
+    href: `/?brand=${encodeURIComponent(normalizedMatches[0])}`,
+    kind: "brand",
+  };
 }
 
 async function buildHomeCategorySections(input: { isHomeView: boolean }) {

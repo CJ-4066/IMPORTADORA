@@ -13,8 +13,6 @@ import { getSession } from "@/lib/auth";
 import { getBrandOptions, getCategoryOptions } from "@/lib/store";
 import type { BrandOption, CategoryOption } from "@/lib/store";
 import { CatalogPrefetchLink } from "@/components/catalog/catalog-prefetch-link";
-import { BrandLogo } from "@/components/brand/brand-logo";
-import { HeaderCartButton } from "@/components/catalog/header-cart-button";
 import { HeaderSearch } from "@/components/catalog/header-search";
 import { ScrollingShortcutsMarquee } from "@/components/catalog/scrolling-shortcuts-marquee";
 import { PublicStoreHeaderShell } from "@/components/catalog/public-store-header-shell";
@@ -80,7 +78,6 @@ export async function PublicStoreHeader({
       <header className="public-store-header">
         <div className="public-store-bar">
           <div className="public-store-desktop-category-slot">
-            <BrandLogo href="/" priority size="sm" />
             <PublicStoreCategoryMenu brands={resolvedBrands} categories={resolvedCategories} />
           </div>
           <div className="public-store-mobile-category-slot">
@@ -92,7 +89,6 @@ export async function PublicStoreHeader({
             <div className="public-store-account-slot">
               <PublicStoreAccountSlot role={session?.role} />
             </div>
-            <HeaderCartButton />
           </div>
         </div>
 

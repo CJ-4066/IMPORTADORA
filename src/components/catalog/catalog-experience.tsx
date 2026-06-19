@@ -42,8 +42,8 @@ type ProductSectionProps = {
   compact?: boolean;
 };
 
-const FEATURED_SECTION_LIMIT = 10;
-const GRID_SECTION_LIMIT = 10;
+const FEATURED_SECTION_LIMIT = 8;
+const GRID_SECTION_LIMIT = 8;
 const CATEGORY_SECTION_MIN = 6;
 
 const CATEGORY_SECTION_LIMIT = 12;
@@ -387,7 +387,6 @@ export function CatalogExperience({
             href="/?collection=mas-vendidos"
             products={topProducts}
             settings={settings}
-            compact
           />
 
           {categorySections.map(({ category, products: categoryProducts }) => (

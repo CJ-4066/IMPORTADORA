@@ -34,8 +34,10 @@ import { BLOCKED_PUBLIC_PRODUCT_CODES } from "@/lib/public-product-blocklist";
 export const PUBLIC_PAGE_SIZE = 24;
 export const ADMIN_PAGE_SIZE = 10;
 
-const BRAND_BLUE = "#292c95";
+const BRAND_BLUE = "#2320DA";
 const LEGACY_PRIMARY_BLUE = "#147cc4";
+const LEGACY_BRAND_BLUE = "#292c95";
+const LEGACY_BRAND_BLUE_2 = "#0b86d1";
 export const GENERIC_PRODUCT_PHOTO_URLS = [
   "https://original.negocioserp.com/logo/imagen-no-disponible.jpg",
 ];
@@ -342,7 +344,9 @@ function mapStoreSettings(
 ): StoreSettingsView {
   const storedPrimaryColor = settings?.primaryColor?.toLowerCase() ?? null;
   const primaryColor =
-    storedPrimaryColor === LEGACY_PRIMARY_BLUE || storedPrimaryColor === "#0b86d1"
+    storedPrimaryColor === LEGACY_PRIMARY_BLUE ||
+    storedPrimaryColor === LEGACY_BRAND_BLUE ||
+    storedPrimaryColor === LEGACY_BRAND_BLUE_2
       ? BRAND_BLUE
       : settings?.primaryColor ?? DEFAULT_STORE_SETTINGS.primaryColor;
 

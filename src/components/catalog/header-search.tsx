@@ -159,7 +159,7 @@ export function HeaderSearch({ autoFocus = false }: HeaderSearchProps) {
           onFocus={() => setOpen(true)}
           inputMode="search"
           aria-label="Buscar producto o código"
-          placeholder=""
+          placeholder="Busca de todo en Importaciones Super"
           ref={inputRef}
           type="search"
           value={query}

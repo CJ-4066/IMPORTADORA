@@ -110,16 +110,7 @@ export function PublicStoreCategoryMenu({ brands, categories }: PublicStoreCateg
           <span className="public-store-lead-icon">
             <Menu size={16} />
           </span>
-          <span className="public-store-lead-mobile-label">
-            Categorías
-          </span>
-          <span className="public-store-lead-copy">
-            <span>Todas las categorías</span>
-            <small>{categories.length ? `${categories.length} categorías` : "Explorar catálogo"}</small>
-          </span>
-          <span className="public-store-lead-chevron">
-            <ChevronDown size={15} />
-          </span>
+          <span className="public-store-lead-label">Categorías</span>
         </summary>
         <div className="public-store-shortcut-dropdown">
         {panel === "main" ? (

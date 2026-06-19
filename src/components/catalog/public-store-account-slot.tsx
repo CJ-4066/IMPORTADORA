@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import { House, LayoutDashboard, LogOut, UserRound } from "lucide-react";
 import { shopperLogoutAction } from "@/app/acceso/actions";
 import type { SessionUser } from "@/lib/auth";
@@ -14,6 +15,35 @@ type AccountLinkItem = {
   href: string;
   icon: typeof UserRound;
 };
+
+function AccountHomeLink({
+  handleStartClick,
+  pathname,
+}: {
+  handleStartClick: () => void;
+  pathname: string;
+}) {
+  return pathname === "/" ? (
+    <button
+      className="public-store-quick-link public-store-home-link public-store-account-switch-link public-store-account-switch-home-link"
+      type="button"
+      aria-label="Volver al inicio"
+      onClick={handleStartClick}
+    >
+      <House size={16} />
+      <span>Inicio</span>
+    </button>
+  ) : (
+    <Link
+      className="public-store-quick-link public-store-home-link public-store-account-switch-link public-store-account-switch-home-link"
+      href="/"
+      aria-label="Volver al inicio"
+    >
+      <House size={16} />
+      <span>Inicio</span>
+    </Link>
+  );
+}
 
 function AccountPopover({
   canLogout = false,
@@ -55,8 +85,22 @@ function AccountPopover({
 export function PublicStoreAccountSlot({ role }: { role?: AccountRole }) {
   const { collapsed } = usePublicStoreHeaderState();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const hasQueryParams = searchParams.toString().length > 0;
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 920px)");
+
+    const updateMobileState = () => {
+      setIsMobile(media.matches);
+    };
+
+    updateMobileState();
+    media.addEventListener("change", updateMobileState);
+
+    return () => {
+      media.removeEventListener("change", updateMobileState);
+    };
+  }, []);
 
   const handleStartClick = () => {
     if (pathname === "/") {
@@ -64,53 +108,43 @@ export function PublicStoreAccountSlot({ role }: { role?: AccountRole }) {
     }
   };
 
+  const primaryAction =
+    role === "ADMIN" ? (
+      <Link className="public-store-quick-link public-store-account-switch-link" href="/admin">
+        <LayoutDashboard size={16} />
+        <span>Panel admin</span>
+      </Link>
+    ) : role === "USERSHOP" ? (
+      <AccountPopover
+        canLogout
+        triggerLabel="Mi cuenta"
+        items={[{ label: "Mi cuenta", href: "/cuenta", icon: UserRound }]}
+      />
+    ) : (
+      <AccountPopover
+        triggerLabel="Login"
+        items={[
+          { label: "Login", href: "/acceso?mode=login", icon: UserRound },
+          { label: "Crear cuenta", href: "/acceso?mode=register", icon: UserRound },
+        ]}
+      />
+    );
+
   return (
-    <div className={`public-store-account-switch${collapsed ? " is-collapsed" : ""}`}>
-      <div className="public-store-account-switch-layer is-expanded" aria-hidden={collapsed}>
-        {role === "ADMIN" ? (
-          <Link className="public-store-quick-link public-store-account-switch-link" href="/admin">
-            <LayoutDashboard size={16} />
-            <span>Panel admin</span>
-          </Link>
-        ) : role === "USERSHOP" ? (
-          <AccountPopover
-            canLogout
-            triggerLabel="Mi cuenta"
-            items={[{ label: "Mi cuenta", href: "/cuenta", icon: UserRound }]}
-          />
-        ) : (
-          <AccountPopover
-            triggerLabel="Login"
-            items={[
-              { label: "Login", href: "/acceso?mode=login", icon: UserRound },
-              { label: "Crear cuenta", href: "/acceso?mode=register", icon: UserRound },
-            ]}
-          />
-        )}
+    <div className="public-store-account-shell">
+      <div className={`public-store-account-switch public-store-account-switch-desktop${collapsed ? " is-collapsed" : ""}`}>
+        <div className="public-store-account-switch-row">
+          <AccountHomeLink handleStartClick={handleStartClick} pathname={pathname} />
+          {primaryAction}
+        </div>
       </div>
 
-      <div className="public-store-account-switch-layer is-collapsed" aria-hidden={!collapsed}>
-        {pathname === "/" && !hasQueryParams ? (
-          <button
-            className="public-store-quick-link public-store-cart-link public-store-home-link public-store-account-switch-link"
-            type="button"
-            aria-label="Volver al inicio"
-            onClick={handleStartClick}
-          >
-            <House size={16} />
-            <span>Inicio</span>
-          </button>
-        ) : (
-          <Link
-            className="public-store-quick-link public-store-cart-link public-store-home-link public-store-account-switch-link"
-            href="/"
-            aria-label="Volver al inicio"
-          >
-            <House size={16} />
-            <span>Inicio</span>
-          </Link>
-        )}
-      </div>
+      {isMobile ? (
+        <div className="public-store-account-mobile-rail">
+          <AccountHomeLink handleStartClick={handleStartClick} pathname={pathname} />
+          {primaryAction}
+        </div>
+      ) : null}
     </div>
   );
 }
