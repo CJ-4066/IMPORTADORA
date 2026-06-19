@@ -1104,6 +1104,45 @@ body {
   color: var(--brand-primary);
 }
 
+@media (min-width: 1361px) {
+  .store-side-actions {
+    right: 0.85rem;
+    bottom: 5.9rem;
+    gap: 0.42rem;
+  }
+
+  .store-side-actions-product {
+    right: 0.85rem;
+    bottom: 5.9rem;
+  }
+
+  .store-side-action {
+    min-width: clamp(2.82rem, 3.2vw, 4.1rem);
+    min-height: clamp(2.68rem, 3.1vw, 3.95rem);
+    padding: clamp(0.3rem, 0.42vw, 0.55rem) clamp(0.34rem, 0.48vw, 0.62rem);
+    gap: clamp(0.12rem, 0.22vw, 0.22rem);
+  }
+
+  .store-side-action span {
+    font-size: clamp(0.53rem, 0.56vw, 0.66rem);
+  }
+
+  .store-side-action-cart {
+    min-width: 3.3rem;
+    padding: 0.36rem 0.3rem 0.32rem;
+  }
+
+  .store-side-action-cart svg {
+    width: 1.18rem;
+    height: 1.18rem;
+  }
+
+  .store-side-action-assistant svg {
+    width: 17px;
+    height: 17px;
+  }
+}
+
 @media (max-width: 1360px) {
   .store-side-actions {
     right: 0.8rem;
