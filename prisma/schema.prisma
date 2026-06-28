@@ -311,6 +311,22 @@ model Complaint {
   @@index([customerPhone])
 }
 
+model ServiceFeedback {
+  id              String   @id @default(cuid())
+  rating          String   @db.VarChar(20)
+  attendedBy      String?  @db.VarChar(180)
+  improvement     String?  @db.Text
+  hadProblem      Boolean
+  problemDetail   String?  @db.Text
+  wouldRecommend  Boolean
+  customerContact String?  @db.VarChar(180)
+  createdAt       DateTime @default(now())
+
+  @@index([createdAt(sort: Desc)])
+  @@index([rating])
+  @@index([hadProblem])
+}
+
 model ShopAssistantLog {
   id              String   @id @default(cuid())
   sessionId       String?

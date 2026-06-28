@@ -78,6 +78,23 @@ npm run dev
 
 Se crea desde el seed usando `ADMIN_EMAIL` y `ADMIN_PASSWORD`.
 
+## Encuesta de atención y QR
+
+La encuesta de experiencia en tienda está separada del Libro de Reclamaciones:
+
+- `/califica-atencion`: formulario público que debe abrir el QR.
+- `/califica-atencion/qr`: hoja configurable e imprimible con el código QR.
+- `/admin/opiniones`: resultados, indicadores y acceso a la impresión del QR desde el panel.
+
+En producción, el QR debe contener la URL pública completa con la ruta
+`/califica-atencion`; por ejemplo:
+
+```text
+https://tu-dominio.com/califica-atencion
+```
+
+Las respuestas se almacenan en PostgreSQL mediante el modelo `ServiceFeedback`.
+
 ## Sincronización con facturador externo
 
 El puente profesional de productos queda preparado para consumir la API externa cuando se tenga un token válido. La tienda mantiene su propia base local y sincroniza desde el facturador hacia `Product`, guardando referencias externas para evitar duplicados:
