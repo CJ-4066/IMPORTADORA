@@ -15,9 +15,9 @@ import { cn } from "@/lib/utils";
 
 const ratingOptions = [
   { value: "BAD", label: "Mala", stars: 1 },
-  { value: "REGULAR", label: "Regular", stars: 2 },
-  { value: "GOOD", label: "Buena", stars: 3 },
-  { value: "VERY_GOOD", label: "Muy buena", stars: 4 },
+  { value: "REGULAR", label: "Regular", stars: 3 },
+  { value: "GOOD", label: "Buena", stars: 4 },
+  { value: "VERY_GOOD", label: "Muy buena", stars: 5 },
 ] as const;
 
 type Rating = (typeof ratingOptions)[number]["value"];
@@ -151,9 +151,9 @@ export function ServiceFeedbackForm() {
                 value={option.value}
               />
               <span className="service-feedback-rating-stars" aria-hidden="true">
-                {Array.from({ length: 4 }, (_, index) => (
+                {Array.from({ length: option.stars }, (_, index) => (
                   <Star
-                    fill={index < option.stars ? "currentColor" : "none"}
+                    fill="currentColor"
                     key={index}
                     size={17}
                     strokeWidth={1.8}

@@ -13,9 +13,9 @@ import { prisma } from "@/lib/prisma";
 export const dynamic = "force-dynamic";
 
 const ratingMeta: Record<string, { label: string; score: number }> = {
-  VERY_GOOD: { label: "Muy buena", score: 4 },
-  GOOD: { label: "Buena", score: 3 },
-  REGULAR: { label: "Regular", score: 2 },
+  VERY_GOOD: { label: "Muy buena", score: 5 },
+  GOOD: { label: "Buena", score: 4 },
+  REGULAR: { label: "Regular", score: 3 },
   BAD: { label: "Mala", score: 1 },
 };
 
@@ -99,7 +99,10 @@ export default async function AdminServiceFeedbackPage() {
             <Star aria-hidden="true" size={19} />
           </span>
           <div>
-            <strong>{averageRating}<small>/ 4</small></strong>
+            <strong>
+              {averageRating}
+              <small>/ 5</small>
+            </strong>
             <p>Calificación promedio</p>
           </div>
         </article>
