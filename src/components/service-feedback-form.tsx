@@ -14,10 +14,10 @@ import {
 import { cn } from "@/lib/utils";
 
 const ratingOptions = [
-  { value: "VERY_GOOD", label: "Muy buena", stars: 4 },
-  { value: "GOOD", label: "Buena", stars: 3 },
-  { value: "REGULAR", label: "Regular", stars: 2 },
   { value: "BAD", label: "Mala", stars: 1 },
+  { value: "REGULAR", label: "Regular", stars: 2 },
+  { value: "GOOD", label: "Buena", stars: 3 },
+  { value: "VERY_GOOD", label: "Muy buena", stars: 4 },
 ] as const;
 
 type Rating = (typeof ratingOptions)[number]["value"];
