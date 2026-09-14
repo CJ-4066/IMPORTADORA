@@ -11,7 +11,7 @@ export default async function ActividadPage() {
     take: 50,
     include: {
       automation: {
-        select: { name: true, triggerType: true }
+        select: { name: true, channel: true }
       }
     }
   });
@@ -46,7 +46,7 @@ export default async function ActividadPage() {
                       {format(log.startedAt, "dd MMM, HH:mm:ss", { locale: es })}
                     </span>
                   </div>
-                  <p className="text-sm text-gray-600 mb-2">Trigger: {log.automation.triggerType}</p>
+                  <p className="text-sm text-gray-600 mb-2">Trigger: {log.automation.channel}</p>
                   
                   {log.error && (
                     <div className="bg-red-50 text-red-700 p-2 text-xs rounded border border-red-100 font-mono">
