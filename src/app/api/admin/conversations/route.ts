@@ -22,6 +22,7 @@ export async function GET(request: NextRequest) {
       to: searchParams.get("to") || undefined,
       status: searchParams.get("status") || undefined,
       channel: searchParams.get("channel") || undefined,
+      includeSimulated: searchParams.get("includeSimulated") || undefined,
       unreadOnly: searchParams.get("unreadOnly") || undefined,
       botEnabled: searchParams.get("botEnabled") || undefined,
       page: searchParams.get("page") || undefined,

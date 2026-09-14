@@ -53,6 +53,7 @@ export const getConversationsSchema = z.object({
   to: optionalDateTime,
   status: z.nativeEnum(ConversationState).optional(),
   channel: z.nativeEnum(Channel).optional(),
+  includeSimulated: optionalBoolean,
   unreadOnly: optionalBoolean,
   botEnabled: optionalBoolean,
   page: z.coerce.number().int().positive().default(1),
@@ -211,6 +212,7 @@ export async function getConversations(input: GetConversationsInput) {
     to,
     status,
     channel,
+    includeSimulated,
     unreadOnly,
     botEnabled,
     page,
@@ -219,6 +221,21 @@ export async function getConversations(input: GetConversationsInput) {
 
   const where: Prisma.ConversationWhereInput = {};
   const and: Prisma.ConversationWhereInput[] = [];
+
+  if (!includeSimulated) {
+    and.push({
+      NOT: {
+        contact: {
+          is: {
+            OR: [
+              { externalId: { startsWith: "SIMULATOR:" } },
+              { tags: { has: "simulador" } },
+            ],
+          },
+        },
+      },
+    });
+  }
 
   if (search) {
     and.push({

@@ -211,6 +211,10 @@ export function MessageSimulator() {
           <RefreshCw size={14} />
           Nueva sesion
         </button>
+
+        <p className="message-simulator-help">
+          Esta conversacion queda aislada del inbox y solo se usa para probar n8n.
+        </p>
       </aside>
 
       <section className="message-simulator-chat">

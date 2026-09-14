@@ -849,6 +849,16 @@
   border-color: var(--brand-primary);
 }
 
+.message-simulator-help {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background: rgba(var(--brand-rgb), 0.08);
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
 .message-simulator-chat {
   min-width: 0;
   display: flex;
