@@ -114,11 +114,14 @@ export async function POST(request: Request) {
       try {
         const activeAutomation = await prisma.automation.findFirst({
           where: { channel: "WHATSAPP", status: "ACTIVE" },
-          include: {
+          select: {
+            id: true,
+            name: true,
             versions: {
               where: { status: "PUBLISHED" },
               orderBy: { version: "desc" },
               take: 1,
+              select: { id: true },
             },
           },
         });
