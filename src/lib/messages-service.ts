@@ -2,6 +2,7 @@ import { z } from "zod";
 import { Channel, ConversationState, MessageType, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { normalizeWhatsappPhone } from "@/lib/utils";
+import { pusherServer } from "@/lib/pusher-server";
 import {
   sendN8nOutboundMessage,
   type N8nOutboundMessageType,
