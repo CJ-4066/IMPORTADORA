@@ -1,7 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { Plus, Edit2, Trash2 } from "lucide-react";
+import { Plus, Edit2, Trash2, FileText } from "lucide-react";
+import { createTemplateAction, deleteTemplateAction } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -11,48 +12,60 @@ export default async function PlantillasPage() {
   });
 
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
+    <div style={{ padding: "24px", maxWidth: "1200px", margin: "0 auto" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px", flexWrap: "wrap", gap: "16px" }}>
         <div>
-          <h1 className="text-2xl font-bold">Plantillas de Respuesta</h1>
-          <p className="text-gray-500">Respuestas rápidas para enviar por el centro de mensajes.</p>
+          <h1 style={{ margin: "0 0 8px 0", fontSize: "24px" }}>Plantillas de Respuesta</h1>
+          <p style={{ margin: 0, color: "var(--text-muted)" }}>Respuestas rápidas para enviar por el centro de mensajes.</p>
         </div>
-        <button className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center gap-2 text-sm font-medium">
-          <Plus size={16} /> Nueva Plantilla
-        </button>
+        <form action={createTemplateAction}>
+          <button type="submit" style={{ background: "var(--primary)", color: "#fff", border: "none", padding: "10px 16px", borderRadius: "6px", display: "flex", alignItems: "center", gap: "8px", fontWeight: 500, cursor: "pointer" }}>
+            <Plus size={16} /> Crear Plantilla de Prueba
+          </button>
+        </form>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "24px" }}>
         {templates.map((tpl) => (
-          <div key={tpl.id} className="bg-white rounded-lg border shadow-sm flex flex-col">
-            <div className="p-4 border-b flex justify-between items-start">
+          <div key={tpl.id} style={{ background: "var(--surface-bg)", border: "1px solid var(--border-color)", borderRadius: "8px", display: "flex", flexDirection: "column" }}>
+            <div style={{ padding: "16px", borderBottom: "1px solid var(--border-color)", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
               <div>
-                <h3 className="font-semibold text-gray-900">{tpl.name}</h3>
+                <h3 style={{ margin: 0, fontSize: "16px", color: "var(--text)" }}>{tpl.name}</h3>
                 {tpl.category && (
-                  <span className="inline-block mt-1 px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full">
+                  <span style={{ display: "inline-block", marginTop: "8px", padding: "2px 8px", background: "var(--bg-alt)", border: "1px solid var(--border-color)", color: "var(--text-muted)", fontSize: "11px", borderRadius: "999px", textTransform: "uppercase", fontWeight: 600 }}>
                     {tpl.category}
                   </span>
                 )}
               </div>
-              <div className="flex gap-2 text-gray-400">
-                <button className="hover:text-blue-600"><Edit2 size={16} /></button>
-                <button className="hover:text-red-600"><Trash2 size={16} /></button>
+              <div style={{ display: "flex", gap: "8px" }}>
+                <form action={deleteTemplateAction}>
+                  <input type="hidden" name="id" value={tpl.id} />
+                  <button type="submit" style={{ background: "transparent", border: "none", cursor: "pointer", color: "#ef4444", padding: "4px" }}>
+                    <Trash2 size={16} />
+                  </button>
+                </form>
               </div>
             </div>
-            <div className="p-4 flex-1">
-              <p className="text-sm text-gray-700 whitespace-pre-wrap">{tpl.content}</p>
+            <div style={{ padding: "16px", flex: 1 }}>
+              <p style={{ margin: 0, fontSize: "14px", color: "var(--text)", whiteSpace: "pre-wrap", lineHeight: 1.5 }}>
+                {tpl.content}
+              </p>
             </div>
-            <div className="p-4 bg-gray-50 text-xs text-gray-500 border-t rounded-b-lg flex justify-between">
-              <span>{tpl.isActive ? "🟢 Activa" : "⚪ Inactiva"}</span>
+            <div style={{ padding: "12px 16px", background: "var(--bg-alt)", borderTop: "1px solid var(--border-color)", borderRadius: "0 0 8px 8px", display: "flex", justifyContent: "space-between", fontSize: "12px", color: "var(--text-muted)" }}>
+              <span style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                <div style={{ width: "8px", height: "8px", borderRadius: "50%", background: tpl.isActive ? "#22c55e" : "#94a3b8" }} />
+                {tpl.isActive ? "Activa" : "Inactiva"}
+              </span>
               <span>Actualizada: {format(tpl.updatedAt, "dd MMM", { locale: es })}</span>
             </div>
           </div>
         ))}
         
         {templates.length === 0 && (
-          <div className="col-span-full bg-white border border-dashed rounded-lg p-12 text-center text-gray-500">
-            <p>No tienes plantillas creadas.</p>
-            <p className="text-sm mt-1">Haz clic en "Nueva Plantilla" para comenzar.</p>
+          <div style={{ gridColumn: "1 / -1", border: "2px dashed var(--border-color)", borderRadius: "8px", padding: "64px 24px", textAlign: "center" }}>
+            <div style={{ color: "var(--text-muted)", marginBottom: "16px" }}><FileText size={48} style={{ opacity: 0.3, margin: "0 auto" }}/></div>
+            <p style={{ margin: "0 0 8px 0", color: "var(--text)", fontSize: "16px", fontWeight: 500 }}>No tienes plantillas creadas.</p>
+            <p style={{ margin: 0, color: "var(--text-muted)", fontSize: "14px" }}>Haz clic en "Crear Plantilla de Prueba" para comenzar.</p>
           </div>
         )}
       </div>

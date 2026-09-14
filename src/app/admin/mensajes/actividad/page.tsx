@@ -17,45 +17,43 @@ export default async function ActividadPage() {
   });
 
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-2xl font-bold">Actividad y Logs</h1>
-          <p className="text-gray-500">Historial de disparadores y automatizaciones ejecutadas (n8n).</p>
-        </div>
+    <div style={{ padding: "24px", maxWidth: "1000px", margin: "0 auto" }}>
+      <div style={{ marginBottom: "24px" }}>
+        <h1 style={{ margin: "0 0 8px 0", fontSize: "24px" }}>Actividad y Logs</h1>
+        <p style={{ margin: 0, color: "var(--text-muted)" }}>Historial de disparadores y automatizaciones ejecutadas (n8n).</p>
       </div>
 
-      <div className="bg-white rounded-lg border shadow-sm p-4">
+      <div style={{ background: "var(--surface-bg)", border: "1px solid var(--border-color)", borderRadius: "8px", padding: "16px" }}>
         {logs.length === 0 ? (
-          <div className="text-center py-12 text-gray-500">
+          <div style={{ textAlign: "center", padding: "48px 0", color: "var(--text-muted)" }}>
             No se han registrado ejecuciones recientes.
           </div>
         ) : (
-          <div className="space-y-4">
+          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
             {logs.map((log) => (
-              <div key={log.id} className="flex gap-4 p-4 border rounded-lg hover:bg-gray-50">
-                <div className="mt-1">
-                  {log.status === "SUCCESS" && <CheckCircle2 className="text-green-500" size={20} />}
-                  {log.status === "FAILED" && <XCircle className="text-red-500" size={20} />}
-                  {log.status === "RUNNING" && <Clock className="text-yellow-500" size={20} />}
+              <div key={log.id} style={{ display: "flex", gap: "16px", padding: "16px", border: "1px solid var(--border-color)", borderRadius: "8px", background: "var(--bg)" }}>
+                <div style={{ marginTop: "2px" }}>
+                  {log.status === "SUCCESS" && <CheckCircle2 color="#22c55e" size={20} />}
+                  {log.status === "FAILED" && <XCircle color="#ef4444" size={20} />}
+                  {log.status === "RUNNING" && <Clock color="#eab308" size={20} />}
                 </div>
-                <div className="flex-1">
-                  <div className="flex justify-between">
-                    <h3 className="font-medium text-gray-900">{log.automation.name}</h3>
-                    <span className="text-sm text-gray-500">
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
+                    <h3 style={{ margin: 0, fontWeight: 500, color: "var(--text)" }}>{log.automation.name}</h3>
+                    <span style={{ fontSize: "13px", color: "var(--text-muted)" }}>
                       {format(log.startedAt, "dd MMM, HH:mm:ss", { locale: es })}
                     </span>
                   </div>
-                  <p className="text-sm text-gray-600 mb-2">Trigger: {log.automation.channel}</p>
+                  <p style={{ margin: "0 0 8px 0", fontSize: "13px", color: "var(--text-muted)" }}>Canal: {log.automation.channel}</p>
                   
                   {log.error && (
-                    <div className="bg-red-50 text-red-700 p-2 text-xs rounded border border-red-100 font-mono">
+                    <div style={{ background: "rgba(239, 68, 68, 0.1)", color: "#b91c1c", padding: "8px 12px", borderRadius: "4px", border: "1px solid rgba(239, 68, 68, 0.2)", fontSize: "12px", fontFamily: "monospace", overflowX: "auto" }}>
                       {log.error}
                     </div>
                   )}
                   
                   {log.status === "SUCCESS" && log.providerExecutionId && (
-                    <div className="text-xs text-gray-400 mt-1">
+                    <div style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "8px" }}>
                       n8n Execution ID: {log.providerExecutionId}
                     </div>
                   )}
