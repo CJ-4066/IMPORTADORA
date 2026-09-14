@@ -32,7 +32,7 @@ export default async function ContactosPage() {
         </div>
         
         <div style={{ overflowX: "auto" }}>
-          <table style={{ wwidth: "100%", borderCollapse: "collapse", minWidth: "800px" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "800px" }}>
             <thead style={{ background: "var(--bg-alt)", borderBottom: "1px solid var(--border-color)" }}>
               <tr>
                 <th style={{ padding: "12px 16px", textAlign: "left", fontSize: "12px", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 600 }}>Contacto</th>
