@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 
 export default async function ActividadPage() {
   const logs = await prisma.automationExecution.findMany({
-    orderBy: { createdAt: 'desc' },
+    orderBy: { startedAt: 'desc' },
     take: 50,
     include: {
       automation: {
@@ -43,20 +43,20 @@ export default async function ActividadPage() {
                   <div className="flex justify-between">
                     <h3 className="font-medium text-gray-900">{log.automation.name}</h3>
                     <span className="text-sm text-gray-500">
-                      {format(log.createdAt, "dd MMM, HH:mm:ss", { locale: es })}
+                      {format(log.startedAt, "dd MMM, HH:mm:ss", { locale: es })}
                     </span>
                   </div>
                   <p className="text-sm text-gray-600 mb-2">Trigger: {log.automation.triggerType}</p>
                   
-                  {log.errorMessage && (
+                  {log.error && (
                     <div className="bg-red-50 text-red-700 p-2 text-xs rounded border border-red-100 font-mono">
-                      {log.errorMessage}
+                      {log.error}
                     </div>
                   )}
                   
-                  {log.status === "SUCCESS" && log.n8nExecutionId && (
+                  {log.status === "SUCCESS" && log.providerExecutionId && (
                     <div className="text-xs text-gray-400 mt-1">
-                      n8n Execution ID: {log.n8nExecutionId}
+                      n8n Execution ID: {log.providerExecutionId}
                     </div>
                   )}
                 </div>
