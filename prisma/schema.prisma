@@ -772,6 +772,7 @@ model Conversation {
   updatedAt            DateTime              @updatedAt
   unreadCount          Int                   @default(0)
   messages             ChatMessage[]
+  salesState           ConversationSalesState?
   automationExecutions AutomationExecution[]
 
   @@index([contactId])
