@@ -716,3 +716,53 @@ model ChatMessage {
   @@index([externalMessageId])
   @@index([createdAt(sort: Asc)])
 }
+
+// ==========================================
+// SAAS CONTROL PLANE: AUTOMATIZACIONES (n8n)
+// ==========================================
+
+model AutomationDefinition {
+  id             String   @id @default(cuid())
+  name           String   @db.VarChar(120)
+  description    String?  @db.Text
+  triggerType    String   @default("WHATSAPP_INBOUND") @db.VarChar(60) // Ej: WHATSAPP_INBOUND, OMNICHANNEL_INBOUND, CRON
+  isActive       Boolean  @default(false)
+  
+  // Storage crudo del canvas (React Flow)
+  flowDefinition Json     // Nodos y aristas visuales
+
+  // Trazabilidad de compilación y despliegue a n8n
+  compiledHash   String?  @db.VarChar(64) // SHA-256 del AST enviado a n8n para detectar Drift
+  version        Int      @default(1)
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  
+  executions     AutomationExecution[]
+}
+
+model AutomationExecution {
+  id               String               @id @default(cuid())
+  automationId     String
+  automation       AutomationDefinition @relation(fields: [automationId], references: [id], onDelete: Cascade)
+  
+  // Tracking del payload y estado
+  status           ExecutionStatus      @default(RUNNING)
+  triggerPayload   Json                 // Lo que activó la automatización (ej. mensaje entrante)
+  
+  // Resultados y métricas
+  n8nExecutionId   String?              @db.VarChar(120)
+  completedAt      DateTime?
+  errorMessage     String?              @db.Text
+  
+  createdAt        DateTime             @default(now())
+  
+  @@index([automationId])
+  @@index([status, createdAt(sort: Desc)])
+}
+
+enum ExecutionStatus {
+  RUNNING
+  SUCCESS
+  FAILED
+}
