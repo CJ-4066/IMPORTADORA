@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { MessagesWorkspace } from "@/components/admin/messages/MessagesWorkspace";
 import { WhatsAppMetaConnect } from "@/components/admin/messages/WhatsAppMetaConnect";
 
