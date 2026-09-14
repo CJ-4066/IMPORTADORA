@@ -899,3 +899,33 @@ model AutomationExecution {
   startedAt  DateTime  @default(now())
   finishedAt DateTime?
 }
+
+// ==========================================
+// VENTAS (Chat Sales State)
+// ==========================================
+
+model ConversationSalesState {
+  id                  String   @id @default(cuid())
+  conversationId      String   @unique
+  conversation        Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  
+  stage               String   @default("AWAITING_PRODUCT_QUERY") @db.VarChar(50)
+  
+  category            String?  @db.VarChar(120)
+  brand               String?  @db.VarChar(120)
+  shownProducts       Json?    
+  selectedProductCode String?  @db.VarChar(64)
+  quantity            Int?
+  unitPrice           Decimal? @db.Decimal(10, 2)
+  priceTier           String?  @db.VarChar(40)
+  total               Decimal? @db.Decimal(12, 2)
+  
+  customerData        Json?    
+  documentData        Json?    
+  deliveryData        Json?    
+  paymentData         Json?    
+  orderNumber         String?  @db.VarChar(80)
+  
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
