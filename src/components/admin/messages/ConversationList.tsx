@@ -1,7 +1,8 @@
 import type { UIEvent } from "react";
 import type { Conversation, ConversationState } from "@/types/messages";
 import { ConversationItem } from "./ConversationItem";
-import { CalendarDays, Hash, Phone, RotateCw, Search } from "lucide-react";
+import { CalendarDays, Hash, Phone, RotateCw, Search, Bug } from "lucide-react";
+import { useState } from "react";
 
 export type ConversationFilters = {
   dateFrom: string;
@@ -63,6 +64,18 @@ export function ConversationList({
   total,
 }: Props) {
   const activeFilter = getActiveFilter(filters);
+  const [simulating, setSimulating] = useState(false);
+
+  const handleSimulate = async () => {
+    setSimulating(true);
+    try {
+      await fetch("/api/internal/chat/simulate", { method: "POST", body: JSON.stringify({ content: "Hola, necesito ayuda con un pedido" }) });
+      onRefresh();
+    } finally {
+      setSimulating(false);
+    }
+  };
+
 
   const handleScroll = (event: UIEvent<HTMLDivElement>) => {
     const element = event.currentTarget;
@@ -89,6 +102,9 @@ export function ConversationList({
           </div>
           <button className="icon-btn" disabled={loading} onClick={onRefresh} title="Actualizar" type="button">
             <RotateCw className={loading ? "spin" : undefined} size={18} />
+          </button>
+          <button className="icon-btn" disabled={simulating} onClick={handleSimulate} title="Simular mensaje entrante" type="button" style={{ color: "var(--primary)" }}>
+            <Bug className={simulating ? "spin" : undefined} size={18} />
           </button>
         </div>
 
