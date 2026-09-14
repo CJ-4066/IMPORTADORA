@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { LoaderCircle, Search } from "lucide-react";
+import { trackSearch } from "@/lib/analytics";
 import { getPublicProductName } from "@/lib/product-name";
 import type { CatalogSuggestion } from "@/lib/store";
 
@@ -202,6 +203,7 @@ export function HeaderSearch({ autoFocus = false }: HeaderSearchProps) {
 
         requestIdRef.current += 1;
         setLoading(true);
+        trackSearch(trimmedQuery);
 
         try {
           const destination = await resolveSearchDestination(trimmedQuery);
@@ -223,6 +225,7 @@ export function HeaderSearch({ autoFocus = false }: HeaderSearchProps) {
           autoFocus={autoFocus}
           id="store-header-search-input"
           name="q"
+          type="search"
           enterKeyHint="search"
           onBlur={() => window.setTimeout(() => setOpen(false), 120)}
           onChange={(event) => {
@@ -251,7 +254,6 @@ export function HeaderSearch({ autoFocus = false }: HeaderSearchProps) {
           aria-label="Buscar producto o código"
           placeholder="Busca de todo en Importaciones Super"
           ref={inputRef}
-          type="search"
           value={query}
         />
         {loading ? <LoaderCircle className="search-field-spinner" size={16} /> : null}

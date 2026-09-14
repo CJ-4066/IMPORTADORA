@@ -1,24 +1,22 @@
 import { MessagesWorkspace } from "@/components/admin/messages/MessagesWorkspace";
 import { WhatsAppMetaConnect } from "@/components/admin/messages/WhatsAppMetaConnect";
-import { Metadata } from "next";
-import "./messages.css";
 
-export const metadata: Metadata = {
-  title: "Centro de Mensajes | Admin",
-  description: "Gestión de conversaciones y atención al cliente",
-};
-
-export default function MensajesPage() {
+export default function InboxPage() {
   return (
-    <div className="stack" style={{ height: '100%' }}>
-      <div>
-        <h1 className="h2">Centro de Mensajes</h1>
-        <p className="text-muted">Gestiona todas las conversaciones con clientes desde un solo lugar.</p>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+          <h1 className="h4" style={{ margin: 0 }}>Bandeja de Entrada</h1>
+          <p className="text-muted" style={{ margin: 0, fontSize: '13px' }}>Conversaciones en tiempo real</p>
+        </div>
+        <div style={{ maxWidth: '400px' }}>
+          <WhatsAppMetaConnect />
+        </div>
       </div>
-
-      <WhatsAppMetaConnect />
       
-      <MessagesWorkspace />
+      <div style={{ flex: 1, minHeight: 0 }}>
+        <MessagesWorkspace />
+      </div>
     </div>
   );
 }

@@ -673,3 +673,103 @@
     display: flex;
   }
 }
+
+/* SaaS App Shell */
+.messages-app-shell {
+  display: flex;
+  height: calc(100vh - 2rem);
+  background: var(--surface-bg);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  margin-top: -1rem;
+}
+
+.messages-app-sidebar {
+  width: 240px;
+  flex-shrink: 0;
+  background: #f8fafc;
+  border-right: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+}
+
+.messages-app-sidebar-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.messages-app-sidebar-header h3 {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-color);
+  margin: 0;
+}
+
+.messages-app-sidebar-nav {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow-y: auto;
+}
+
+.messages-app-sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  color: var(--text-muted);
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.messages-app-sidebar-link:hover {
+  background: rgba(var(--brand-rgb), 0.05);
+  color: var(--brand-primary);
+}
+
+.messages-app-sidebar-link.is-active {
+  background: rgba(var(--brand-rgb), 0.1);
+  color: var(--brand-primary);
+  font-weight: 600;
+}
+
+.messages-app-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+}
+
+@media (max-width: 900px) {
+  .messages-app-shell {
+    height: calc(100vh - 80px);
+    margin-top: 0;
+    border-radius: 0;
+    border: none;
+  }
+  .messages-app-sidebar {
+    width: 60px;
+  }
+  .messages-app-sidebar-header {
+    display: none;
+  }
+  .messages-app-sidebar-link span {
+    display: none;
+  }
+}
+
+/* Override old workspace styles to fit SaaS Shell */
+.messages-app-content .messages-workspace {
+  height: 100% !important;
+  margin: 0 !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}

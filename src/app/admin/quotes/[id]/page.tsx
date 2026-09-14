@@ -7,7 +7,7 @@ import type { AdminQuoteDetailView, AdminQuoteStatusStepView } from "@/lib/store
 import { buildWhatsappHrefFromPhone, formatCurrency } from "@/lib/utils";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { QuoteStatusNotesEditor } from "@/components/admin/quote-status-notes-editor";
+import { QuoteConversationPanel } from "@/components/admin/quote-conversation-panel";
 import { QuoteCustomerMessage } from "@/components/admin/quote-customer-message";
 
 export const dynamic = "force-dynamic";
@@ -328,24 +328,19 @@ export default async function AdminQuoteDetailPage({ params }: AdminQuoteDetailP
 
         </div>
 
-        {/* Right Side: Status and notes interactive sidebar */}
+        {/* Right Side: Conversation and Status Sidebar */}
         <div style={{ flex: "1 1 320px", maxWidth: "420px", position: "sticky", top: "24px", display: "flex", flexDirection: "column", gap: "20px" }}>
-          {quote.note && (
-            <QuoteCustomerMessage
-              key={quote.id}
-              customerName={quote.customerName}
-              customerPhone={quote.customerPhone ?? ""}
-              customerMessage={quote.note}
-              pdfLink={pdfLink}
-              quoteNumber={quote.quoteNumber}
-            />
-          )}
-          <QuoteStatusNotesEditor
+          <QuoteConversationPanel
             quoteId={quote.id}
             initialStatus={quote.status}
             initialAdminNotes={quote.adminNotes}
             assignedToName={quote.assignedToName}
             assignedToEmail={quote.assignedToEmail}
+            customerName={quote.customerName}
+            customerPhone={quote.customerPhone ?? ""}
+            customerMessage={quote.note}
+            pdfLink={pdfLink}
+            quoteNumber={quote.quoteNumber}
           />
         </div>
 

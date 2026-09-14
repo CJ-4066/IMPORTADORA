@@ -25,6 +25,7 @@ export function HeroCarousel({ slides, intervalSeconds }: HeroCarouselProps) {
           <img
             alt={slide.title ?? `Slide ${index + 1}`}
             decoding="async"
+            fetchPriority={index === 0 ? "high" : "auto"}
             loading={index === 0 ? "eager" : "lazy"}
             referrerPolicy="no-referrer"
             src={getOptimizedImageUrl(slide.imageUrl, 1200) ?? slide.imageUrl}

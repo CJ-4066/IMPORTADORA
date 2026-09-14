@@ -1,4 +1,5 @@
 import type { CSSProperties } from "react";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCatalogPageData } from "@/lib/store";
@@ -12,6 +13,7 @@ import { PublicStoreHeader } from "@/components/catalog/public-store-header";
 import { StoreSideActions } from "@/components/catalog/store-side-actions";
 import { StoreFooter } from "@/components/catalog/store-footer";
 import { getQuoteDefaultsForSession } from "@/lib/quote-profile";
+import { getPublicSiteUrl } from "@/lib/site-url";
 
 type HomeProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -139,6 +141,24 @@ function CatalogPagination({
 
 export const dynamic = "force-dynamic";
 
+export async function generateMetadata({ searchParams }: HomeProps): Promise<Metadata> {
+  const queryParams = searchParams ? await searchParams : undefined;
+
+  const hasFilters = queryParams?.q || queryParams?.sort || queryParams?.collection || queryParams?.page;
+
+  if (hasFilters) {
+    return {
+      robots: { index: false, follow: false },
+    };
+  }
+
+  return {
+    alternates: {
+      canonical: "/",
+    },
+  };
+}
+
 export default async function Home({ searchParams }: HomeProps) {
   const params = searchParams ? await searchParams : undefined;
   const q = typeof params?.q === "string" ? params.q : "";
@@ -199,10 +219,38 @@ export default async function Home({ searchParams }: HomeProps) {
     (brand !== "all" ? `Marca: ${brand}` : undefined) ??
     (resolvedQuery ? `Resultados para "${resolvedQuery}"` : undefined) ??
     "Productos";
+
   const heroProducts = pickHeroProducts([...data.bestSellerProducts, ...data.products]);
+  const siteUrl = getPublicSiteUrl();
+
+  const websiteJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: "Importaciones Super",
+    url: `${siteUrl}/`,
+    potentialAction: {
+      "@type": "SearchAction",
+      target: `${siteUrl}/?q={search_term_string}`,
+      "query-input": "required name=search_term_string",
+    },
+  };
+
+  const orgJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: "ORIGINAL J J S.A.C.",
+    alternateName: "Importaciones Super",
+    taxID: "20605346392",
+    url: `${siteUrl}/`,
+    logo: `${siteUrl}/icon.png`,
+    sameAs: [],
+  };
 
   return (
-    <main className="site-shell" id="home-top" style={themeVars}>
+    <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd) }} />
+      <main className="site-shell" id="home-top" style={themeVars}>
       <PublicStoreHeader
         brands={data.brands}
         categories={data.categories}
@@ -269,5 +317,6 @@ export default async function Home({ searchParams }: HomeProps) {
 
       <StoreFooter />
     </main>
+    </>
   );
 }

@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { CircleX, ImageIcon, Minus, Plus, ShoppingCart, ZoomIn } from "lucide-react";
 import { CartStoreBootstrap } from "@/components/catalog/cart-store-bootstrap";
 import { isCartStoreHydrated, rehydrateCartStore, useCartStore } from "@/components/catalog/cart-store";
+import { trackAddToCart, trackViewItem } from "@/lib/analytics";
 import { getSafeMediaUrl, getOptimizedImageUrl } from "@/lib/media-url";
 import { getPublicProductName } from "@/lib/product-name";
 import type { CatalogProduct, ProductMediaView, StoreSettingsView } from "@/lib/store";
@@ -151,6 +152,17 @@ export function ProductDetailView({ product, settings }: ProductDetailViewProps)
   const hasSavings = wholesaleApplies && wholesaleSavings > 0;
 
   useEffect(() => {
+    trackViewItem({
+      item_id: product.code,
+      item_name: displayName,
+      item_brand: product.brand ?? undefined,
+      item_category: product.category ?? undefined,
+      price: product.unitPrice,
+      quantity: 1,
+    });
+  }, [displayName, product.brand, product.category, product.code, product.unitPrice]);
+
+  useEffect(() => {
     if (!fullScreenMediaId) {
       return;
     }
@@ -184,6 +196,15 @@ export function ProductDetailView({ product, settings }: ProductDetailViewProps)
     for (let index = 1; index < safeQuantity; index += 1) {
       addItem(product, "unit");
     }
+
+    trackAddToCart({
+      item_id: product.code,
+      item_name: displayName,
+      item_brand: product.brand ?? undefined,
+      item_category: product.category ?? undefined,
+      price: product.unitPrice,
+      quantity: safeQuantity,
+    });
   };
 
   return (
@@ -204,6 +225,7 @@ export function ProductDetailView({ product, settings }: ProductDetailViewProps)
                   <img
                     alt={activeMedia.altText ?? displayName}
                     decoding="async"
+                    fetchPriority="high"
                     onError={() =>
                       setImageFailed((current) => ({
                         ...current,
@@ -321,6 +343,7 @@ export function ProductDetailView({ product, settings }: ProductDetailViewProps)
             <div className="product-detail-qty-row">
               <div className="product-detail-qty-control">
                 <button
+                  disabled={maxQuantity <= 0 || safeQuantity <= 1}
                   onClick={() => setQuantity((value) => Math.max(1, value - 1))}
                   type="button"
                 >
@@ -328,6 +351,7 @@ export function ProductDetailView({ product, settings }: ProductDetailViewProps)
                 </button>
                 <strong>{safeQuantity}</strong>
                 <button
+                  disabled={maxQuantity <= 0 || safeQuantity >= maxQuantity}
                   onClick={() => setQuantity((value) => Math.min(Math.max(maxQuantity, 1), value + 1))}
                   type="button"
                 >

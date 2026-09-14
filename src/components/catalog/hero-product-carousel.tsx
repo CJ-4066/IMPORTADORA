@@ -57,6 +57,7 @@ export function HeroProductCarousel({ products, intervalSeconds }: HeroProductCa
                 <img
                   alt={getPublicProductName(product.name)}
                   decoding="async"
+                  fetchPriority={index === 0 ? "high" : "auto"}
                   loading={index === 0 ? "eager" : "lazy"}
                   referrerPolicy="no-referrer"
                   src={getOptimizedImageUrl(mediaUrl, 640) ?? mediaUrl}

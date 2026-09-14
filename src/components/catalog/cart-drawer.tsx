@@ -1,21 +1,26 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import {
+  type Dispatch,
+  type SetStateAction,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import {
   BadgeCheck,
   Minus,
   Plus,
-  RefreshCcw,
   ReceiptText,
   ShoppingCart,
   Trash2,
-  UserRoundCheck,
   X,
   CreditCard,
 } from "lucide-react";
 import { CulqiCheckout } from "@/components/catalog/culqi-checkout";
 import { STORE_CART_OPEN_EVENT } from "@/components/catalog/cart-events";
 import { rehydrateCartStore } from "@/components/catalog/cart-store";
+import { trackBeginCheckout } from "@/lib/analytics";
 import { getSafeMediaUrl, getOptimizedImageUrl } from "@/lib/media-url";
 import { getLinePricing } from "@/lib/pricing";
 import type { StoreSettingsView } from "@/lib/store";
@@ -53,10 +58,38 @@ type QuoteStatusStep = {
 
 type QuoteState = "idle" | "loading" | "success" | "error";
 
+type AppliedPromo = {
+  success: true;
+  discountAmount: number;
+  code?: string;
+  newTotal?: number;
+  promoCodeId?: string;
+};
+
+type PromoValidationResponse =
+  | AppliedPromo
+  | {
+      success: false;
+      message?: string;
+    };
+
 type CartLine = {
   item: ReturnType<typeof useCartStore.getState>["items"][number];
   pricing: ReturnType<typeof getLinePricing>;
 };
+
+function isPromoValidationResponse(value: unknown): value is PromoValidationResponse {
+  if (!value || typeof value !== "object" || !("success" in value)) {
+    return false;
+  }
+
+  const response = value as { discountAmount?: unknown; success?: unknown };
+
+  return (
+    typeof response.success === "boolean" &&
+    (!response.success || typeof response.discountAmount === "number")
+  );
+}
 
 function EmptyCartState() {
   return (
@@ -66,31 +99,6 @@ function EmptyCartState() {
     </div>
   );
 }
-
-function WhatsAppIcon({ size = 18 }: { size?: number }) {
-  return (
-    <svg
-      aria-hidden="true"
-      focusable="false"
-      height={size}
-      viewBox="0 0 24 24"
-      width={size}
-    >
-      <path
-        d="M20.2 3.8A10.7 10.7 0 0 0 12.6 1h-.2C6.8 1 2.2 5.5 2.2 11.1c0 1.9.5 3.8 1.5 5.4L2 23l6.6-1.7c1.6.9 3.3 1.4 5.2 1.4h.1c5.6 0 10.1-4.5 10.1-10.1 0-2.7-1.1-5.2-3.1-7.1ZM14 19.3h-.1c-1.6 0-3.2-.4-4.6-1.3l-.3-.2-3.9 1 1-3.8-.2-.3a8 8 0 0 1-1.3-4.4c0-4.4 3.6-8 8.1-8h.1a8 8 0 0 1 5.7 2.3 8 8 0 0 1 2.4 5.7c0 4.4-3.6 8-8 8ZM18.4 14.2c-.3-.2-1.7-.9-2-.9-.3-.1-.5-.2-.7.2s-.8.9-1 .1-.5-.9-.9-1.2c-.4-.3-.7-.3-.5-.6.1-.2.6-.7.7-1 .2-.2.1-.5 0-.7-.1-.2-.7-1.6-1-2.2-.2-.6-.5-.5-.7-.5H11c-.2 0-.5.1-.8.4-.3.3-1.1 1-1.1 2.4s1.2 2.7 1.4 2.9c.2.2 2 3.1 4.9 4.3.7.3 1.2.5 1.6.6.7.2 1.4.2 1.9.1.6-.1 1.7-.7 1.9-1.3.2-.6.2-1.1.1-1.2-.1-.2-.3-.2-.6-.4Z"
-        fill="currentColor"
-      />
-    </svg>
-  );
-}
-
-const DOCUMENT_TYPE_OPTIONS = [
-  { label: "Sin documento", value: "" },
-  { label: "DNI", value: "1" },
-  { label: "RUC", value: "6" },
-  { label: "Carnet ext.", value: "4" },
-  { label: "Pasaporte", value: "7" },
-] as const;
 
 function buildInitialQuoteDraft(
   settings: StoreSettingsView,
@@ -197,7 +205,6 @@ function CartList({
 }
 
 function CartFooter({
-  currencySymbol,
   onOpenQuoteForm,
   quoteFormOpen,
   totalAmount,
@@ -211,16 +218,15 @@ function CartFooter({
   promoError,
   finalTotalAmount
 }: {
-  currencySymbol: string;
   onOpenQuoteForm: () => void;
   quoteFormOpen: boolean;
   totalAmount: number;
   totalSavings: number;
-  appliedPromo?: any;
+  appliedPromo?: AppliedPromo | null;
   promoCodeInput?: string;
-  setPromoCodeInput?: any;
-  setAppliedPromo?: any;
-  handleVerifyPromo?: any;
+  setPromoCodeInput?: Dispatch<SetStateAction<string>>;
+  setAppliedPromo?: Dispatch<SetStateAction<AppliedPromo | null>>;
+  handleVerifyPromo?: () => void | Promise<void>;
   isVerifyingPromo?: boolean;
   promoError?: string;
   finalTotalAmount?: number;
@@ -302,7 +308,6 @@ function CartFooter({
 
 function QuoteForm({
   draft,
-  hasAccountDefaults,
   isReady,
   onChange,
   onClose,
@@ -315,7 +320,6 @@ function QuoteForm({
   quoteWhatsappHref,
 }: {
   draft: QuoteDraft;
-  hasAccountDefaults: boolean;
   isReady: boolean;
   onChange: (fields: Partial<QuoteDraft>) => void;
   onClose: () => void;
@@ -493,26 +497,28 @@ function QuoteForm({
           </div>
         </div>
         <div className="checkout-contact-grid">
-        <label className="checkout-field">
-          <span>Nombres y apellidos completos</span>
-          <input
-            defaultValue={draft.name || ""}
-            disabled={quoteState === "loading" || quoteState === "success"}
-            onChange={(event) => onChange({ name: event.target.value })}
-            placeholder="Escribe tu nombre"
-            type="text"
-          />
-        </label>
-        <label className="checkout-field">
-          <span>Número de celular</span>
-          <input
-            defaultValue={draft.phone || ""}
-            disabled={quoteState === "loading" || quoteState === "success"}
-            onChange={(event) => onChange({ phone: event.target.value })}
-            placeholder="987 654 321"
-            type="tel"
-          />
-        </label>
+          <label className="checkout-field">
+            <span>Nombres y apellidos completos</span>
+            <input
+              autoComplete="name"
+              defaultValue={draft.name || ""}
+              disabled={quoteState === "loading" || quoteState === "success"}
+              onChange={(event) => onChange({ name: event.target.value })}
+              placeholder="Escribe tu nombre"
+              type="text"
+            />
+          </label>
+          <label className="checkout-field">
+            <span>Número de celular</span>
+            <input
+              autoComplete="tel"
+              defaultValue={draft.phone || ""}
+              disabled={quoteState === "loading" || quoteState === "success"}
+              onChange={(event) => onChange({ phone: event.target.value })}
+              placeholder="987 654 321"
+              type="tel"
+            />
+          </label>
         </div>
 
         {/* ── Delivery Type Selector ── */}
@@ -559,22 +565,24 @@ function QuoteForm({
                   {draft.deliveryType === "PROVINCE" ? "Ciudad / Provincia de destino" : "Dirección de entrega"}
                 </span>
                 <input
-                  type="text"
+                  autoComplete="street-address"
                   disabled={quoteState === "loading" || quoteState === "success"}
-                  value={draft.address}
                   onChange={(e) => onChange({ address: e.target.value })}
                   placeholder={draft.deliveryType === "PROVINCE" ? "Ej: Arequipa, Trujillo, Cusco..." : "Ej: Av. Los Álamos 123, San Borja"}
+                  type="text"
+                  value={draft.address}
                 />
               </label>
               {draft.deliveryType === "DELIVERY" && (
                 <label className="checkout-field">
                   <span style={{ fontSize: "13px", fontWeight: 600, color: "#374151", display: "block", marginBottom: "4px" }}>Distrito</span>
                   <input
-                    type="text"
+                    autoComplete="address-level2"
                     disabled={quoteState === "loading" || quoteState === "success"}
-                    value={draft.district}
                     onChange={(e) => onChange({ district: e.target.value })}
                     placeholder="Ej: Miraflores, San Isidro, Los Olivos..."
+                    type="text"
+                    value={draft.district}
                   />
                 </label>
               )}
@@ -615,6 +623,7 @@ function QuoteForm({
                   disabled={quoteState === "loading" || quoteState === "success"}
                   onChange={(event) => onChange({ documentNumber: event.target.value })}
                   placeholder="Número de documento"
+                  inputMode="numeric"
                   type="text"
                 />
               </label>
@@ -680,17 +689,16 @@ export function CartDrawer({
   const [quoteFormOpen, setQuoteFormOpen] = useState(false);
   const [quoteState, setQuoteState] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [quoteMessage, setQuoteMessage] = useState("");
-  const [quoteMessageTone, setQuoteMessageTone] = useState<"success" | "error" | "neutral">("neutral");
+  const [, setQuoteMessageTone] = useState<"success" | "error" | "neutral">("neutral");
   const [quoteStatusSteps, setQuoteStatusSteps] = useState<QuoteStatusStep[]>([]);
   const [quoteWhatsappHref, setQuoteWhatsappHref] = useState<string | null>(null);
   const [culqiOpen, setCulqiOpen] = useState(false);
   const quoteSubmitPendingRef = useRef(false);
-  const hasAccountDefaults = Boolean(quoteDefaults?.name?.trim() || quoteDefaults?.phone?.trim());
   const [quoteDraft, setQuoteDraft] = useState<QuoteDraft>(() => buildInitialQuoteDraft(settings, quoteDefaults));
 
   // Promociones
   const [promoCodeInput, setPromoCodeInput] = useState("");
-  const [appliedPromo, setAppliedPromo] = useState<any>(null);
+  const [appliedPromo, setAppliedPromo] = useState<AppliedPromo | null>(null);
   const [promoError, setPromoError] = useState("");
   const [isVerifyingPromo, setIsVerifyingPromo] = useState(false);
 
@@ -762,14 +770,20 @@ export function CartDrawer({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ code: promoCodeInput, cartTotal: totalAmount }),
       });
-      const data = await res.json();
+      const data: unknown = await res.json();
+      if (!isPromoValidationResponse(data)) {
+        setPromoError("Respuesta inválida del cupón");
+        setAppliedPromo(null);
+        return;
+      }
+
       if (data.success) {
         setAppliedPromo(data);
       } else {
-        setPromoError(data.message);
+        setPromoError(data.message ?? "No se pudo aplicar el cupón");
         setAppliedPromo(null);
       }
-    } catch (error) {
+    } catch {
       setPromoError("Error al verificar código");
     } finally {
       setIsVerifyingPromo(false);
@@ -793,11 +807,16 @@ export function CartDrawer({
     }));
   };
 
-  const resetQuoteDraft = () => {
-    setQuoteDraft(buildInitialQuoteDraft(settings, quoteDefaults));
-  };
-
   const openQuoteForm = () => {
+    trackBeginCheckout(
+      orderLines.map(({ item }) => ({
+        item_id: item.code,
+        item_name: item.name,
+        price: Number(item.unitPrice),
+        quantity: item.quantity,
+      })),
+      finalTotalAmount,
+    );
     setQuoteFormOpen(true);
   };
 
@@ -1001,7 +1020,6 @@ export function CartDrawer({
             />
 
             <CartFooter
-              currencySymbol={settings.currencySymbol}
               onOpenQuoteForm={openQuoteForm}
               quoteFormOpen={quoteFormOpen}
               totalAmount={totalAmount}
@@ -1035,7 +1053,6 @@ export function CartDrawer({
           >
             <QuoteForm
               draft={quoteDraft}
-              hasAccountDefaults={hasAccountDefaults}
               isReady={isQuoteReady}
               onChange={updateQuoteDraft}
               onClose={() => setQuoteFormOpen(false)}

@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
 import Link from "next/link";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { CartDrawer } from "@/components/catalog/cart-drawer";
 import { CartStoreBootstrap } from "@/components/catalog/cart-store-bootstrap";
@@ -7,7 +8,7 @@ import { ProductCard } from "@/components/catalog/product-card";
 import { PublicStoreHeader } from "@/components/catalog/public-store-header";
 import { StoreSideActions } from "@/components/catalog/store-side-actions";
 import { getQuoteDefaultsForSession } from "@/lib/quote-profile";
-import { getCatalogPageData } from "@/lib/store-catalog";
+import { getCatalogPageData, getCategoryOptions } from "@/lib/store-catalog";
 
 type CategoryPageProps = {
   params?: Promise<{
@@ -21,6 +22,33 @@ function buildCategoryPageHref(slug: string, page: number) {
 }
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({ params }: CategoryPageProps): Promise<Metadata> {
+  const routeParams = params ? await params : undefined;
+  const slug = routeParams?.slug;
+  if (!slug) return {};
+
+  const categories = await getCategoryOptions();
+  const category = categories.find((item) => item.slug === slug);
+  if (!category) return {};
+
+  const title = category.name;
+  const description = `Explora nuestra categoría de ${category.name} en Importaciones Super con precios al por mayor.`;
+  const url = `/categoria/${category.slug}`;
+
+  return {
+    title,
+    description,
+    alternates: {
+      canonical: url,
+    },
+    openGraph: {
+      title,
+      description,
+      url,
+    },
+  };
+}
 
 export default async function CategoryPage({ params, searchParams }: CategoryPageProps) {
   const routeParams = params ? await params : undefined;

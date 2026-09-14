@@ -7,6 +7,7 @@ import {
   STORE_ASSISTANT_OPEN_EVENT,
   type StoreAssistantOpenDetail,
 } from "@/components/catalog/assistant-events";
+import { trackAddToCart } from "@/lib/analytics";
 import { isCartStoreHydrated, rehydrateCartStore, useCartStore } from "@/components/catalog/cart-store";
 import { getPublicProductName } from "@/lib/product-name";
 import type { CatalogProduct, StoreSettingsView } from "@/lib/store";
@@ -28,6 +29,14 @@ export function ProductCard({ product, settings }: ProductCardProps) {
     }
 
     addItem(product, "unit", quantity);
+    trackAddToCart({
+      item_id: product.code,
+      item_name: displayName,
+      item_brand: product.brand ?? undefined,
+      item_category: product.category ?? undefined,
+      price: product.unitPrice,
+      quantity,
+    });
     setQuantity(1);
   };
 

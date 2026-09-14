@@ -92,7 +92,7 @@ export function buildComplaintResponseText(input: {
     input.responseText.trim(),
     "",
     "Saludos cordiales,",
-    "Importaciones Super S.A.C.",
+    "ORIGINAL J J S.A.C.",
   ];
 
   return lines.join("\n");

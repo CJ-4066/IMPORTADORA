@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { ShieldCheck } from "lucide-react";
 import { requireAdmin } from "@/lib/auth";
 import { BrandLogo } from "@/components/brand/brand-logo";
@@ -5,6 +6,13 @@ import { AdminNav } from "@/components/admin/admin-nav";
 import { getAdminNavBadges } from "@/lib/admin";
 import { ForcePasswordChange } from "@/components/admin/force-password-change";
 import { SidebarToggle } from "@/components/admin/sidebar-toggle";
+
+export const metadata: Metadata = {
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
 
 export default async function AdminLayout({
   children,

@@ -5641,8 +5641,8 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
   align-items: center;
   justify-content: center;
   position: relative;
-  width: 1.95rem;
-  height: 1.95rem;
+  width: 44px;
+  height: 44px;
   padding: 0;
   border: 1px solid rgba(var(--brand-ink-rgb), 0.08);
   border-radius: 999px;
@@ -14523,8 +14523,8 @@ body[data-admin-theme="dark"] .admin-complaints-empty {
   }
 
   .product-card-qty-button {
-    width: 1.85rem;
-    height: 1.85rem;
+    width: 44px;
+    height: 44px;
   }
 
   .product-media {
