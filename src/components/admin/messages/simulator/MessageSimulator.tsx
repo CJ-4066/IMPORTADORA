@@ -10,7 +10,8 @@ type SimulatorResponse = {
   automationName: string | null;
   automationTriggered: boolean;
   conversationId: string;
-  customerMessageId: string;
+  customerMessageId: string | null;
+  pendingSince: string;
   messages: ChatMessage[];
 };
 
@@ -47,6 +48,7 @@ export function MessageSimulator() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [pendingCustomerMessageId, setPendingCustomerMessageId] = useState<string | null>(null);
+  const [pendingSince, setPendingSince] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [waitingForN8n, setWaitingForN8n] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
@@ -92,7 +94,9 @@ export function MessageSimulator() {
           : -1;
         const messagesAfterPending = pendingIndex >= 0
           ? payload.items.slice(pendingIndex + 1)
-          : payload.items;
+          : pendingSince
+            ? payload.items.filter((message) => new Date(message.createdAt).getTime() >= new Date(pendingSince).getTime())
+            : payload.items;
         const hasWorkflowReply = messagesAfterPending.some(
           (message) => message.senderType === "BOT" || message.senderType === "AGENT",
         );
@@ -122,7 +126,7 @@ export function MessageSimulator() {
       stopped = true;
       window.clearInterval(interval);
     };
-  }, [conversationId, pendingCustomerMessageId, waitingForN8n]);
+  }, [conversationId, pendingCustomerMessageId, pendingSince, waitingForN8n]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -155,6 +159,7 @@ export function MessageSimulator() {
       setMessages(payload.messages);
       setConversationId(payload.conversationId ?? null);
       setPendingCustomerMessageId(payload.customerMessageId ?? null);
+      setPendingSince(payload.pendingSince ?? null);
 
       if (payload.automationError) {
         setWaitingForN8n(false);
@@ -178,6 +183,7 @@ export function MessageSimulator() {
     setSessionKey(createSessionKey());
     setConversationId(null);
     setPendingCustomerMessageId(null);
+    setPendingSince(null);
     setMessages([]);
     setContent("");
     setWaitingForN8n(false);

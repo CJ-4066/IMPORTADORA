@@ -8,7 +8,7 @@ import { normalizeWhatsappPhone } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
-const SIMULATOR_WEBHOOK_PATH = "wh-1";
+const SIMULATOR_WEBHOOK_PATH = "whatsapp";
 
 const simulatorInputSchema = z.object({
   content: z.string().trim().min(1).max(1200),
@@ -17,13 +17,23 @@ const simulatorInputSchema = z.object({
   sessionKey: z.string().trim().min(1).max(80).default("default"),
 });
 
+function buildSimulatorExternalId(sessionKey: string) {
+  const letters = Array.from(sessionKey)
+    .map((character) => String.fromCharCode(97 + (character.charCodeAt(0) % 26)))
+    .join("")
+    .slice(0, 80);
+
+  return `SIMULATOR:${letters || "session"}`;
+}
+
 export async function POST(request: Request) {
   try {
     await requireAdmin();
     const input = simulatorInputSchema.parse(await request.json());
     const now = new Date();
     const normalizedPhone = normalizeWhatsappPhone(input.phone);
-    const externalId = `SIMULATOR:${input.sessionKey}`;
+    const externalId = buildSimulatorExternalId(input.sessionKey);
+    const externalMessageId = `SIM-CUSTOMER-${randomUUID()}`;
 
     const contact = await prisma.chatContact.upsert({
       where: {
@@ -75,31 +85,6 @@ export async function POST(request: Request) {
       });
     }
 
-    const customerMessage = await prisma.chatMessage.create({
-      data: {
-        conversationId: conversation.id,
-        content: input.content,
-        direction: "INBOUND",
-        externalMessageId: `SIM-CUSTOMER-${randomUUID()}`,
-        messageType: "TEXT",
-        metadata: {
-          phone: input.phone,
-          source: "admin-simulator",
-        },
-        senderType: "CUSTOMER",
-        status: "delivered",
-        createdAt: now,
-      },
-    });
-
-    await prisma.conversation.update({
-      where: { id: conversation.id },
-      data: {
-        lastMessageAt: customerMessage.createdAt,
-        unreadCount: { increment: 1 },
-      },
-    });
-
     const settings = await prisma.storeSettings.findFirst({
       select: { botMasterSwitch: true },
     });
@@ -134,8 +119,7 @@ export async function POST(request: Request) {
               automationId: activeAutomation.id,
               automationVersionId: publishedVersion.id,
               conversationId: conversation.id,
-              correlationId: `${conversation.id}-${customerMessage.id}`,
-              messageId: customerMessage.id,
+              correlationId: `${conversation.id}-${externalMessageId}`,
               status: "RUNNING",
             },
           });
@@ -145,30 +129,48 @@ export async function POST(request: Request) {
 
         automationName = activeAutomation?.name ?? `Webhook directo ${SIMULATOR_WEBHOOK_PATH}`;
         await N8nAutomationProvider.triggerWebhook(SIMULATOR_WEBHOOK_PATH, {
-          channel: "WHATSAPP",
-          contactId: contact.id,
-          conversationId: conversation.id,
-          content: input.content,
-          dryRun: true,
-          executionId: automationExecutionId,
-          externalContactId: externalId,
-          messageId: customerMessage.id,
-          metadata: {
-            dryRun: true,
-            name: input.name,
-            phone: input.phone,
-            phoneNormalized: normalizedPhone,
-            sessionKey: input.sessionKey,
-            simulation: true,
-            source: "admin-simulator",
-            webhookPath: SIMULATOR_WEBHOOK_PATH,
-          },
-          name: input.name,
-          phone: normalizedPhone || input.phone,
-          rawPhone: input.phone,
-          simulation: true,
-          simulatorRunId: randomUUID(),
-          timestamp: now.toISOString(),
+          object: "whatsapp_business_account",
+          entry: [
+            {
+              id: "admin-simulator",
+              changes: [
+                {
+                  field: "messages",
+                  value: {
+                    contacts: [
+                      {
+                        profile: { name: input.name },
+                        wa_id: externalId,
+                      },
+                    ],
+                    messages: [
+                      {
+                        from: externalId,
+                        id: externalMessageId,
+                        text: { body: input.content },
+                        timestamp: String(Math.floor(now.getTime() / 1000)),
+                        type: "text",
+                      },
+                    ],
+                    metadata: {
+                      display_phone_number: input.phone,
+                      phone_number_id: "admin-simulator",
+                    },
+                    messaging_product: "whatsapp",
+                    simulation: {
+                      conversationId: conversation.id,
+                      dryRun: true,
+                      executionId: automationExecutionId,
+                      phone: input.phone,
+                      phoneNormalized: normalizedPhone,
+                      sessionKey: input.sessionKey,
+                      source: "admin-simulator",
+                    },
+                  },
+                },
+              ],
+            },
+          ],
         });
         automationTriggered = true;
       } catch (error) {
@@ -190,7 +192,8 @@ export async function POST(request: Request) {
       automationName,
       automationTriggered,
       conversationId: conversation.id,
-      customerMessageId: customerMessage.id,
+      customerMessageId: null,
+      pendingSince: now.toISOString(),
       messages,
     });
   } catch (error) {
