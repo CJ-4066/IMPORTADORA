@@ -26,6 +26,26 @@ function buildSimulatorExternalId(sessionKey: string) {
   return `SIMULATOR:${letters || "session"}`;
 }
 
+async function triggerSimulatorWebhook(path: string, payload: unknown) {
+  const simulatorBaseUrl = process.env.N8N_SIMULATOR_URL?.trim();
+
+  if (!simulatorBaseUrl) {
+    await N8nAutomationProvider.triggerWebhook(path, payload);
+    return;
+  }
+
+  const endpoint = new URL(`/webhook/${path}`, simulatorBaseUrl);
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    throw new Error(`n8n simulator webhook returned ${response.status}`);
+  }
+}
+
 export async function POST(request: Request) {
   try {
     await requireAdmin();
@@ -128,7 +148,7 @@ export async function POST(request: Request) {
         }
 
         automationName = activeAutomation?.name ?? `Webhook directo ${SIMULATOR_WEBHOOK_PATH}`;
-        await N8nAutomationProvider.triggerWebhook(SIMULATOR_WEBHOOK_PATH, {
+        await triggerSimulatorWebhook(SIMULATOR_WEBHOOK_PATH, {
           object: "whatsapp_business_account",
           entry: [
             {
