@@ -136,6 +136,7 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
                 <span>Tipo de usuario</span>
                 <select defaultValue="USERSHOP" name="role">
                   <option value="USERSHOP">Comprador</option>
+                  <option value="PROMOTOR">Promotor / Influencer</option>
                   <option value="ADMIN">Administrador</option>
                 </select>
               </label>

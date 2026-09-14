@@ -17,7 +17,9 @@ import {
   QrCode,
   Settings,
   ShieldAlert,
+  ShoppingBag,
   Store,
+  Tag,
   UsersRound,
   ChevronDown,
   ChevronRight
@@ -49,14 +51,20 @@ const sections: AdminNavSection[] = [
     ],
   },
   {
-    title: "Gestión Comercial",
+    title: "Catálogo e Inventario",
     links: [
       { href: "/admin/products", label: "Productos", icon: PackageSearch, badgeKey: "lowStockProductsCount" },
-      { href: "/admin/fichas", label: "Fichas digitales / QR", icon: QrCode },
-      { href: "/admin/categories", label: "Categorías", icon: FolderTree },
       { href: "/admin/products/new", label: "Nuevo producto", icon: PackagePlus },
-      { href: "/admin/cupones", label: "Cupones de Descuento", icon: PackagePlus },
+      { href: "/admin/categories", label: "Categorías", icon: FolderTree },
+      { href: "/admin/fichas", label: "Fichas digitales / QR", icon: QrCode },
+    ],
+  },
+  {
+    title: "Ventas y Marketing",
+    links: [
+      { href: "/admin/orders", label: "Órdenes / Pagos", icon: ShoppingBag, badgeKey: "pendingOrdersCount" },
       { href: "/admin/quotes", label: "Cotizaciones", icon: FileText, badgeKey: "pendingQuotesCount" },
+      { href: "/admin/cupones", label: "Cupones de Descuento", icon: Tag },
       { href: "/admin/banners", label: "Banners y campañas", icon: ImagePlus },
     ],
   },
@@ -74,7 +82,6 @@ const sections: AdminNavSection[] = [
     links: [
       { href: "/admin/erp", label: "Sincronización ERP", icon: DatabaseZap },
       { href: "/admin/settings", label: "Configuración general", icon: Settings },
-      { label: "Cerrar sesión", icon: LogOut, kind: "action" },
     ],
   },
 ];
@@ -89,7 +96,8 @@ export function AdminNav({ badges }: AdminNavProps) {
 
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     "Principal": true,
-    "Gestión Comercial": true,
+    "Catálogo e Inventario": true,
+    "Ventas y Marketing": true,
     "Clientes y Atención": true,
     "Integraciones y Sistema": true
   });
