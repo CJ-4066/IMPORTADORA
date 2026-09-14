@@ -463,6 +463,7 @@ export async function sendInternalMessage(
       },
     });
 
+    void pusherServer.trigger(`chat-${conversationId}`, "new-message", message);
     return message;
   });
 }
@@ -608,6 +609,8 @@ export async function processIncomingMessage(input: IncomingMessageInput) {
       },
     }),
   ]);
+
+  void pusherServer.trigger(`chat-${updatedConversation.id}`, "new-message", message);
 
   return {
     ok: true,

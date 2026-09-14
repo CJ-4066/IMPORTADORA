@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MessageCircle } from "lucide-react";
+import { getPusherClient } from "@/lib/pusher-client";
 import { ChatHeader } from "./ChatHeader";
 import { ConversationList, type ConversationFilters } from "./ConversationList";
 import { CustomerPanel } from "./CustomerPanel";
