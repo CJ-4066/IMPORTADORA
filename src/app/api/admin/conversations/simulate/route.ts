@@ -126,11 +126,9 @@ export async function POST(request: Request) {
           },
         });
 
-        const publishedVersion = activeAutomation?.versions[0];
-        if (!activeAutomation || !publishedVersion) {
-          automationError = "No hay una automatización activa y publicada para WhatsApp.";
-        } else {
-          automationName = activeAutomation.name;
+        const publishedVersion = activeAutomation?.versions[0] ?? null;
+
+        if (activeAutomation && publishedVersion) {
           const execution = await prisma.automationExecution.create({
             data: {
               automationId: activeAutomation.id,
@@ -143,32 +141,36 @@ export async function POST(request: Request) {
           });
 
           automationExecutionId = execution.id;
-          await N8nAutomationProvider.triggerWebhook(SIMULATOR_WEBHOOK_PATH, {
-            channel: "WHATSAPP",
-            contactId: contact.id,
-            conversationId: conversation.id,
-            content: input.content,
-            dryRun: true,
-            executionId: execution.id,
-            externalContactId: externalId,
-            messageId: customerMessage.id,
-            metadata: {
-              dryRun: true,
-              name: input.name,
-              phone: input.phone,
-              phoneNormalized: normalizedPhone,
-              sessionKey: input.sessionKey,
-              simulation: true,
-              source: "admin-simulator",
-            },
-            name: input.name,
-            phone: normalizedPhone || input.phone,
-            rawPhone: input.phone,
-            simulation: true,
-            timestamp: now.toISOString(),
-          });
-          automationTriggered = true;
         }
+
+        automationName = activeAutomation?.name ?? `Webhook directo ${SIMULATOR_WEBHOOK_PATH}`;
+        await N8nAutomationProvider.triggerWebhook(SIMULATOR_WEBHOOK_PATH, {
+          channel: "WHATSAPP",
+          contactId: contact.id,
+          conversationId: conversation.id,
+          content: input.content,
+          dryRun: true,
+          executionId: automationExecutionId,
+          externalContactId: externalId,
+          messageId: customerMessage.id,
+          metadata: {
+            dryRun: true,
+            name: input.name,
+            phone: input.phone,
+            phoneNormalized: normalizedPhone,
+            sessionKey: input.sessionKey,
+            simulation: true,
+            source: "admin-simulator",
+            webhookPath: SIMULATOR_WEBHOOK_PATH,
+          },
+          name: input.name,
+          phone: normalizedPhone || input.phone,
+          rawPhone: input.phone,
+          simulation: true,
+          simulatorRunId: randomUUID(),
+          timestamp: now.toISOString(),
+        });
+        automationTriggered = true;
       } catch (error) {
         automationError = error instanceof Error
           ? error.message

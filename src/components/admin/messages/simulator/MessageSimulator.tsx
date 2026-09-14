@@ -164,7 +164,7 @@ export function MessageSimulator() {
         setNotice(
           payload.automationName
             ? `Flujo real disparado: ${payload.automationName}. Esperando respuesta de n8n...`
-            : "Flujo real de n8n disparado. Esperando respuesta...",
+            : "Webhook real de n8n disparado. Esperando respuesta...",
         );
       }
     } catch (error) {
