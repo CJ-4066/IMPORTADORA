@@ -5,10 +5,18 @@ import { Bot, Bug, RefreshCw, Send, UserRound } from "lucide-react";
 import type { ChatMessage } from "@/types/messages";
 
 type SimulatorResponse = {
-  botError: string | null;
-  botSkipped: boolean;
+  automationError: string | null;
+  automationExecutionId: string | null;
+  automationName: string | null;
+  automationTriggered: boolean;
   conversationId: string;
+  customerMessageId: string;
   messages: ChatMessage[];
+};
+
+type MessagesResponse = {
+  items: ChatMessage[];
+  total: number;
 };
 
 function createSessionKey() {
@@ -37,7 +45,10 @@ export function MessageSimulator() {
   const [phone, setPhone] = useState("+51 999 888 777");
   const [sessionKey, setSessionKey] = useState(() => createSessionKey());
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [pendingCustomerMessageId, setPendingCustomerMessageId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [waitingForN8n, setWaitingForN8n] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
 
@@ -47,6 +58,71 @@ export function MessageSimulator() {
   useEffect(() => {
     endRef.current?.scrollIntoView({ block: "end" });
   }, [messages]);
+
+  useEffect(() => {
+    if (!conversationId || !waitingForN8n) {
+      return undefined;
+    }
+
+    let stopped = false;
+    let attempts = 0;
+
+    async function refreshMessages() {
+      attempts += 1;
+
+      try {
+        const response = await fetch(
+          `/api/admin/conversations/${conversationId}/messages?limit=100&t=${Date.now()}`,
+          { cache: "no-store" },
+        );
+
+        if (!response.ok) {
+          throw new Error("No se pudo refrescar la conversación simulada.");
+        }
+
+        const payload = (await response.json()) as MessagesResponse;
+        if (stopped) {
+          return;
+        }
+
+        setMessages(payload.items);
+
+        const pendingIndex = pendingCustomerMessageId
+          ? payload.items.findIndex((message) => message.id === pendingCustomerMessageId)
+          : -1;
+        const messagesAfterPending = pendingIndex >= 0
+          ? payload.items.slice(pendingIndex + 1)
+          : payload.items;
+        const hasWorkflowReply = messagesAfterPending.some(
+          (message) => message.senderType === "BOT" || message.senderType === "AGENT",
+        );
+
+        if (hasWorkflowReply) {
+          setWaitingForN8n(false);
+          setNotice("Respuesta recibida desde el flujo.");
+        } else if (attempts >= 15) {
+          setWaitingForN8n(false);
+          setNotice("n8n fue disparado, pero no guardó una respuesta visible en 30 segundos.");
+        }
+      } catch (error) {
+        if (!stopped) {
+          setWaitingForN8n(false);
+          setNotice(error instanceof Error ? error.message : "No se pudo refrescar la conversación.");
+        }
+      }
+    }
+
+    const interval = window.setInterval(() => {
+      void refreshMessages();
+    }, 2000);
+
+    void refreshMessages();
+
+    return () => {
+      stopped = true;
+      window.clearInterval(interval);
+    };
+  }, [conversationId, pendingCustomerMessageId, waitingForN8n]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -77,11 +153,19 @@ export function MessageSimulator() {
       }
 
       setMessages(payload.messages);
+      setConversationId(payload.conversationId ?? null);
+      setPendingCustomerMessageId(payload.customerMessageId ?? null);
 
-      if (payload.botSkipped) {
-        setNotice("Bot global apagado en configuración.");
-      } else if (payload.botError) {
-        setNotice(payload.botError);
+      if (payload.automationError) {
+        setWaitingForN8n(false);
+        setNotice(payload.automationError);
+      } else if (payload.automationTriggered) {
+        setWaitingForN8n(true);
+        setNotice(
+          payload.automationName
+            ? `Flujo real disparado: ${payload.automationName}. Esperando respuesta de n8n...`
+            : "Flujo real de n8n disparado. Esperando respuesta...",
+        );
       }
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "No se pudo simular el mensaje.");
@@ -92,8 +176,11 @@ export function MessageSimulator() {
 
   function handleNewSession() {
     setSessionKey(createSessionKey());
+    setConversationId(null);
+    setPendingCustomerMessageId(null);
     setMessages([]);
     setContent("");
+    setWaitingForN8n(false);
     setNotice(null);
   }
 
@@ -130,16 +217,18 @@ export function MessageSimulator() {
         <div className="message-simulator-chat-header">
           <div>
             <h2>{name || "Cliente Simulador"}</h2>
-            <p>Prueba respuestas sin enviar mensajes reales</p>
+            <p>Dispara el flujo real de n8n en modo simulacion</p>
           </div>
-          <span className="conversation-badge badge-automatico">AUTOMATICO</span>
+          <span className="conversation-badge badge-automatico">
+            {waitingForN8n ? "ESPERANDO N8N" : "N8N REAL"}
+          </span>
         </div>
 
         <div className="message-simulator-messages">
           {messages.length === 0 ? (
             <div className="message-simulator-empty">
               <Bot size={44} />
-              <p>Escribe una consulta como cliente para ver la respuesta del bot.</p>
+              <p>Escribe una consulta como cliente para disparar el workflow real.</p>
             </div>
           ) : (
             messages.map((message) => {
@@ -181,7 +270,7 @@ export function MessageSimulator() {
           />
           <button className="btn btn-primary" disabled={!canSend} type="submit">
             <Send size={15} />
-            {busy ? "Enviando" : "Enviar"}
+            {busy ? "Disparando" : "Enviar a n8n"}
           </button>
         </form>
       </section>

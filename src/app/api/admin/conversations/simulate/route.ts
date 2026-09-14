@@ -2,11 +2,13 @@ import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/auth";
+import { N8nAutomationProvider } from "@/lib/automations/n8n-provider";
 import { prisma } from "@/lib/prisma";
-import { answerShopAssistant } from "@/lib/shop-assistant";
 import { normalizeWhatsappPhone } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
+
+const SIMULATOR_WEBHOOK_PATH = "wh-1";
 
 const simulatorInputSchema = z.object({
   content: z.string().trim().min(1).max(1200),
@@ -14,25 +16,6 @@ const simulatorInputSchema = z.object({
   phone: z.string().trim().max(32).default("+51 999 888 777"),
   sessionKey: z.string().trim().min(1).max(80).default("default"),
 });
-
-function toAssistantHistory(
-  messages: Array<{ content: string; senderType: string }>,
-) {
-  return messages
-    .map((message) => {
-      if (message.senderType === "CUSTOMER") {
-        return { role: "user" as const, text: message.content };
-      }
-
-      if (message.senderType === "BOT" || message.senderType === "AGENT") {
-        return { role: "assistant" as const, text: message.content };
-      }
-
-      return null;
-    })
-    .filter((message): message is { role: "assistant" | "user"; text: string } => Boolean(message))
-    .slice(-6);
-}
 
 export async function POST(request: Request) {
   try {
@@ -120,52 +103,73 @@ export async function POST(request: Request) {
     const settings = await prisma.storeSettings.findFirst({
       select: { botMasterSwitch: true },
     });
-    let botError: string | null = null;
+    let automationError: string | null = null;
+    let automationExecutionId: string | null = null;
+    let automationName: string | null = null;
+    let automationTriggered = false;
 
-    if (settings?.botMasterSwitch !== false) {
+    if (settings?.botMasterSwitch === false) {
+      automationError = "Bot global apagado en configuración.";
+    } else {
       try {
-        const historyRows = await prisma.chatMessage.findMany({
-          where: {
-            conversationId: conversation.id,
-            id: { not: customerMessage.id },
-          },
-          orderBy: { createdAt: "desc" },
-          take: 8,
-          select: {
-            content: true,
-            senderType: true,
+        const activeAutomation = await prisma.automation.findFirst({
+          where: { channel: "WHATSAPP", status: "ACTIVE" },
+          include: {
+            versions: {
+              where: { status: "PUBLISHED" },
+              orderBy: { version: "desc" },
+              take: 1,
+            },
           },
         });
-        const history = toAssistantHistory(historyRows.reverse());
-        const reply = await answerShopAssistant({
-          message: input.content,
-          recentMessages: history,
-        });
-        const text = reply.text.trim() || "No encontré una respuesta para esa consulta.";
-        const botMessage = await prisma.chatMessage.create({
-          data: {
+
+        const publishedVersion = activeAutomation?.versions[0];
+        if (!activeAutomation || !publishedVersion) {
+          automationError = "No hay una automatización activa y publicada para WhatsApp.";
+        } else {
+          automationName = activeAutomation.name;
+          const execution = await prisma.automationExecution.create({
+            data: {
+              automationId: activeAutomation.id,
+              automationVersionId: publishedVersion.id,
+              conversationId: conversation.id,
+              correlationId: `${conversation.id}-${customerMessage.id}`,
+              messageId: customerMessage.id,
+              status: "RUNNING",
+            },
+          });
+
+          automationExecutionId = execution.id;
+          await N8nAutomationProvider.triggerWebhook(SIMULATOR_WEBHOOK_PATH, {
+            channel: "WHATSAPP",
+            contactId: contact.id,
             conversationId: conversation.id,
-            content: text,
-            direction: "OUTBOUND",
-            externalMessageId: `SIM-BOT-${randomUUID()}`,
-            messageType: "TEXT",
+            content: input.content,
+            dryRun: true,
+            executionId: execution.id,
+            externalContactId: externalId,
+            messageId: customerMessage.id,
             metadata: {
-              productIds: reply.products?.map((product) => product.id) ?? [],
-              productsCount: reply.products?.length ?? 0,
+              dryRun: true,
+              name: input.name,
+              phone: input.phone,
+              phoneNormalized: normalizedPhone,
+              sessionKey: input.sessionKey,
+              simulation: true,
               source: "admin-simulator",
             },
-            senderType: "BOT",
-            status: "sent",
-            createdAt: new Date(),
-          },
-        });
-
-        await prisma.conversation.update({
-          where: { id: conversation.id },
-          data: { lastMessageAt: botMessage.createdAt },
-        });
+            name: input.name,
+            phone: normalizedPhone || input.phone,
+            rawPhone: input.phone,
+            simulation: true,
+            timestamp: now.toISOString(),
+          });
+          automationTriggered = true;
+        }
       } catch (error) {
-        botError = error instanceof Error ? error.message : "No se pudo generar respuesta del bot.";
+        automationError = error instanceof Error
+          ? error.message
+          : "No se pudo disparar la automatización de n8n.";
       }
     }
 
@@ -176,9 +180,12 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json({
-      botError,
-      botSkipped: settings?.botMasterSwitch === false,
+      automationError,
+      automationExecutionId,
+      automationName,
+      automationTriggered,
       conversationId: conversation.id,
+      customerMessageId: customerMessage.id,
       messages,
     });
   } catch (error) {
