@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { WhatsAppMetaConnect } from "@/components/admin/messages/WhatsAppMetaConnect";
 import { Save, Webhook, Bot } from "lucide-react";
 import { saveSettingsAction, toggleBotAction } from "./actions";
 
@@ -11,13 +12,28 @@ export default async function ConfiguracionPage() {
   };
 
   return (
-    <div style={{ padding: "24px", maxWidth: "800px", margin: "0 auto" }}>
+    <div style={{ padding: "24px", maxWidth: "960px", margin: "0 auto" }}>
       <div style={{ marginBottom: "32px" }}>
         <h1 style={{ margin: "0 0 8px 0", fontSize: "24px" }}>Configuración de Mensajería</h1>
         <p style={{ margin: 0, color: "var(--text-muted)" }}>Ajustes globales para el centro de soporte y automatizaciones.</p>
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+        <div style={{ background: "var(--surface-bg)", border: "1px solid var(--border-color)", borderRadius: "8px", overflow: "hidden" }}>
+          <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--border-color)", background: "var(--bg-alt)", display: "flex", alignItems: "center", gap: "12px" }}>
+            <Webhook color="var(--text-muted)" size={20} />
+            <div>
+              <h2 style={{ margin: 0, fontSize: "16px", color: "var(--text)" }}>WhatsApp Business / Meta</h2>
+              <p style={{ margin: "3px 0 0", fontSize: "13px", color: "var(--text-muted)" }}>
+                Conexión OAuth, activos autorizados y estado de preparación para la demo.
+              </p>
+            </div>
+          </div>
+          <div style={{ padding: "20px" }}>
+            <WhatsAppMetaConnect />
+          </div>
+        </div>
+
         <div style={{ background: "var(--surface-bg)", border: "1px solid var(--border-color)", borderRadius: "8px", overflow: "hidden" }}>
           <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--border-color)", background: "var(--bg-alt)", display: "flex", alignItems: "center", gap: "12px" }}>
             <Bot color="var(--text-muted)" size={20} />
@@ -28,7 +44,7 @@ export default async function ConfiguracionPage() {
               <div style={{ flex: 1, paddingRight: "24px" }}>
                 <h3 style={{ margin: "0 0 4px 0", fontSize: "15px", color: "var(--text)" }}>Activar automatizaciones (Master Switch)</h3>
                 <p style={{ margin: 0, fontSize: "13px", color: "var(--text-muted)" }}>
-                  Si apagas este interruptor, ningún flujo de n8n se ejecutará. Útil para modo "Manual Total" o emergencias.
+                  Si apagas este interruptor, ningún flujo de n8n se ejecutará. Útil para modo Manual Total o emergencias.
                 </p>
               </div>
               <form action={toggleBotAction}>
