@@ -24,9 +24,6 @@ export default async function ConfiguracionPage() {
             <Webhook color="var(--text-muted)" size={20} />
             <div>
               <h2 style={{ margin: 0, fontSize: "16px", color: "var(--text)" }}>WhatsApp Business / Meta</h2>
-              <p style={{ margin: "3px 0 0", fontSize: "13px", color: "var(--text-muted)" }}>
-                Conexión OAuth, activos autorizados y estado de preparación para la demo.
-              </p>
             </div>
           </div>
           <div style={{ padding: "20px" }}>
