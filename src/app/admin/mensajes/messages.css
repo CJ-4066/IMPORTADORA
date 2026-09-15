@@ -1,16 +1,15 @@
 .whatsapp-connection-card {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
   padding: 18px;
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
-  background: var(--surface-bg);
+  background: #fff;
   box-shadow: var(--shadow-sm);
 }
 
-.whatsapp-connection-header,
-.whatsapp-connection-summary {
+.whatsapp-connection-header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -19,8 +18,7 @@
 
 .whatsapp-connection-copy,
 .whatsapp-connection-status,
-.whatsapp-connection-actions,
-.whatsapp-connection-meta {
+.whatsapp-connection-actions {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -50,6 +48,12 @@
 }
 .whatsapp-connection-pill.is-ready { background: #dcfce7; color: #166534; }
 .whatsapp-connection-pill.is-warning { background: #fef3c7; color: #92400e; }
+.whatsapp-connection-summary-card {
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  background: var(--bg-alt);
+}
 .whatsapp-connection-status {
   align-items: flex-start;
   color: var(--text-muted);
@@ -108,7 +112,13 @@
   gap: 8px;
 }
 .whatsapp-connection-actions .btn {
+  min-height: 36px;
   white-space: nowrap;
+}
+.whatsapp-connection-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
 }
 .whatsapp-connection-section {
   display: flex;
@@ -120,47 +130,36 @@
   color: var(--text);
   font-size: 13px;
 }
-.whatsapp-connection-meta { display: flex; flex-wrap: wrap; gap: 8px; color: var(--text-muted); font-size: 12px; }
-.whatsapp-connection-meta span {
-  border: 1px solid var(--border-color);
-  border-radius: 999px;
-  padding: 5px 8px;
-  background: #fff;
-}
 .whatsapp-connection-checklist {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 .whatsapp-connection-checklist li {
+  position: relative;
   min-width: 0;
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
-  padding: 10px 11px;
+  padding: 9px 10px 9px 30px;
   color: var(--text);
   font-size: 12px;
+  line-height: 1.35;
   background: #fff;
+  overflow-wrap: anywhere;
 }
-.whatsapp-connection-checklist li span {
-  display: block;
-  width: fit-content;
-  margin-bottom: 5px;
+.whatsapp-connection-checklist li::before {
+  content: "";
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  width: 8px;
+  height: 8px;
   border-radius: 999px;
-  padding: 2px 7px;
-  font-size: 10px;
-  font-weight: 800;
-  text-transform: uppercase;
 }
-.whatsapp-connection-checklist li strong {
-  display: block;
-  font-size: 12px;
-  line-height: 1.3;
-}
-.whatsapp-connection-checklist li.is-ok span { background: #dcfce7; color: #15803d; }
-.whatsapp-connection-checklist li.is-pending span { background: #fef3c7; color: #b45309; }
+.whatsapp-connection-checklist li.is-ok::before { background: #16a34a; }
+.whatsapp-connection-checklist li.is-pending::before { background: #f59e0b; }
 .whatsapp-connection-assets {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -189,6 +188,20 @@
   color: var(--text);
   font-size: 12px;
 }
+.whatsapp-connection-details {
+  border-top: 1px solid var(--border-color);
+  padding-top: 12px;
+}
+.whatsapp-connection-details summary {
+  width: fit-content;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+.whatsapp-connection-details[open] summary {
+  margin-bottom: 10px;
+}
 .whatsapp-connection-message { margin: 0; font-size: 12px; color: var(--primary); }
 .whatsapp-connection-message { color: var(--primary); }
 .spin { animation: whatsapp-spin 1s linear infinite; }
@@ -196,17 +209,23 @@
 
 @media (max-width: 760px) {
   .whatsapp-connection-header,
-  .whatsapp-connection-summary,
   .whatsapp-connection-action-panel,
   .whatsapp-connection-alert {
     flex-direction: column;
   }
+  .whatsapp-connection-grid,
   .whatsapp-connection-assets,
   .whatsapp-connection-checklist {
     grid-template-columns: 1fr;
   }
   .whatsapp-connection-actions {
+    display: grid;
+    grid-template-columns: 1fr;
     justify-content: flex-start;
+    width: 100%;
+  }
+  .whatsapp-connection-actions .btn {
+    justify-content: center;
     width: 100%;
   }
 }
