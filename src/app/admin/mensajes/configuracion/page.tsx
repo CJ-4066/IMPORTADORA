@@ -86,9 +86,12 @@ export default async function ConfiguracionPage() {
                 </p>
               </div>
             </div>
-            <div style={{ padding: "16px 24px", background: "var(--bg-alt)", borderTop: "1px solid var(--border-color)", display: "flex", justifyContent: "flex-end" }}>
-              <button type="submit" style={{ background: "var(--primary)", color: "#fff", border: "none", padding: "10px 16px", borderRadius: "6px", display: "flex", alignItems: "center", gap: "8px", fontWeight: 500, cursor: "pointer" }}>
-                <Save size={16} /> Guardar Cambios
+            <div style={{ padding: "18px 24px", background: "var(--bg-alt)", borderTop: "1px solid var(--border-color)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
+              <p style={{ margin: 0, color: "var(--text-muted)", fontSize: "13px" }}>
+                Guarda únicamente la URL de integración con n8n.
+              </p>
+              <button type="submit" style={{ background: "#2563eb", color: "#fff", border: "1px solid #1d4ed8", padding: "12px 18px", borderRadius: "8px", display: "flex", alignItems: "center", gap: "8px", fontWeight: 700, cursor: "pointer", boxShadow: "0 8px 18px rgba(37, 99, 235, 0.24)" }}>
+                <Save size={17} /> Guardar configuración de n8n
               </button>
             </div>
           </div>
