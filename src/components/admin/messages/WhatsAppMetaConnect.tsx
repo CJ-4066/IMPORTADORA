@@ -240,6 +240,7 @@ export function WhatsAppMetaConnect() {
   const connectionSubtitle = connected
     ? `${integration?.verifiedName || "Importaciones Super"}${integration?.displayPhoneNumber ? ` · ${integration.displayPhoneNumber}` : ""}`
     : "Autoriza Meta para enlazar la cuenta y el número de prueba.";
+  const missingConfigText = missingConfig.join(", ");
 
   return (
     <section className="whatsapp-connection-card" aria-labelledby="whatsapp-connection-title">
@@ -247,8 +248,9 @@ export function WhatsAppMetaConnect() {
         <div className="whatsapp-connection-copy">
           <div className="whatsapp-connection-icon"><ShieldCheck size={20} /></div>
           <div>
-            <h2 id="whatsapp-connection-title">Conexión WhatsApp Business</h2>
-            <p>Autorización oficial de Meta para mostrar la cuenta, validar el número y preparar la demo.</p>
+            <p className="whatsapp-connection-eyebrow">Estado de integración</p>
+            <h3 id="whatsapp-connection-title">Meta conectado al Centro de Mensajes</h3>
+            <p>Valida la cuenta, el número y la preparación antes de grabar la demo de WhatsApp.</p>
           </div>
         </div>
         <span className={`whatsapp-connection-pill ${oauthReady && connected ? "is-ready" : "is-warning"}`}>
@@ -265,6 +267,23 @@ export function WhatsAppMetaConnect() {
             <span>{connectionSubtitle}</span>
           </div>
         </div>
+      </div>
+
+      {missingConfig.length ? (
+        <div className="whatsapp-connection-alert">
+          <AlertTriangle size={18} />
+          <div>
+            <strong>OAuth todavía no está listo para reconectar o grabar.</strong>
+            <span>Falta configurar en el servidor: {missingConfigText}. La conexión guardada puede mostrarse, pero Meta no podrá abrir el flujo completo.</span>
+          </div>
+        </div>
+      ) : null}
+
+      <div className="whatsapp-connection-action-panel">
+        <div>
+          <strong>Acciones de conexión</strong>
+          <span>Usa estos controles solo para autorizar o verificar activos de Meta.</span>
+        </div>
         <div className="whatsapp-connection-actions">
           <button className="btn btn-primary" type="button" onClick={loadFacebookSdk} disabled={!oauthReady || busy}>
             {busy ? <Loader2 className="spin" size={16} /> : <Link2 size={16} />}
@@ -274,45 +293,49 @@ export function WhatsAppMetaConnect() {
         </div>
       </div>
 
-      <ul className="whatsapp-connection-checklist" aria-label="Estado de preparación">
-        <li className={oauthReady ? "is-ok" : "is-pending"}>
-          <span>{statusText(oauthReady)}</span>
-          Configuración OAuth de Meta
-        </li>
-        <li className={connected ? "is-ok" : "is-pending"}>
-          <span>{statusText(connected)}</span>
-          Cuenta y número guardados
-        </li>
-        <li className={status?.webhookSignatureConfigured ? "is-ok" : "is-pending"}>
-          <span>{statusText(Boolean(status?.webhookSignatureConfigured))}</span>
-          Webhook con firma segura
-        </li>
-        <li className="is-pending">
-          <span>No probado</span>
-          Envío real hacia WhatsApp
-        </li>
-      </ul>
-
-      {integration ? (
-        <dl className="whatsapp-connection-assets">
-          <div><dt>Business ID</dt><dd>{businessLabel}</dd></div>
-          <div><dt>Cuenta WhatsApp</dt><dd>{wabaLabel}</dd></div>
-          <div><dt>Número conectado</dt><dd>{phoneLabel}</dd></div>
-          <div><dt>Permisos</dt><dd>{grantedScopes.length ? grantedScopes.join(", ") : "pendiente de lectura"}</dd></div>
-        </dl>
-      ) : null}
-
-      <div className="whatsapp-connection-meta">
-        <span>Origen: {status?.source || "sin configurar"}</span>
-        <span>{status?.realSendLabel || "Envío real: NO PROBADO"}</span>
-        <span>Graph: {status?.oauthConfiguration?.graphVersion || "pendiente"}</span>
+      <div className="whatsapp-connection-section">
+        <h4>Preparación para la demo</h4>
+        <ul className="whatsapp-connection-checklist" aria-label="Estado de preparación">
+          <li className={oauthReady ? "is-ok" : "is-pending"}>
+            <span>{statusText(oauthReady)}</span>
+            <strong>Configuración OAuth de Meta</strong>
+          </li>
+          <li className={connected ? "is-ok" : "is-pending"}>
+            <span>{statusText(connected)}</span>
+            <strong>Cuenta y número guardados</strong>
+          </li>
+          <li className={status?.webhookSignatureConfigured ? "is-ok" : "is-pending"}>
+            <span>{statusText(Boolean(status?.webhookSignatureConfigured))}</span>
+            <strong>Webhook con firma segura</strong>
+          </li>
+          <li className="is-pending">
+            <span>No probado</span>
+            <strong>Envío real hacia WhatsApp</strong>
+          </li>
+        </ul>
       </div>
 
-      {missingConfig.length ? (
-        <p className="whatsapp-connection-note">
-          Para reconectar con Meta falta configurar en el servidor: {missingConfig.join(", ")}. La conexión guardada puede mostrarse, pero OAuth no está listo para grabación.
-        </p>
+      {integration ? (
+        <div className="whatsapp-connection-section">
+          <h4>Activos autorizados</h4>
+          <dl className="whatsapp-connection-assets">
+            <div><dt>Business ID</dt><dd>{businessLabel}</dd></div>
+            <div><dt>Cuenta WhatsApp</dt><dd>{wabaLabel}</dd></div>
+            <div><dt>Número conectado</dt><dd>{phoneLabel}</dd></div>
+            <div><dt>Permisos</dt><dd>{grantedScopes.length ? grantedScopes.join(", ") : "Pendiente de lectura"}</dd></div>
+          </dl>
+        </div>
       ) : null}
+
+      <div className="whatsapp-connection-section">
+        <h4>Detalles técnicos</h4>
+        <div className="whatsapp-connection-meta">
+          <span>Origen: {status?.source || "sin configurar"}</span>
+          <span>{status?.realSendLabel || "Envío real: NO PROBADO"}</span>
+          <span>Graph: {status?.oauthConfiguration?.graphVersion || "pendiente"}</span>
+        </div>
+      </div>
+
       {message && <p className="whatsapp-connection-message" role="status">{message}</p>}
     </section>
   );
