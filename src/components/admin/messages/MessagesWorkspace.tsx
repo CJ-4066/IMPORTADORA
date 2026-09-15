@@ -2,13 +2,12 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MessageCircle } from "lucide-react";
-import { getPusherClient } from "@/lib/pusher-client";
 import { ChatHeader } from "./ChatHeader";
 import { ConversationList, type ConversationFilters } from "./ConversationList";
 import { CustomerPanel } from "./CustomerPanel";
 import { MessageBubble } from "./MessageBubble";
 import { MessageInput } from "./MessageInput";
-import type { ChatMessage, Conversation } from "@/types/messages";
+import type { ChatMessage, Conversation, MessageType } from "@/types/messages";
 
 const CONVERSATION_PAGE_SIZE = 30;
 const MESSAGE_PAGE_SIZE = 60;
@@ -186,6 +185,11 @@ function isNearBottom(element: HTMLDivElement | null) {
   }
 
   return element.scrollHeight - element.scrollTop - element.clientHeight < 120;
+}
+
+function asMessageType(value: string): MessageType {
+  const allowedTypes: MessageType[] = ["TEXT", "IMAGE", "VIDEO", "DOCUMENT", "AUDIO", "LOCATION", "CONTACT", "UNKNOWN"];
+  return allowedTypes.includes(value as MessageType) ? (value as MessageType) : "TEXT";
 }
 
 export function MessagesWorkspace() {
@@ -447,6 +451,7 @@ export function MessagesWorkspace() {
     }
 
     const now = new Date();
+    const messageType = asMessageType(type);
     const tempMessage: ChatMessage = {
       content,
       conversationId: activeId,
@@ -455,7 +460,7 @@ export function MessagesWorkspace() {
       externalMessageId: null,
       id: `m-new-${now.getTime()}`,
       mediaUrl: mediaUrl || null,
-      messageType: type as any,
+      messageType,
       metadata: null,
       senderType: "AGENT",
       status: "sending",
@@ -472,7 +477,7 @@ export function MessagesWorkspace() {
                 content,
                 createdAt: now,
                 id: tempMessage.id,
-                messageType: type as any,
+                messageType,
                 senderType: "AGENT",
               },
               lastMessageAt: now,
