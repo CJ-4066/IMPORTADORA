@@ -10,6 +10,7 @@ export function MessageBubble({ message }: Props) {
   const isAgent = message.senderType === "AGENT";
   const isSending = message.status === "sending";
   const isFailed = message.status === "failed";
+  const isAcceptedForDelivery = isAgent && message.status === "sent";
   
   let bubbleClass = "message-customer";
   if (isBot) bubbleClass = "message-bot";
@@ -58,6 +59,7 @@ export function MessageBubble({ message }: Props) {
       <span style={{ fontSize: '10px', color: '#667781', textAlign: 'right', marginTop: '4px' }}>
         {timeStr}
       </span>
+      {isAcceptedForDelivery && <span style={{ fontSize: '10px', color: '#667781' }}>Aceptado; entrega no confirmada.</span>}
       {isSending && <span style={{ fontSize: '10px', color: '#92400e' }}>Enviando...</span>}
       {isFailed && <span style={{ fontSize: '10px', color: '#b91c1c' }}>Error de envío. Reintenta.</span>}
     </div>

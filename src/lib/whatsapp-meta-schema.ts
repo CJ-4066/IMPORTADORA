@@ -2,11 +2,15 @@ import { z } from "zod";
 
 export const embeddedSignupSessionSchema = z.object({
   type: z.string().optional(),
+  event: z.string().trim().max(80).optional(),
+  status: z.string().trim().max(80).optional(),
   current_step: z.string().optional(),
   business_id: z.string().trim().min(1).max(120).optional(),
   businessId: z.string().trim().min(1).max(120).optional(),
   waba_id: z.string().trim().min(1).max(120).optional(),
   phone_number_id: z.string().trim().min(1).max(120).optional(),
+  error_message: z.string().trim().max(500).optional(),
+  error_code: z.string().trim().max(120).optional(),
 }).passthrough();
 
 export const embeddedSignupExchangeSchema = z.object({

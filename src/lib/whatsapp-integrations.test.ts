@@ -8,6 +8,7 @@ import {
 } from "./whatsapp-integrations";
 import { selectDeterministicActiveWhatsappIntegration } from "./whatsapp-credentials";
 import { embeddedSignupSessionSchema, resolveEmbeddedSignupPhone } from "./whatsapp-meta-schema";
+import { extractGrantedPermissions } from "./meta-whatsapp";
 
 const baseData: WhatsappIntegrationUpsertData = {
   businessId: "business-1",
@@ -95,4 +96,16 @@ test("el resolver activo es determinista incluso con la misma fecha de actualiza
     { id: "integration-b", updatedAt: new Date("2026-09-05T10:00:00.000Z"), createdAt: new Date("2026-09-04T10:00:00.000Z") },
   ];
   assert.equal(selectDeterministicActiveWhatsappIntegration(rows)?.id, "integration-b");
+});
+
+test("extrae únicamente permisos concedidos por Meta", () => {
+  const permissions = extractGrantedPermissions({
+    data: [
+      { permission: "whatsapp_business_messaging", status: "granted" },
+      { permission: "whatsapp_business_management", status: "granted" },
+      { permission: "email", status: "declined" },
+    ],
+  });
+
+  assert.deepEqual(permissions, ["whatsapp_business_messaging", "whatsapp_business_management"]);
 });

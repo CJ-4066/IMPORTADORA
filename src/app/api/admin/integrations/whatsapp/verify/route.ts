@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { graphGet, metaErrorResponse } from "@/lib/meta-whatsapp";
+import { extractGrantedPermissions, graphGet, metaErrorResponse } from "@/lib/meta-whatsapp";
 import { resolveWhatsappCredentials } from "@/lib/whatsapp-credentials";
 
 export const dynamic = "force-dynamic";
@@ -26,21 +26,31 @@ export async function POST() {
     }
 
     const selected = integration!;
-    const [business, waba, phone, subscribedApps] = await Promise.all([
-      graphGet<Record<string, unknown>>(`/${selected.businessId}?fields=id,name`, credentials.accessToken),
+    const [waba, phone, subscribedApps, permissionsPayload] = await Promise.all([
       graphGet<Record<string, unknown>>(`/${selected.wabaId}?fields=id,name`, credentials.accessToken),
       graphGet<Record<string, unknown>>(`/${selected.phoneNumberId}?fields=id,display_phone_number,verified_name`, credentials.accessToken),
       graphGet<Record<string, unknown>>(`/${selected.wabaId}/subscribed_apps`, credentials.accessToken),
+      graphGet<unknown>("/me/permissions", credentials.accessToken),
     ]);
 
     const verified = {
-      businessAccessible: business.id === selected.businessId,
+      businessLinkedFromSignup: Boolean(selected.businessId),
       wabaAccessible: waba.id === selected.wabaId,
       phoneAccessible: phone.id === selected.phoneNumberId,
       subscribedApp: Array.isArray(subscribedApps.data) && subscribedApps.data.length > 0,
     };
 
-    await prisma.whatsappIntegration.update({ where: { id: selected.id }, data: { lastVerifiedAt: new Date(), status: "ACTIVE" } });
+    const grantedScopes = extractGrantedPermissions(permissionsPayload);
+    await prisma.whatsappIntegration.update({
+      where: { id: selected.id },
+      data: {
+        displayPhoneNumber: typeof phone.display_phone_number === "string" ? phone.display_phone_number : undefined,
+        lastVerifiedAt: new Date(),
+        scopes: grantedScopes.length ? grantedScopes : undefined,
+        status: "ACTIVE",
+        verifiedName: typeof phone.verified_name === "string" ? phone.verified_name : undefined,
+      },
+    });
 
     return NextResponse.json({
       ok: Object.values(verified).every(Boolean),
@@ -51,11 +61,26 @@ export async function POST() {
         wabaId: selected.wabaId,
         phoneNumberId: selected.phoneNumberId,
         tokenSource: credentials.source,
+        grantedScopes,
         webhookSignatureConfigured: Boolean((process.env.WHATSAPP_APP_SECRET || process.env.META_APP_SECRET)?.trim()),
         realSendTested: false,
         realSendLabel: "Envío real: NO PROBADO",
       },
-      account: { business, waba, phone },
+      account: {
+        business: {
+          id: selected.businessId,
+          name: null,
+        },
+        waba: {
+          id: waba.id,
+          name: typeof waba.name === "string" ? waba.name : null,
+        },
+        phone: {
+          id: phone.id,
+          displayPhoneNumber: typeof phone.display_phone_number === "string" ? phone.display_phone_number : null,
+          verifiedName: typeof phone.verified_name === "string" ? phone.verified_name : null,
+        },
+      },
     });
   } catch (error) {
     const details = metaErrorResponse(error);

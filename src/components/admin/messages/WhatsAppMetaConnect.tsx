@@ -4,50 +4,71 @@
 
 import { useEffect, useRef, useState } from "react";
 import { CheckCircle2, Link2, Loader2, ShieldCheck, XCircle } from "lucide-react";
-import { embeddedSignupSessionSchema, type EmbeddedSignupSession } from "@/lib/whatsapp-meta-schema";
+import { readEmbeddedSignupBrowserEvent } from "@/lib/whatsapp-embedded-signup";
+import type { EmbeddedSignupSession } from "@/lib/whatsapp-meta-schema";
 
 declare global {
   interface Window {
     FB?: {
       init: (options: Record<string, unknown>) => void;
-      login: (callback: (response: { authResponse?: { code?: string } }) => void, options: Record<string, unknown>) => void;
+      login: (
+        callback: (response: { authResponse?: { code?: string }; status?: string }) => void,
+        options: Record<string, unknown>,
+      ) => void;
     };
   }
 }
 
-const ALLOWED_META_ORIGINS = new Set([
-  "https://www.facebook.com",
-  "https://business.facebook.com",
-  "https://web.facebook.com",
-]);
-
 type StatusResponse = {
   configured: boolean;
-  source: "database/oauth" | "env";
+  source: "database/oauth" | "env" | "none";
   integration: {
+    businessId: string;
     displayPhoneNumber: string | null;
+    id: string;
+    lastVerifiedAt: string | null;
+    phoneNumberId: string;
+    scopes: string[];
+    status: string;
     verifiedName: string | null;
     wabaId: string;
-    phoneNumberId: string;
-    lastVerifiedAt: string | null;
   } | null;
+  oauthConfiguration: {
+    appIdConfigured: boolean;
+    appSecretConfigured: boolean;
+    graphVersion: string;
+    loginConfigIdConfigured: boolean;
+    tokenEncryptionConfigured: boolean;
+  };
   webhookSignatureConfigured: boolean;
   realSendLabel: string;
 };
 
-function readSignupMessage(event: MessageEvent) {
-  if (!ALLOWED_META_ORIGINS.has(event.origin) || !event.data || typeof event.data !== "object") {
-    return null;
-  }
+type VerifiedAccount = {
+  business: { id: unknown; name: string | null };
+  waba: { id: unknown; name: string | null };
+  phone: { id: unknown; displayPhoneNumber: string | null; verifiedName: string | null };
+};
 
-  const message = event.data as { type?: unknown; data?: unknown };
-  if (message.type !== "WA_EMBEDDED_SIGNUP" || !message.data || typeof message.data !== "object") {
-    return null;
-  }
+type VerifyResponse = {
+  ok?: boolean;
+  account?: VerifiedAccount;
+  diagnostics?: {
+    code?: number | null;
+    fbtraceId?: string | null;
+    grantedScopes?: string[];
+    realSendLabel?: string;
+    subcode?: number | null;
+  };
+  error?: string;
+};
 
-  const parsed = embeddedSignupSessionSchema.safeParse(message.data);
-  return parsed.success ? parsed.data : null;
-}
+type ExchangeResponse = {
+  ok?: boolean;
+  account?: VerifiedAccount;
+  error?: string;
+  subscribedApp?: boolean;
+};
 
 export function WhatsAppMetaConnect() {
   const [status, setStatus] = useState<StatusResponse | null>(null);
@@ -55,6 +76,7 @@ export function WhatsAppMetaConnect() {
   const [authorizationCode, setAuthorizationCode] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [verifiedAccount, setVerifiedAccount] = useState<VerifiedAccount | null>(null);
   const initialized = useRef(false);
 
   async function loadStatus() {
@@ -68,8 +90,18 @@ export function WhatsAppMetaConnect() {
 
   useEffect(() => {
     const onMessage = (event: MessageEvent) => {
-      const parsed = readSignupMessage(event);
-      if (parsed) setSessionInfo(parsed);
+      const parsed = readEmbeddedSignupBrowserEvent(event);
+      if (!parsed) return;
+
+      if (parsed.kind === "SESSION") {
+        setSessionInfo(parsed.sessionInfo);
+        setMessage("Meta autorizó los activos. Guardando la conexión en el servidor...");
+        return;
+      }
+
+      setSessionInfo(null);
+      setAuthorizationCode(null);
+      setMessage(parsed.message);
     };
 
     window.addEventListener("message", onMessage);
@@ -87,9 +119,14 @@ export function WhatsAppMetaConnect() {
       body: JSON.stringify({ authorizationCode, sessionInfo }),
     })
       .then(async (response) => {
-        const payload = (await response.json()) as { ok?: boolean; error?: string };
+        const payload = (await response.json()) as ExchangeResponse;
         if (!response.ok || !payload.ok) throw new Error(payload.error || "Meta no pudo completar la conexión.");
-        setMessage("WhatsApp quedó conectado y verificado de forma básica.");
+        setVerifiedAccount(payload.account ?? null);
+        setMessage(
+          payload.subscribedApp
+            ? "WhatsApp quedó conectado. Los activos autorizados se verificaron con Graph."
+            : "WhatsApp quedó conectado. Revisa la suscripción de la app al WABA antes de grabar recepción real.",
+        );
         setAuthorizationCode(null);
         setSessionInfo(null);
         await loadStatus();
@@ -99,6 +136,16 @@ export function WhatsAppMetaConnect() {
   }, [authorizationCode, busy, sessionInfo]);
 
   function loadFacebookSdk() {
+    if (!sdkReady) {
+      setMessage("Faltan las variables públicas de Meta para abrir Embedded Signup.");
+      return;
+    }
+
+    setMessage("Abriendo autorización oficial de Meta...");
+    setSessionInfo(null);
+    setAuthorizationCode(null);
+    setVerifiedAccount(null);
+
     if (window.FB) {
       window.FB.login(handleLogin, loginOptions());
       return;
@@ -109,6 +156,7 @@ export function WhatsAppMetaConnect() {
       const script = document.createElement("script");
       script.src = "https://connect.facebook.net/en_US/sdk.js";
       script.async = true;
+      script.onerror = () => setMessage("No se pudo cargar el SDK oficial de Facebook. Revisa bloqueadores, dominio y conexión.");
       script.onload = () => {
         window.FB?.init({
           appId: process.env.NEXT_PUBLIC_META_APP_ID,
@@ -145,12 +193,13 @@ export function WhatsAppMetaConnect() {
     setMessage(null);
     try {
       const response = await fetch("/api/admin/integrations/whatsapp/verify", { method: "POST" });
-      const payload = (await response.json()) as { ok?: boolean; error?: string; diagnostics?: { code?: number | null; subcode?: number | null; fbtraceId?: string | null } };
+      const payload = (await response.json()) as VerifyResponse;
       if (!response.ok || !payload.ok) {
         const diagnostic = payload.diagnostics?.code ? ` Código Meta ${payload.diagnostics.code}.` : "";
         throw new Error(`${payload.error || "La verificación no pasó."}${diagnostic}`);
       }
-      setMessage("Conexión verificada con lecturas Graph. Envío real: NO PROBADO.");
+      setVerifiedAccount(payload.account ?? null);
+      setMessage("Activos verificados con Graph. Envío real: no probado desde esta verificación.");
       await loadStatus();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "No se pudo verificar la conexión.");
@@ -161,6 +210,16 @@ export function WhatsAppMetaConnect() {
 
   const connected = Boolean(status?.integration);
   const sdkReady = Boolean(process.env.NEXT_PUBLIC_META_APP_ID && process.env.NEXT_PUBLIC_META_LOGIN_CONFIG_ID);
+  const integration = status?.integration;
+  const missingConfig = status
+    ? [
+        status.oauthConfiguration.appIdConfigured ? null : "App ID",
+        status.oauthConfiguration.loginConfigIdConfigured ? null : "Config ID",
+        status.oauthConfiguration.appSecretConfigured ? null : "App Secret",
+        status.oauthConfiguration.tokenEncryptionConfigured ? null : "Token encryption key",
+      ].filter(Boolean)
+    : [];
+  const grantedScopes = integration?.scopes?.length ? integration.scopes : verifiedAccount ? status?.integration?.scopes ?? [] : [];
 
   return (
     <section className="whatsapp-connection-card" aria-labelledby="whatsapp-connection-title">
@@ -168,7 +227,7 @@ export function WhatsAppMetaConnect() {
         <div className="whatsapp-connection-icon"><ShieldCheck size={20} /></div>
         <div>
           <h2 id="whatsapp-connection-title">Conexión WhatsApp Business</h2>
-          <p>Conecta una cuenta mediante Embedded Signup. El token se guarda cifrado y nunca se muestra.</p>
+          <p>OAuth oficial de Meta para autorizar messaging y management. El token se guarda cifrado y nunca se muestra.</p>
         </div>
       </div>
       <div className="whatsapp-connection-status">
@@ -178,16 +237,27 @@ export function WhatsAppMetaConnect() {
       <div className="whatsapp-connection-actions">
         <button className="btn btn-primary" type="button" onClick={loadFacebookSdk} disabled={!sdkReady || busy}>
           {busy ? <Loader2 className="spin" size={16} /> : <Link2 size={16} />}
-          {connected ? "Conectar otra cuenta" : "Conectar con Meta"}
+          {connected ? "Reconectar WhatsApp" : "Conectar WhatsApp"}
         </button>
-        <button className="btn btn-secondary" type="button" onClick={verifyConnection} disabled={!connected || busy}>Verificar conexión</button>
+        <button className="btn btn-secondary" type="button" onClick={verifyConnection} disabled={!connected || busy}>Verificar activos</button>
       </div>
       <div className="whatsapp-connection-meta">
         <span>Origen: {status?.source || "sin configurar"}</span>
         <span>{status?.realSendLabel || "Envío real: NO PROBADO"}</span>
         <span>Webhook: {status?.webhookSignatureConfigured ? "secreto configurado" : "revisión pendiente"}</span>
+        <span>Graph: {status?.oauthConfiguration?.graphVersion || "pendiente"}</span>
       </div>
-      {!sdkReady && <p className="whatsapp-connection-note">Configura `NEXT_PUBLIC_META_APP_ID` y `NEXT_PUBLIC_META_LOGIN_CONFIG_ID` para habilitar Embedded Signup en local.</p>}
+      {integration ? (
+        <dl className="whatsapp-connection-assets">
+          <div><dt>Business</dt><dd>{verifiedAccount?.business.name || integration.businessId}</dd></div>
+          <div><dt>WABA</dt><dd>{verifiedAccount?.waba.name || integration.wabaId}</dd></div>
+          <div><dt>Número</dt><dd>{verifiedAccount?.phone.displayPhoneNumber || integration.displayPhoneNumber || integration.phoneNumberId}</dd></div>
+          <div><dt>Permisos</dt><dd>{grantedScopes.length ? grantedScopes.join(", ") : "pendiente de lectura"}</dd></div>
+        </dl>
+      ) : null}
+      {missingConfig.length ? (
+        <p className="whatsapp-connection-note">Falta configurar para OAuth: {missingConfig.join(", ")}.</p>
+      ) : null}
       {message && <p className="whatsapp-connection-message" role="status">{message}</p>}
     </section>
   );

@@ -1,3 +1,5 @@
+import type { AuthorizedWhatsappPhone } from "@/lib/whatsapp-meta-schema";
+
 export type MetaGraphDiagnostics = {
   httpStatus: number;
   code: number | null;
@@ -116,4 +118,18 @@ export function metaErrorResponse(error: unknown) {
 
   return { message: error instanceof Error ? error.message : "No se pudo completar la operación de Meta." };
 }
-import type { AuthorizedWhatsappPhone } from "@/lib/whatsapp-meta-schema";
+
+export function extractGrantedPermissions(payload: unknown) {
+  if (!payload || typeof payload !== "object" || !Array.isArray((payload as { data?: unknown }).data)) {
+    return [];
+  }
+
+  return (payload as { data: unknown[] }).data.flatMap((item) => {
+    if (!item || typeof item !== "object") return [];
+    const record = item as Record<string, unknown>;
+    const permission = typeof record.permission === "string" ? record.permission.trim() : "";
+    const status = typeof record.status === "string" ? record.status.trim().toLowerCase() : "";
+
+    return permission && status === "granted" ? [permission] : [];
+  });
+}

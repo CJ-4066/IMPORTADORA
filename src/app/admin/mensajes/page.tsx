@@ -10,7 +10,7 @@ export default function InboxPage() {
           <h1 className="h4" style={{ margin: 0 }}>Bandeja de Entrada</h1>
           <p className="text-muted" style={{ margin: 0, fontSize: '13px' }}>Conversaciones en tiempo real</p>
         </div>
-        <div style={{ maxWidth: '400px' }}>
+        <div style={{ maxWidth: '620px' }}>
           <WhatsAppMetaConnect />
         </div>
       </div>

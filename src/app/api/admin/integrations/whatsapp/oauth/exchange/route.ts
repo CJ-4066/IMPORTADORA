@@ -3,7 +3,7 @@ import { z } from "zod";
 import { requireAdmin } from "@/lib/auth";
 import { encryptWhatsappToken } from "@/lib/whatsapp-token-crypto";
 import { prisma } from "@/lib/prisma";
-import { exchangeMetaAuthorizationCode, extractWhatsappPhoneNumbers, graphGet, metaErrorResponse } from "@/lib/meta-whatsapp";
+import { exchangeMetaAuthorizationCode, extractGrantedPermissions, extractWhatsappPhoneNumbers, graphGet, metaErrorResponse } from "@/lib/meta-whatsapp";
 import { embeddedSignupExchangeSchema, getSessionInfoIds, resolveEmbeddedSignupPhone } from "@/lib/whatsapp-meta-schema";
 import { upsertLocalWhatsappIntegration } from "@/lib/whatsapp-integrations";
 
@@ -21,15 +21,15 @@ export async function POST(request: Request) {
       throw new Error("Meta no devolvió business_id y waba_id verificables.");
     }
 
-    const [business, waba, phoneNumbersPayload, subscribedApps] = await Promise.all([
-      graphGet<Record<string, unknown>>(`/${ids.businessId}?fields=id,name`, exchanged.accessToken),
+    const [waba, phoneNumbersPayload, subscribedApps, permissionsPayload] = await Promise.all([
       graphGet<Record<string, unknown>>(`/${ids.wabaId}?fields=id,name`, exchanged.accessToken),
       graphGet<unknown>(`/${ids.wabaId}/phone_numbers?fields=id,display_phone_number,verified_name`, exchanged.accessToken),
       graphGet<Record<string, unknown>>(`/${ids.wabaId}/subscribed_apps`, exchanged.accessToken),
+      graphGet<unknown>("/me/permissions", exchanged.accessToken),
     ]);
 
-    if (business.id !== ids.businessId || waba.id !== ids.wabaId) {
-      throw new Error("Los identificadores del navegador no coinciden con los recursos autorizados por Meta.");
+    if (waba.id !== ids.wabaId) {
+      throw new Error("El WABA del navegador no coincide con los recursos autorizados por Meta.");
     }
 
     const phoneSelection = resolveEmbeddedSignupPhone(ids.phoneNumberId, extractWhatsappPhoneNumbers(phoneNumbersPayload));
@@ -47,6 +47,7 @@ export async function POST(request: Request) {
     }
 
     const phone = phoneSelection.phone;
+    const grantedScopes = Array.from(new Set([...exchanged.scopes, ...extractGrantedPermissions(permissionsPayload)]));
 
     const encryptedToken = encryptWhatsappToken(exchanged.accessToken);
     const data = {
@@ -57,7 +58,7 @@ export async function POST(request: Request) {
       verifiedName: phone.verifiedName,
       accessTokenEncrypted: encryptedToken,
       tokenType: exchanged.tokenType,
-      scopes: exchanged.scopes,
+      scopes: grantedScopes,
       status: "ACTIVE" as const,
       connectedByUserId: session.userId,
       lastVerifiedAt: new Date(),
@@ -78,6 +79,15 @@ export async function POST(request: Request) {
         displayPhoneNumber: integration.displayPhoneNumber,
         verifiedName: integration.verifiedName,
         scopes: integration.scopes,
+      },
+      account: {
+        business: { id: ids.businessId, name: null },
+        waba: { id: waba.id, name: typeof waba.name === "string" ? waba.name : null },
+        phone: {
+          id: phone.id,
+          displayPhoneNumber: phone.displayPhoneNumber,
+          verifiedName: phone.verifiedName,
+        },
       },
       subscribedApp: Array.isArray(subscribedApps.data) && subscribedApps.data.length > 0,
       realSendTested: false,
