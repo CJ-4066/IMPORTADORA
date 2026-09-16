@@ -748,7 +748,7 @@ model ChatContact {
   name            String         @db.VarChar(180)
   phone           String?        @db.VarChar(32)
   phoneNormalized String?        @db.VarChar(32)
-  manychatSubscriberId String?   @db.VarChar(120)
+  manychatSubscriberId String?   @unique @db.VarChar(120)
   avatar          String?        @db.Text
   tags            String[]       @default([])
   createdAt       DateTime       @default(now())
@@ -758,7 +758,6 @@ model ChatContact {
   @@unique([channel, externalId])
   @@index([phone])
   @@index([phoneNormalized])
-  @@index([manychatSubscriberId])
   @@index([name])
 }
 
