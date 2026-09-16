@@ -48,13 +48,20 @@ export function enableCatalogDocuments(outbound, catalog) {
   const record = catalog.nodes.find(n => n.name === 'Registrar catálogo enviado');
   if(!send || !record) throw new Error('Unexpected catalog workflow');
   send.name = 'Enviar PDF por WhatsApp';
+  send.onError = 'continueErrorOutput';
   for(const connection of Object.values(catalog.connections)) for(const output of connection.main ?? []) for(const e of output) if(e.node === sendName) e.node = send.name;
   delete catalog.connections[sendName];
   catalog.nodes.push(condition('Confirmar envío del PDF', "={{ $json.ok === true && $json.provider === 'meta-cloud' && typeof $json.messageId === 'string' && $json.messageId.startsWith('wamid.') }}", [1010, -80]));
-  catalog.connections[send.name] = { main: [[edge('Confirmar envío del PDF')]] };
-  catalog.connections['Confirmar envío del PDF'] = { main: [[edge(record.name)], []] };
+  catalog.connections[send.name] = { main: [[edge('Confirmar envío del PDF')], [edge('Registrar PDF fallido')]] };
+  catalog.connections['Confirmar envío del PDF'] = { main: [[edge(record.name)], [edge('Registrar PDF fallido')]] };
   record.position = [1250, -80];
   record.parameters.jsonBody = "={{ { agentId: 'catalog-projectors-bot', content: $('Generar catálogo PDF').first().json.content, conversationId: $('Generar catálogo PDF').first().json.conversationId, externalMessageId: $json.messageId, mediaUrl: $('Generar catálogo PDF').first().json.mediaUrl, provider: 'meta-cloud', requestId: $('Generar catálogo PDF').first().json.requestId, type: 'DOCUMENT' } }}";
+  const failed = structuredClone(record);
+  failed.id = 'record-catalog-document-failed';
+  failed.name = 'Registrar PDF fallido';
+  failed.position = [1250, 160];
+  failed.parameters.jsonBody = "={{ { agentId: 'catalog-projectors-bot', content: $('Generar catálogo PDF').first().json.content, conversationId: $('Generar catálogo PDF').first().json.conversationId, externalMessageId: 'failed:' + $('Generar catálogo PDF').first().json.requestId, mediaUrl: $('Generar catálogo PDF').first().json.mediaUrl, provider: 'meta-cloud', requestId: $('Generar catálogo PDF').first().json.requestId, type: 'DOCUMENT', status: 'failed' } }}";
+  catalog.nodes.push(failed);
   return { outbound, catalog };
 }
 

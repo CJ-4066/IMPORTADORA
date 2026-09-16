@@ -26,6 +26,13 @@ si Meta devuelve un identificador `wamid.*`. Un error o respuesta sin ID sigue
 la salida de fallo; nunca se sustituye el documento por un enlace silenciosamente.
 El proveedor del registro es `meta-cloud` y el tipo es `DOCUMENT`.
 
+Si el proveedor rechaza el archivo, se registra `failed` con una razón segura y
+el mismo `requestId`, visible en el Centro de Mensajes. La prueba del 16/09/2026
+detectó el error Meta `#200`: la credencial existente puede consultar el emisor,
+pero no tiene permiso de envío sobre la cuenta WhatsApp Business. La entrega
+nativa requiere corregir esa autorización o configurar un flujo de documento
+en ManyChat; no está verificada como operativa mientras persista ese rechazo.
+
 `scripts/n8n/enable-catalog-documents.mjs` prepara este ajuste sobre exportaciones
 respaldadas de los dos workflows; reutiliza el emisor y las referencias a las
 credenciales existentes y no contiene secretos. No ejecutarlo sobre workflows

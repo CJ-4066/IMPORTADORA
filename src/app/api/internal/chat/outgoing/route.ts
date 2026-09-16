@@ -3,6 +3,7 @@ import { MessageType } from "@prisma/client";
 import { z } from "zod";
 
 import { prisma } from "@/lib/prisma";
+import { triggerPusherEvent } from "@/lib/pusher-server";
 
 const outgoingMessageSchema = z.object({
   agentId: z.string().trim().min(1).max(120).default("router-v2-bot"),
@@ -13,6 +14,7 @@ const outgoingMessageSchema = z.object({
   mediaUrl: z.string().trim().url().nullable().optional(),
   requestId: z.string().trim().min(1).max(120).optional(),
   type: z.nativeEnum(MessageType).default("TEXT"),
+  status: z.enum(["sent", "failed"]).default("sent"),
 });
 
 function isAuthorized(request: Request) {
@@ -54,9 +56,13 @@ export async function POST(request: Request) {
             agentId: input.agentId,
             provider: input.provider,
             requestId: input.requestId ?? null,
+            ...(input.status === "failed" ? {
+              error: "No se pudo enviar el PDF por WhatsApp. Revisa los permisos de envío de la integración y la ventana de conversación.",
+              errorCode: "WHATSAPP_DOCUMENT_SEND_FAILED",
+            } : {}),
           },
           senderType: "BOT",
-          status: "sent",
+          status: input.status,
         },
       });
 
@@ -70,6 +76,8 @@ export async function POST(request: Request) {
 
       return created;
     });
+
+    triggerPusherEvent(`chat-${input.conversationId}`, "new-message", message);
 
     return NextResponse.json({
       ok: true,
