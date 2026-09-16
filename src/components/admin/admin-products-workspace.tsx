@@ -5,20 +5,19 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  AlertTriangle,
   ArrowRight,
+  Boxes,
   Eye,
   EyeOff,
-  Filter,
   ImageOff,
+  Plus,
   PackageX,
   PencilLine,
   MoreHorizontal,
+  Search,
+  SlidersHorizontal,
   SquareCheckBig,
   TriangleAlert,
-  RefreshCw,
-  Sparkles,
-  Truck,
   Trash2,
   Warehouse,
 } from "lucide-react";
@@ -196,6 +195,14 @@ export function AdminProductsWorkspace({
   const [openMenuPosition, setOpenMenuPosition] = useState<{ top: number; left: number } | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ productId: string; productName: string } | null>(null);
   const [previewProductId, setPreviewProductId] = useState<string | null>(null);
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(
+    filters.category !== "all" ||
+      filters.brand !== "all" ||
+      filters.photo !== "all" ||
+      filters.stock === "low" ||
+      filters.featured !== "all" ||
+      filters.sync !== "all",
+  );
   const menuButtonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const deleteFormRef = useRef<HTMLFormElement | null>(null);
   const [toast, setToast] = useState<ToastState>(status ? statusMessages[status] ?? {
@@ -215,6 +222,8 @@ export function AdminProductsWorkspace({
     filters.visibility !== "all" ||
     filters.photo !== "all" ||
     filters.stock !== "all" ||
+    filters.featured !== "all" ||
+    filters.sync !== "all" ||
     filters.issue !== "all";
 
   function toggleSelection(productId: string) {
@@ -369,23 +378,25 @@ export function AdminProductsWorkspace({
   const hasHardReview = stats.needsReviewProducts > 0;
 
   const quickFilters = [
-    { label: "Sin stock", href: `/admin/products?${buildQuery(filters, { stock: "out" })}`, tone: stats.outOfStockProducts > 0 ? "warning" : "muted", count: stats.outOfStockProducts, icon: PackageX, active: filters.stock === "out" },
-    { label: "Stock bajo", href: `/admin/products?${buildQuery(filters, { stock: "low" })}`, tone: stats.lowStockProducts > 0 ? "warning" : "muted", count: stats.lowStockProducts, icon: AlertTriangle, active: filters.stock === "low" },
-    { label: "Sin imagen", href: `/admin/products?${buildQuery(filters, { photo: "missing" })}`, tone: stats.withoutPhotoProducts > 0 ? "danger" : "muted", count: stats.withoutPhotoProducts, icon: ImageOff, active: filters.photo === "missing" },
-    { label: "Ocultos", href: `/admin/products?${buildQuery(filters, { visibility: "hidden" })}`, tone: stats.hiddenProducts > 0 ? "neutral" : "muted", count: stats.hiddenProducts, icon: EyeOff, active: filters.visibility === "hidden" },
-    { label: "Destacados", href: `/admin/products?${buildQuery(filters, { featured: "only" })}`, tone: stats.featuredProducts > 0 ? "positive" : "muted", count: stats.featuredProducts, icon: Sparkles, active: filters.featured === "only" },
-    { label: "Sin sync reciente", href: `/admin/products?${buildQuery(filters, { sync: "stale" })}`, tone: stats.staleSyncedProducts > 0 ? "warning" : "muted", count: stats.staleSyncedProducts, icon: RefreshCw, active: filters.sync === "stale" },
-    { label: "ERP desconectado", href: `/admin/products?${buildQuery(filters, { sync: "unsynced" })}`, tone: stats.unsyncedProducts > 0 ? "danger" : "muted", count: stats.unsyncedProducts, icon: Truck, active: filters.sync === "unsynced" },
-    { label: "Productos a revisar", href: `/admin/products?${buildQuery(filters, { issue: "review" })}`, tone: hasHardReview ? "danger" : "muted", count: stats.needsReviewProducts, icon: TriangleAlert, active: filters.issue === "review" },
+    { label: "Todos", href: "/admin/products", tone: "neutral", count: stats.totalProducts, icon: Boxes, active: !hasAnyFilter },
+    { label: "Publicados", href: `/admin/products?${buildQuery(filters, { visibility: "visible", stock: "", photo: "", issue: "" })}`, tone: "positive", count: stats.visibleProducts, icon: Eye, active: filters.visibility === "visible" && filters.issue === "all" },
+    { label: "Ocultos", href: `/admin/products?${buildQuery(filters, { visibility: "hidden", stock: "", photo: "", issue: "" })}`, tone: "neutral", count: stats.hiddenProducts, icon: EyeOff, active: filters.visibility === "hidden" },
+    { label: "Requieren atención", href: `/admin/products?${buildQuery(filters, { issue: "review", visibility: "", stock: "", photo: "" })}`, tone: hasHardReview ? "danger" : "muted", count: stats.needsReviewProducts, icon: TriangleAlert, active: filters.issue === "review" },
+    { label: "Sin stock", href: `/admin/products?${buildQuery(filters, { stock: "out", issue: "" })}`, tone: stats.outOfStockProducts > 0 ? "warning" : "muted", count: stats.outOfStockProducts, icon: PackageX, active: filters.stock === "out" },
   ] as const;
 
   return (
     <section className="panel admin-products-panel">
-      <div className="panel-header">
+      <div className="panel-header admin-products-page-head">
         <div>
           <p className="eyebrow">Productos</p>
-          <h1>Listado optimizado para catálogo grande</h1>
+          <h1>Catálogo de productos</h1>
+          <p className="panel-copy">Busca, corrige y publica productos desde una sola vista.</p>
         </div>
+        <Link className="button button-primary admin-products-new-button" href="/admin/products/new">
+          <Plus size={17} />
+          Nuevo producto
+        </Link>
       </div>
 
       {toast ? (
@@ -402,14 +413,7 @@ export function AdminProductsWorkspace({
         </div>
       ) : null}
 
-      <section className="admin-products-sanity-rail">
-        <div className="panel-header admin-products-sanity-head">
-          <div>
-            <p className="eyebrow">Filtros rápidos</p>
-            <h2>Refina el catálogo</h2>
-          </div>
-          <span className="muted">{selectedCount ? `${selectedCount} seleccionados` : "Sin selección"}</span>
-        </div>
+      <section className="admin-products-sanity-rail" aria-label="Vistas del catálogo">
         <div className="admin-products-sanity-chips">
           {quickFilters.map((filter) => (
             <Link
@@ -428,50 +432,13 @@ export function AdminProductsWorkspace({
       <div className="admin-products-toolbar">
         <form className="filters-form admin-filters" method="GET">
           <label className="search-field">
-            <Filter size={18} />
-            <input defaultValue={filters.q} name="q" placeholder="Buscar producto..." />
+            <Search size={18} />
+            <input defaultValue={filters.q} name="q" placeholder="Buscar por nombre, código o marca..." />
           </label>
-          <select defaultValue={filters.category} name="category">
-            <option value="all">Todas las categorías</option>
-            {categories.map((item) => (
-              <option key={item.id} value={item.slug}>
-                {item.name}
-              </option>
-            ))}
-          </select>
-          <select defaultValue={filters.brand} name="brand">
-            <option value="all">Todas las marcas</option>
-            {brands.map((item) => (
-              <option key={item.name} value={item.name}>
-                {item.name}
-              </option>
-            ))}
-          </select>
-          <select defaultValue={filters.visibility} name="visibility">
-            <option value="all">Todos los estados</option>
-            <option value="visible">Solo visibles</option>
-            <option value="hidden">Solo ocultos</option>
-          </select>
-          <select defaultValue={filters.photo} name="photo">
-            <option value="all">Todas las fotos</option>
-            <option value="missing">Sin foto</option>
-            <option value="with-photo">Con foto</option>
-          </select>
-          <select defaultValue={filters.stock} name="stock">
-            <option value="all">Todo el stock</option>
-            <option value="low">Solo stock bajo</option>
-            <option value="out">Sin stock</option>
-          </select>
-          <select defaultValue={filters.featured} name="featured">
-            <option value="all">Todos los destacados</option>
-            <option value="only">Solo destacados</option>
-          </select>
-          <select defaultValue={filters.sync} name="sync">
-            <option value="all">Toda la sync</option>
-            <option value="synced">Sincronizados</option>
-            <option value="unsynced">Sin sync</option>
-            <option value="stale">Sin sync reciente</option>
-          </select>
+          <button className="button button-secondary" onClick={() => setShowAdvancedFilters((value) => !value)} type="button" aria-expanded={showAdvancedFilters}>
+            <SlidersHorizontal size={16} />
+            Más filtros
+          </button>
           <input name="issue" type="hidden" value={filters.issue} />
           <button className="button button-primary" type="submit">
             Buscar
@@ -481,27 +448,32 @@ export function AdminProductsWorkspace({
               Limpiar
             </Link>
           ) : null}
-        </form>
-
-        <div className="admin-products-utility-row">
-          <div className="admin-products-utility-links">
-            <Link className="button button-secondary" href="/admin/categories">
-              Categorías
-            </Link>
-            <Link className="button button-secondary" href="/admin/products/new">
-              Nuevo producto
-            </Link>
+          <div className={`admin-products-advanced-filters ${showAdvancedFilters ? "is-open" : ""}`}>
+            <select defaultValue={filters.category} name="category" aria-label="Categoría">
+              <option value="all">Todas las categorías</option>
+              {categories.map((item) => <option key={item.id} value={item.slug}>{item.name}</option>)}
+            </select>
+            <select defaultValue={filters.brand} name="brand" aria-label="Marca">
+              <option value="all">Todas las marcas</option>
+              {brands.map((item) => <option key={item.name} value={item.name}>{item.name}</option>)}
+            </select>
+            <select defaultValue={filters.visibility} name="visibility" aria-label="Publicación">
+              <option value="all">Toda publicación</option><option value="visible">Publicados</option><option value="hidden">Ocultos</option>
+            </select>
+            <select defaultValue={filters.photo} name="photo" aria-label="Imágenes">
+              <option value="all">Todas las imágenes</option><option value="missing">Sin imagen</option><option value="with-photo">Con imagen</option>
+            </select>
+            <select defaultValue={filters.stock} name="stock" aria-label="Inventario">
+              <option value="all">Todo el inventario</option><option value="low">Stock bajo</option><option value="out">Sin stock</option>
+            </select>
+            <select defaultValue={filters.featured} name="featured" aria-label="Promoción">
+              <option value="all">Todos</option><option value="only">Solo destacados</option>
+            </select>
+            <select defaultValue={filters.sync} name="sync" aria-label="Sincronización ERP">
+              <option value="all">Cualquier origen</option><option value="synced">Sincronizados</option><option value="unsynced">Manuales / sin sync</option><option value="stale">Sync desactualizada</option>
+            </select>
           </div>
-
-          <button
-            className="button button-primary"
-            disabled={pendingAction !== null}
-            onClick={() => void runBulkAction("hide-without-photo", [])}
-            type="button"
-          >
-            Ocultar todos sin foto
-          </button>
-        </div>
+        </form>
       </div>
 
       {selectedCount > 0 ? (
@@ -567,11 +539,10 @@ export function AdminProductsWorkspace({
                   </label>
                 </th>
                 <th>Producto</th>
-                <th>Foto</th>
-                <th>Código</th>
                 <th>Precios</th>
-                <th>Stock</th>
-                <th>Estado</th>
+                <th>Inventario</th>
+                <th>Publicación</th>
+                <th>Alertas</th>
                 <th />
               </tr>
             </thead>
@@ -593,54 +564,45 @@ export function AdminProductsWorkspace({
                       />
                     </td>
                     <td data-label="Producto">
-                      <strong>{product.name}</strong>
-                      <p className="muted">{product.brand ?? "Sin marca"}</p>
-                    </td>
-                    <td data-label="Foto">
-                      <div className="admin-product-photo-cell">
+                      <div className="admin-product-identity">
                         {product.thumbnailUrl ? (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img
                             alt={product.name}
                             className="admin-product-thumb"
-                            height={40}
+                            height={48}
                             decoding="async"
                             loading="lazy"
                             src={product.thumbnailUrl}
-                            width={40}
+                            width={48}
                           />
                         ) : (
                           <span className="admin-product-thumb admin-product-thumb-empty">
                             <ImageOff size={16} />
                           </span>
                         )}
-                        {hasPhoto ? (
-                          <span className="status-badge is-visible">Con foto</span>
-                        ) : (
-                          <span className="status-badge is-hidden">Sin foto</span>
-                        )}
+                        <div><strong>{product.name}</strong><p className="muted">{product.code} · {product.brand ?? "Sin marca"}</p></div>
                       </div>
                     </td>
-                    <td data-label="Código">{product.code}</td>
                     <td data-label="Precios">
                       <strong>{formatCurrency(product.unitPrice)}</strong>
                       {product.wholesalePrice ? (
                         <p className="muted">Mayor: {formatCurrency(product.wholesalePrice)}</p>
                       ) : null}
                     </td>
-                    <td data-label="Stock">{product.stockUnits}</td>
-                    <td data-label="Estado">
+                    <td data-label="Inventario"><strong>{product.stockUnits}</strong><p className="muted">unidades</p></td>
+                    <td data-label="Publicación">
                       <span className={`status-badge ${isEffectivelyVisible ? "is-visible" : "is-hidden"}`}>
-                        {isEffectivelyVisible ? "Visible" : "Oculto"}
+                        {isEffectivelyVisible ? "Publicado" : "Oculto"}
                       </span>
+                      {product.isFeatured ? <span className="status-badge is-visible">Destacado</span> : null}
+                    </td>
+                    <td data-label="Alertas">
                       {needsReview ? (
                         <span className="status-badge is-warning">
                           {!hasPhoto && !hasStock ? "Sin foto y sin stock" : !hasPhoto ? "Sin foto" : "Sin stock"}
                         </span>
-                      ) : null}
-                      {product.isFeatured ? (
-                        <span className="status-badge is-visible">Destacado</span>
-                      ) : null}
+                      ) : <span className="muted">Sin alertas</span>}
                     </td>
                     <td data-label="Acciones">
                       <div className="table-actions admin-product-actions">
@@ -655,7 +617,7 @@ export function AdminProductsWorkspace({
                         >
                           <Eye size={16} />
                         </button>
-                        {!hasPhoto || !hasStock ? (
+                        {!hasPhoto ? (
                           <Link className="button button-secondary button-chip" href={`/admin/products/${product.id}#media`}>
                             Agregar foto
                           </Link>

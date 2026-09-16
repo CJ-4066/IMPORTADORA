@@ -49,7 +49,7 @@ const emptyProductActionState: ProductActionState = {
     wholesaleMinQty: "3",
     boxPrice: "",
     unitsPerBox: "",
-    isVisible: true,
+    isVisible: false,
     isFeatured: false,
   },
 };
