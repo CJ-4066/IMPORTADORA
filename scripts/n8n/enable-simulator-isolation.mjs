@@ -21,13 +21,14 @@ function ifNode(name, expression, position) {
   };
 }
 
-function internalRequest(name, jsonBody, position) {
+function internalRequest(name, jsonBody, position, credentials) {
   return {
     id: name.toLowerCase().replaceAll(/[^a-z0-9]+/g, "-"),
     name,
     position,
     type: "n8n-nodes-base.httpRequest",
     typeVersion: 4.5,
+    credentials: structuredClone(credentials),
     parameters: {
       method: "POST",
       url: "https://tiendavirtualsuper.com/api/internal/chat/outgoing",
@@ -95,6 +96,7 @@ function patchRouter(workflow) {
   const prepare = requireNode(workflow, "Prepare Ordered Outbound");
   const dispatch = requireNode(workflow, "Dispatch via Outbound V2");
   const completed = requireNode(workflow, "Router V2 Completed");
+  const verifiedRecord = requireNode(workflow, "Record verified automatic outbound");
 
   normalize.parameters.jsCode = normalize.parameters.jsCode.replace(
     "receivedAt: typeof source.timestamp === 'string' ? source.timestamp : new Date().toISOString()",
@@ -110,6 +112,7 @@ function patchRouter(workflow) {
     "Registrar respuesta simulada",
     "={{ { agentId: 'router-v2-simulator', content: $json.content, conversationId: $json.conversationId, externalMessageId: 'simulated:' + $json.requestId, mediaUrl: $json.mediaUrl, provider: 'manychat', requestId: $json.requestId, type: String($json.type || 'text').toUpperCase() } }}",
     [3000, 180],
+    verifiedRecord.credentials,
   );
   workflow.nodes.push(check, record);
   workflow.connections[prepare.name] = { main: [[edge(check.name)]] };
@@ -122,12 +125,14 @@ function patchCatalog(workflow) {
   ensureAbsent(workflow, names);
   const shouldSend = requireNode(workflow, "¿Enviar catálogo?");
   const realSend = requireNode(workflow, "Enviar PDF por WhatsApp");
+  const verifiedRecord = requireNode(workflow, "Registrar catálogo enviado");
 
   const check = ifNode("¿Es catálogo simulado?", "={{ $json.simulation === true }}", [760, -40]);
   const record = internalRequest(
     "Registrar catálogo simulado",
     "={{ { agentId: 'catalog-projectors-simulator', content: $json.content, conversationId: $json.conversationId, externalMessageId: 'simulated:' + $json.requestId, mediaUrl: $json.mediaUrl, provider: 'meta-cloud', requestId: $json.requestId, type: 'DOCUMENT' } }}",
     [1020, -200],
+    verifiedRecord.credentials,
   );
   workflow.nodes.push(check, record);
   workflow.connections[shouldSend.name] = { main: [[edge(check.name)], []] };

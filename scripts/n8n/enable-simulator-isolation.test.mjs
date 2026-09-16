@@ -21,13 +21,13 @@ function fixtures() {
       nodes: [
         node("Normalize Router Input", { parameters: { jsCode: "const triggerMessageId = 'x'; return [{ json: { receivedAt: typeof source.timestamp === 'string' ? source.timestamp : new Date().toISOString() } }];" } }),
         node("Prepare Ordered Outbound", { parameters: { jsCode: "return [{ json: { timestamp: new Date().toISOString() } }];" } }),
-        node("Dispatch via Outbound V2"), node("Router V2 Completed"),
+        node("Dispatch via Outbound V2"), node("Router V2 Completed"), node("Record verified automatic outbound", { credentials: { httpHeaderAuth: { id: "internal" } } }),
       ],
       connections: { "Prepare Ordered Outbound": connection("Dispatch via Outbound V2") },
     },
     {
       name: "Catálogo automático de proyectores",
-      nodes: [node("¿Enviar catálogo?"), node("Enviar PDF por WhatsApp")],
+      nodes: [node("¿Enviar catálogo?"), node("Enviar PDF por WhatsApp"), node("Registrar catálogo enviado", { credentials: { httpHeaderAuth: { id: "internal" } } })],
       connections: { "¿Enviar catálogo?": connection("Enviar PDF por WhatsApp") },
     },
   ];
@@ -44,6 +44,7 @@ test("adds isolated simulator routes without changing the real delivery branch",
   assert.equal(incoming.nodes.find((item) => item.name === "Continuar sin consultar ManyChat").type, "n8n-nodes-base.noOp");
   assert.match(router.nodes.find((item) => item.name === "Normalize Router Input").parameters.jsCode, /source\.simulation === true/);
   assert.equal(router.connections["¿Salida de simulación?"].main[1][0].node, "Dispatch via Outbound V2");
+  assert.equal(router.nodes.find((item) => item.name === "Registrar respuesta simulada").credentials.httpHeaderAuth.id, "internal");
   assert.equal(catalog.connections["¿Es catálogo simulado?"].main[0][0].node, "Registrar catálogo simulado");
   assert.equal(catalog.connections["¿Es catálogo simulado?"].main[1][0].node, "Enviar PDF por WhatsApp");
 });
