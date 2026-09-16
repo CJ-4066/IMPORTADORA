@@ -40,13 +40,13 @@ export default async function AdminLayout({
       </a>
       <aside className="admin-sidebar">
         <div className="admin-sidebar-main" style={{ display: "flex", flexDirection: "column", height: "100%" }}>
-          <div className="admin-sidebar-brand" style={{ display: "flex", flexDirection: "column", gap: "1rem", marginBottom: "1rem" }}>
-            <div className="brand-logo-container" style={{ display: "flex", justifyContent: "center", width: "100%" }}>
+          <div className="admin-sidebar-brand">
+            <div className="brand-logo-container">
               <BrandLogo href="/admin" priority size="sm" />
             </div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "rgba(0,0,0,0.03)", padding: "4px", borderRadius: "8px" }}>
+            <div className="admin-sidebar-controls">
               <SidebarToggle />
-              <div style={{ display: "flex", gap: "4px" }}>
+              <div className="admin-sidebar-utilities">
                 <DarkModeToggle />
                 <LogoutButton />
               </div>
