@@ -1403,6 +1403,7 @@
 /* Unified admin treatment. Brand colors are inherited from the storefront tokens. */
 .messages-app-shell {
   --surface-bg: var(--surface-strong);
+  --bg: var(--surface-strong);
   --bg-alt: rgba(var(--brand-tint-rgb), 0.38);
   --border-color: var(--line);
   --text: var(--foreground);
@@ -1661,6 +1662,7 @@
 }
 
 body[data-admin-theme="dark"] .messages-app-shell {
+  --bg: var(--surface-strong);
   --bg-alt: rgba(148, 163, 184, 0.08);
   --border-color: rgba(148, 163, 184, 0.18);
   --surface-bg: var(--surface-strong);

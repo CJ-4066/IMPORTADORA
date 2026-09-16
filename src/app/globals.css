@@ -9780,18 +9780,51 @@ body[data-admin-theme="dark"] .hero-banner-preview-switcher {
 }
 
 body[data-admin-theme="dark"] {
+  color-scheme: dark;
+  --border: var(--line);
+  --bg-muted: #1c2536;
+  --brand-bg-soft: #151e2e;
   --background: #080b12;
-  --surface: rgba(14, 18, 30, 0.72);
-  --surface-strong: #0b1020;
+  --surface: #151e2e;
+  --surface-strong: #182234;
   --foreground: #eff2ff;
-  --muted: #94a3b8;
-  --line: rgba(148, 163, 184, 0.16);
+  --muted: #a8b5ca;
+  --line: #344156;
   --shadow: 0 24px 60px rgba(0, 0, 0, 0.34);
   background:
     radial-gradient(circle at top left, rgba(var(--brand-rgb), 0.22), transparent 26%),
     radial-gradient(circle at right 18%, rgba(var(--brand-rgb), 0.12), transparent 28%),
     linear-gradient(180deg, #0a0f1d 0%, #090d18 100%);
   color: var(--foreground);
+}
+
+/* Keep secondary controls on dark surfaces; primary brand buttons stay unchanged. */
+body[data-admin-theme="dark"] :is(.dashboard-settings-note, .dashboard-widget-icon,
+  .dashboard-settings-mobile-actions, .simulator-document-message) {
+  color: var(--foreground);
+  background: var(--surface-strong);
+  border-color: var(--line);
+}
+
+body[data-admin-theme="dark"] :is(.dashboard-choice-grid button.is-active,
+  .dashboard-visibility-toggle[aria-pressed="true"]) {
+  color: var(--brand-text-on-dark);
+  background: color-mix(in srgb, var(--brand-primary) 22%, var(--surface-strong));
+  border-color: #7175bd;
+}
+
+body[data-admin-theme="dark"] .dashboard-settings-summary strong {
+  color: var(--brand-text-on-dark);
+}
+
+body[data-admin-theme="dark"] .dashboard-save-banner {
+  color: #8ee4b8;
+  background: #14352b;
+  border-color: #32664e;
+}
+
+body[data-admin-theme="dark"] .admin-shell .panel {
+  border-color: var(--line);
 }
 
 body[data-admin-theme="dark"] .admin-shell {
