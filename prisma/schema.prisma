@@ -198,6 +198,7 @@ model Product {
   documents              ProductDocument[]
   qr                     ProductQr?
   qrAnalyticsLogs        QrAnalyticsLog[]
+  researchRuns           ProductResearchRun[]
 
   @@index([name])
   @@index([code])
@@ -637,6 +638,46 @@ model ProductDocument {
   updatedAt DateTime @updatedAt
 
   @@index([productId, sortOrder])
+}
+
+model ProductResearchRun {
+  id               String                  @id @default(cuid())
+  productId        String
+  product          Product                 @relation(fields: [productId], references: [id], onDelete: Cascade)
+  requestId        String                  @unique @db.VarChar(64)
+  status           String                  @default("RUNNING") @db.VarChar(20) // RUNNING, COMPLETED, FAILED
+  provider         String                  @default("openai") @db.VarChar(40)
+  model            String?                 @db.VarChar(80)
+  confidence       Float?
+  identifiedBrand  String?                 @db.VarChar(120)
+  identifiedModel  String?                 @db.VarChar(180)
+  result           Json?
+  errorCode        String?                 @db.VarChar(80)
+  errorMessage     String?                 @db.Text
+  requestedByName  String?                 @db.VarChar(120)
+  requestedByEmail String?                 @db.VarChar(190)
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
+  completedAt      DateTime?
+  sources          ProductResearchSource[]
+
+  @@index([productId, createdAt(sort: Desc)])
+  @@index([status, createdAt(sort: Desc)])
+}
+
+model ProductResearchSource {
+  id         String             @id @default(cuid())
+  runId      String
+  run        ProductResearchRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  url        String             @db.Text
+  title      String?            @db.Text
+  domain     String?            @db.VarChar(255)
+  sourceType String             @default("WEB") @db.VarChar(40)
+  isOfficial Boolean            @default(false)
+  createdAt  DateTime           @default(now())
+
+  @@index([runId])
+  @@index([domain])
 }
 
 model ProductQr {

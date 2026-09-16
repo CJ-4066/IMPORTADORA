@@ -16,8 +16,13 @@ import {
   Upload,
   CheckCircle,
   ExternalLink,
-  ChevronRight,
-  Info
+  Info,
+  Bot,
+  Globe2,
+  ShieldCheck,
+  AlertTriangle,
+  Sparkles,
+  LoaderCircle
 } from "lucide-react";
 import { parseYouTubeUrl } from "@/lib/youtube";
 
@@ -25,8 +30,8 @@ type ProductWithFichaDetails = {
   id: string;
   name: string;
   code: string;
-  unitPrice: any;
-  wholesalePrice: any;
+  unitPrice: number | string | { toString(): string };
+  wholesalePrice: number | string | { toString(): string } | null;
   wholesaleMinQty: number;
   imageUrl: string | null;
   slug: string;
@@ -36,11 +41,77 @@ type ProductWithFichaDetails = {
     descriptionFull: string | null;
   } | null;
   specifications: { id: string; name: string; value: string; sortOrder: number }[];
-  variants: { id: string; name: string; hexColor: string | null; imageUrl: string | null; sku: string | null; isAvailable: boolean; sortOrder: number }[];
+  variants: ProductVariantItem[];
   videos: { id: string; title: string; url: string; provider: string; videoId: string; thumbnailUrl: string | null; sortOrder: number }[];
   documents: { id: string; title: string; url: string; type: string; sortOrder: number }[];
   qr: { destUrl: string; imageUrl: string | null } | null;
+  researchRuns: {
+    id: string;
+    requestId: string;
+    status: string;
+    confidence: number | null;
+    identifiedBrand: string | null;
+    identifiedModel: string | null;
+    result: unknown;
+    errorCode: string | null;
+    errorMessage: string | null;
+    createdAt: Date | string;
+    sources: ResearchSource[];
+  }[];
 };
+
+type ProductVariantItem = {
+  id: string;
+  name: string;
+  hexColor: string | null;
+  imageUrl: string | null;
+  sku: string | null;
+  isAvailable: boolean;
+  sortOrder: number;
+};
+
+type ResearchSource = {
+  url: string;
+  title: string | null;
+  domain: string | null;
+  sourceType: string;
+  isOfficial: boolean;
+};
+
+type ResearchProposal = {
+  identified: boolean;
+  brand: string | null;
+  model: string | null;
+  confidence: number;
+  descriptionShort: string;
+  descriptionFull: string;
+  specifications: { name: string; value: string }[];
+  variants: { name: string; hexColor: string | null; sku: string | null }[];
+  videos: { title: string; url: string }[];
+  documents: { title: string; url: string; type: string }[];
+  warnings: string[];
+  officialSourceUrls: string[];
+};
+
+function parseResearchProposal(value: unknown): ResearchProposal | null {
+  if (!value || typeof value !== "object") return null;
+  const proposal = value as Partial<ResearchProposal>;
+  if (
+    typeof proposal.identified !== "boolean" ||
+    typeof proposal.descriptionShort !== "string" ||
+    typeof proposal.descriptionFull !== "string" ||
+    typeof proposal.confidence !== "number" ||
+    !Array.isArray(proposal.specifications) ||
+    !Array.isArray(proposal.variants) ||
+    !Array.isArray(proposal.videos) ||
+    !Array.isArray(proposal.documents) ||
+    !Array.isArray(proposal.warnings) ||
+    !Array.isArray(proposal.officialSourceUrls)
+  ) {
+    return null;
+  }
+  return proposal as ResearchProposal;
+}
 
 type FichaEditorWorkspaceProps = {
   product: ProductWithFichaDetails;
@@ -52,7 +123,7 @@ export function FichaEditorWorkspace({ product, status }: FichaEditorWorkspacePr
   const [isPending, startTransition] = useTransition();
 
   // Accordion active sections
-  const [activeTab, setActiveTab] = useState<"general" | "specs" | "variants" | "videos" | "docs">("general");
+  const [activeTab, setActiveTab] = useState<"general" | "specs" | "variants" | "videos" | "docs" | null>("general");
 
   // Real-time states
   const [descriptionShort, setDescriptionShort] = useState(product.digitalProfile?.descriptionShort || "");
@@ -63,6 +134,15 @@ export function FichaEditorWorkspace({ product, status }: FichaEditorWorkspacePr
   const [variants, setVariants] = useState(product.variants);
   const [videos, setVideos] = useState(product.videos);
   const [documents, setDocuments] = useState(product.documents);
+  const latestResearch = product.researchRuns[0] ?? null;
+  const [researchProposal, setResearchProposal] = useState<ResearchProposal | null>(() =>
+    parseResearchProposal(latestResearch?.result),
+  );
+  const [researchSources, setResearchSources] = useState<ResearchSource[]>(latestResearch?.sources ?? []);
+  const [researchRequestId, setResearchRequestId] = useState(latestResearch?.requestId ?? "");
+  const [researchError, setResearchError] = useState(latestResearch?.errorMessage ?? "");
+  const [isResearching, setIsResearching] = useState(false);
+  const [proposalApplied, setProposalApplied] = useState(false);
 
   // File uploading flags
   const [uploadingVariantId, setUploadingVariantId] = useState<string | null>(null);
@@ -125,7 +205,11 @@ export function FichaEditorWorkspace({ product, status }: FichaEditorWorkspacePr
     ]);
   }
 
-  function updateVariant(index: number, key: string, val: any) {
+  function updateVariant<Key extends keyof ProductVariantItem>(
+    index: number,
+    key: Key,
+    val: ProductVariantItem[Key],
+  ) {
     setVariants((prev) =>
       prev.map((item, idx) => (idx === index ? { ...item, [key]: val } : item))
     );
@@ -302,6 +386,78 @@ export function FichaEditorWorkspace({ product, status }: FichaEditorWorkspacePr
     setDocuments((prev) => prev.filter((_, idx) => idx !== index));
   }
 
+  async function handleResearch() {
+    setIsResearching(true);
+    setResearchError("");
+    setProposalApplied(false);
+    try {
+      const response = await fetch(`/api/admin/fichas/${product.id}/research`, { method: "POST" });
+      const payload = (await response.json()) as {
+        ok?: boolean;
+        message?: string;
+        requestId?: string;
+        run?: { requestId: string; result: unknown; sources: ResearchSource[] };
+      };
+
+      if (!response.ok || !payload.run) {
+        setResearchRequestId(payload.requestId ?? "");
+        throw new Error(payload.message || "No se pudo investigar este producto.");
+      }
+
+      const proposal = parseResearchProposal(payload.run.result);
+      if (!proposal) throw new Error("La propuesta recibida no tiene un formato válido.");
+
+      setResearchProposal(proposal);
+      setResearchSources(payload.run.sources ?? []);
+      setResearchRequestId(payload.run.requestId);
+    } catch (error) {
+      setResearchError(error instanceof Error ? error.message : "No se pudo investigar este producto.");
+    } finally {
+      setIsResearching(false);
+    }
+  }
+
+  function applyResearchProposal() {
+    if (!researchProposal) return;
+
+    setDescriptionShort(researchProposal.descriptionShort);
+    setDescriptionFull(researchProposal.descriptionFull);
+    setSpecifications(
+      researchProposal.specifications.map((specification, index) => ({
+        id: `research-spec-${Date.now()}-${index}`,
+        ...specification,
+        sortOrder: index,
+      })),
+    );
+    setVariants(
+      researchProposal.variants.map((variant, index) => ({
+        id: `research-variant-${Date.now()}-${index}`,
+        ...variant,
+        imageUrl: null,
+        isAvailable: true,
+        sortOrder: index,
+      })),
+    );
+    setVideos(
+      researchProposal.videos.flatMap((video, index) => {
+        const parsed = parseYouTubeUrl(video.url);
+        return parsed
+          ? [{ id: `research-video-${Date.now()}-${index}`, title: video.title, url: video.url, ...parsed, sortOrder: index }]
+          : [];
+      }),
+    );
+    setDocuments(
+      researchProposal.documents.map((document, index) => ({
+        id: `research-document-${Date.now()}-${index}`,
+        ...document,
+        sortOrder: index,
+      })),
+    );
+    setProfileStatus("BORRADOR");
+    setActiveTab("general");
+    setProposalApplied(true);
+  }
+
   // Save changes action handler
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -429,6 +585,91 @@ export function FichaEditorWorkspace({ product, status }: FichaEditorWorkspacePr
         
         {/* Left Form Panel */}
         <form onSubmit={handleSubmit} className="stack-md">
+          <section className="panel stack-sm" style={{ border: "1px solid #c7d2fe", background: "linear-gradient(135deg, #eef2ff 0%, #ffffff 72%)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: "16px", alignItems: "flex-start", flexWrap: "wrap" }}>
+              <div style={{ display: "flex", gap: "10px", alignItems: "flex-start", flex: "1 1 340px" }}>
+                <span style={{ width: "36px", height: "36px", borderRadius: "10px", display: "grid", placeItems: "center", background: "#2320DA", color: "white" }}>
+                  <Bot size={20} />
+                </span>
+                <div>
+                  <h2 style={{ fontSize: "16px", margin: 0 }}>Agente de investigación de producto</h2>
+                  <p style={{ color: "#475569", fontSize: "13px", margin: "4px 0 0", lineHeight: 1.5 }}>
+                    Busca el modelo exacto, contrasta fuentes y prepara una propuesta. Nada se publica ni se guarda hasta que la revises.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="button button-primary"
+                disabled={isResearching || isPending}
+                onClick={handleResearch}
+                style={{ display: "flex", alignItems: "center", gap: "7px", background: "#2320DA", color: "white" }}
+              >
+                {isResearching ? <LoaderCircle size={17} className="spin" /> : <Sparkles size={17} />}
+                {isResearching ? "Investigando..." : "Investigar producto"}
+              </button>
+            </div>
+
+            {researchError ? (
+              <div style={{ display: "flex", gap: "8px", padding: "10px 12px", borderRadius: "8px", background: "#fff7ed", color: "#9a3412", fontSize: "13px" }}>
+                <AlertTriangle size={17} style={{ flexShrink: 0 }} />
+                <span>{researchError}{researchRequestId ? ` Referencia: ${researchRequestId}` : ""}</span>
+              </div>
+            ) : null}
+
+            {researchProposal ? (
+              <div className="stack-sm" style={{ paddingTop: "4px" }}>
+                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
+                  <span className="badge badge-success" style={{ display: "inline-flex", alignItems: "center", gap: "5px" }}>
+                    <ShieldCheck size={14} /> Confianza {Math.round(researchProposal.confidence * 100)}%
+                  </span>
+                  <strong style={{ fontSize: "14px" }}>
+                    {[researchProposal.brand, researchProposal.model].filter(Boolean).join(" ") || "Modelo no identificado"}
+                  </strong>
+                </div>
+
+                {researchProposal.warnings.length ? (
+                  <ul style={{ margin: 0, paddingLeft: "20px", color: "#9a3412", fontSize: "12px" }}>
+                    {researchProposal.warnings.map((warning, index) => <li key={`${warning}-${index}`}>{warning}</li>)}
+                  </ul>
+                ) : null}
+
+                <div>
+                  <p style={{ margin: "0 0 6px", fontSize: "12px", fontWeight: 700, color: "#475569" }}>
+                    Fuentes verificadas ({researchSources.length})
+                  </p>
+                  <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+                    {researchSources.slice(0, 8).map((source, index) => (
+                      <a
+                        key={`${source.url}-${index}`}
+                        href={source.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "11px", color: "#3730a3", textDecoration: "none", border: "1px solid #c7d2fe", borderRadius: "999px", padding: "4px 8px", background: "white" }}
+                      >
+                        <Globe2 size={12} /> {source.domain || "Fuente"}{source.isOfficial ? " · oficial" : ""}
+                      </a>
+                    ))}
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={applyResearchProposal}
+                  className="button button-neutral"
+                  disabled={!researchProposal.identified}
+                  style={{ alignSelf: "flex-start" }}
+                >
+                  Aplicar propuesta al formulario
+                </button>
+                {proposalApplied ? (
+                  <p style={{ margin: 0, color: "#15803d", fontSize: "12px", fontWeight: 600 }}>
+                    Propuesta aplicada como borrador. Revisa los campos y pulsa “Guardar Cambios de Ficha”.
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
+          </section>
           
           {/* Section Accordions */}
           <div className="stack-sm">
@@ -437,7 +678,7 @@ export function FichaEditorWorkspace({ product, status }: FichaEditorWorkspacePr
             <div className="panel" style={{ padding: 0, overflow: "hidden", borderRadius: "10px" }}>
               <button
                 type="button"
-                onClick={() => setActiveTab(activeTab === "general" ? "" as any : "general")}
+                onClick={() => setActiveTab(activeTab === "general" ? null : "general")}
                 style={{ width: "100%", padding: "16px 20px", display: "flex", justifyContent: "space-between", alignItems: "center", background: "#f8fafc", border: "none", borderBottom: "1px solid #e2e8f0", cursor: "pointer", fontWeight: "bold", fontSize: "15px", color: "#0f172a" }}
               >
                 <span>1. Información General y Estado</span>
@@ -502,7 +743,7 @@ export function FichaEditorWorkspace({ product, status }: FichaEditorWorkspacePr
             <div className="panel" style={{ padding: 0, overflow: "hidden", borderRadius: "10px" }}>
               <button
                 type="button"
-                onClick={() => setActiveTab(activeTab === "specs" ? "" as any : "specs")}
+                onClick={() => setActiveTab(activeTab === "specs" ? null : "specs")}
                 style={{ width: "100%", padding: "16px 20px", display: "flex", justifyContent: "space-between", alignItems: "center", background: "#f8fafc", border: "none", borderBottom: "1px solid #e2e8f0", cursor: "pointer", fontWeight: "bold", fontSize: "15px", color: "#0f172a" }}
               >
                 <span>2. Especificaciones Técnicas ({specifications.length})</span>
@@ -575,7 +816,7 @@ export function FichaEditorWorkspace({ product, status }: FichaEditorWorkspacePr
             <div className="panel" style={{ padding: 0, overflow: "hidden", borderRadius: "10px" }}>
               <button
                 type="button"
-                onClick={() => setActiveTab(activeTab === "variants" ? "" as any : "variants")}
+                onClick={() => setActiveTab(activeTab === "variants" ? null : "variants")}
                 style={{ width: "100%", padding: "16px 20px", display: "flex", justifyContent: "space-between", alignItems: "center", background: "#f8fafc", border: "none", borderBottom: "1px solid #e2e8f0", cursor: "pointer", fontWeight: "bold", fontSize: "15px", color: "#0f172a" }}
               >
                 <span>3. Variantes y Colores ({variants.length})</span>
@@ -689,7 +930,7 @@ export function FichaEditorWorkspace({ product, status }: FichaEditorWorkspacePr
             <div className="panel" style={{ padding: 0, overflow: "hidden", borderRadius: "10px" }}>
               <button
                 type="button"
-                onClick={() => setActiveTab(activeTab === "videos" ? "" as any : "videos")}
+                onClick={() => setActiveTab(activeTab === "videos" ? null : "videos")}
                 style={{ width: "100%", padding: "16px 20px", display: "flex", justifyContent: "space-between", alignItems: "center", background: "#f8fafc", border: "none", borderBottom: "1px solid #e2e8f0", cursor: "pointer", fontWeight: "bold", fontSize: "15px", color: "#0f172a" }}
               >
                 <span>4. Videos e Instructivos ({videos.length})</span>
@@ -764,7 +1005,7 @@ export function FichaEditorWorkspace({ product, status }: FichaEditorWorkspacePr
             <div className="panel" style={{ padding: 0, overflow: "hidden", borderRadius: "10px" }}>
               <button
                 type="button"
-                onClick={() => setActiveTab(activeTab === "docs" ? "" as any : "docs")}
+                onClick={() => setActiveTab(activeTab === "docs" ? null : "docs")}
                 style={{ width: "100%", padding: "16px 20px", display: "flex", justifyContent: "space-between", alignItems: "center", background: "#f8fafc", border: "none", borderBottom: "1px solid #e2e8f0", cursor: "pointer", fontWeight: "bold", fontSize: "15px", color: "#0f172a" }}
               >
                 <span>5. Manuales y Documentos ({documents.length})</span>
@@ -917,7 +1158,7 @@ export function FichaEditorWorkspace({ product, status }: FichaEditorWorkspacePr
                 </h3>
                 {descriptionShort && (
                   <p style={{ fontSize: "12px", color: "#475569", margin: "4px 0 0", fontStyle: "italic" }}>
-                    "{descriptionShort}"
+                    &ldquo;{descriptionShort}&rdquo;
                   </p>
                 )}
                 <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginTop: "8px" }}>

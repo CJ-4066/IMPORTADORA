@@ -30,6 +30,31 @@ export default async function FichaEditorPage({
       videos: { orderBy: { sortOrder: "asc" } },
       documents: { orderBy: { sortOrder: "asc" } },
       qr: true,
+      researchRuns: {
+        orderBy: { createdAt: "desc" },
+        take: 1,
+        select: {
+          id: true,
+          requestId: true,
+          status: true,
+          confidence: true,
+          identifiedBrand: true,
+          identifiedModel: true,
+          result: true,
+          errorCode: true,
+          errorMessage: true,
+          createdAt: true,
+          sources: {
+            select: {
+              url: true,
+              title: true,
+              domain: true,
+              sourceType: true,
+              isOfficial: true,
+            },
+          },
+        },
+      },
     },
   });
 
