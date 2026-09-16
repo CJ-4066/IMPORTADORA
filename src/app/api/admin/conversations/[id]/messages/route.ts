@@ -68,13 +68,20 @@ export async function POST(
 
     if (error instanceof N8nOutboundError) {
       return NextResponse.json(
-        { code: error.code, error: error.message },
+        {
+          code: error.code,
+          error: error.message,
+          messageId: error.messageId,
+          requestId: error.requestId,
+        },
         { status: error.statusCode },
       );
     }
 
     console.error("Error sending message:", error);
-    const message = error instanceof Error ? error.message : "Internal server error";
+    const message = error instanceof Error && error.message === "Conversation not found"
+      ? error.message
+      : "No se pudo procesar el envío.";
     return NextResponse.json(
       { error: message }, 
       { status: message === "Conversation not found" ? 404 : 500 }

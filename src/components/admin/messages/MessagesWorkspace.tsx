@@ -451,6 +451,7 @@ export function MessagesWorkspace() {
     }
 
     const now = new Date();
+    const requestId = crypto.randomUUID();
     const messageType = asMessageType(type);
     const tempMessage: ChatMessage = {
       content,
@@ -461,7 +462,7 @@ export function MessagesWorkspace() {
       id: `m-new-${now.getTime()}`,
       mediaUrl: mediaUrl || null,
       messageType,
-      metadata: null,
+      metadata: { requestId },
       senderType: "AGENT",
       status: "sending",
     };
@@ -490,7 +491,7 @@ export function MessagesWorkspace() {
 
     try {
       const response = await fetch(`/api/admin/conversations/${activeId}/messages`, {
-        body: JSON.stringify({ content, type, mediaUrl: mediaUrl || undefined }),
+        body: JSON.stringify({ content, type, mediaUrl: mediaUrl || undefined, requestId }),
         headers: { "Content-Type": "application/json" },
         method: "POST",
       });
@@ -508,9 +509,12 @@ export function MessagesWorkspace() {
         ),
       );
     } catch (error) {
-      console.error("Send error", error);
+      const reason = error instanceof Error ? error.message : "No se pudo enviar el mensaje.";
+      console.error("Send error", { requestId, reason });
       setActiveMessages((current) =>
-        current.map((message) => (message.id === tempMessage.id ? { ...message, status: "failed" } : message)),
+        current.map((message) => (message.id === tempMessage.id
+          ? { ...message, status: "failed", metadata: { requestId, error: reason } }
+          : message)),
       );
     }
   };
@@ -629,7 +633,13 @@ export function MessagesWorkspace() {
               {loadingMessages && activeMessages.length === 0 ? (
                 <div className="messages-list-loader">Cargando mensajes...</div>
               ) : (
-                activeMessages.map((message) => <MessageBubble key={message.id} message={message} />)
+                activeMessages.map((message) => (
+                  <MessageBubble
+                    key={message.id}
+                    message={message}
+                    onRetry={(failed) => void handleSendMessage(failed.content, failed.mediaUrl ?? undefined, failed.messageType)}
+                  />
+                ))
               )}
 
               {!loadingMessages && activeMessages.length === 0 ? (

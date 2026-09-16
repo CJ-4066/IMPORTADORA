@@ -20,9 +20,11 @@ function input(overrides: Partial<N8nOutboundMessageInput> = {}): N8nOutboundMes
     channel: "WHATSAPP",
     content: "Mensaje de prueba",
     conversationId: "conversation-1",
+    manychatSubscriberId: "subscriber-123",
     mediaUrl: null,
     recipient: "999999999",
-    type: "TEXT",
+    requestId: "550e8400-e29b-41d4-a716-446655440000",
+    type: "text",
     ...overrides,
   };
 }
@@ -95,13 +97,15 @@ test("convierte timeout en error controlado", async () => {
   );
 });
 
-test("envía el contrato TEXT con header, requestId y teléfono normalizado", async () => {
+test("envía el contrato text con subscriber, requestId y teléfono normalizado", async () => {
   configureOutbound();
   let requestUrl = "";
   let requestInit: RequestInit | undefined;
+  let calls = 0;
 
   const result = await sendN8nOutboundMessage(input(), {
     fetchImpl: async (url, init) => {
+      calls += 1;
       requestUrl = String(url);
       requestInit = init;
       return jsonResponse(200, {
@@ -116,13 +120,15 @@ test("envía el contrato TEXT con header, requestId y teléfono normalizado", as
   const headers = new Headers(requestInit?.headers);
 
   assert.equal(requestUrl, "https://n8n.example.test/webhook/chat-outbound");
+  assert.equal(calls, 1);
   assert.equal(requestInit?.method, "POST");
   assert.equal(headers.get("x-internal-api-key"), "test-key");
   assert.equal(payload.channel, "WHATSAPP");
   assert.equal(payload.recipient, "51999999999");
-  assert.equal(payload.type, "TEXT");
+  assert.equal(payload.type, "text");
+  assert.equal(payload.manychatSubscriberId, "subscriber-123");
   assert.equal(payload.mediaUrl, null);
-  assert.match(String(payload.requestId), /^[0-9a-f-]{36}$/);
+  assert.equal(payload.requestId, "550e8400-e29b-41d4-a716-446655440000");
   assert.equal(result.messageId, "wamid.test-text");
   assert.equal(result.provider, "meta-cloud");
 });
@@ -130,7 +136,7 @@ test("envía el contrato TEXT con header, requestId y teléfono normalizado", as
 test("acepta IMAGE, VIDEO y DOCUMENT con mediaUrl", async () => {
   configureOutbound();
 
-  for (const type of ["IMAGE", "VIDEO", "DOCUMENT"] as const) {
+  for (const type of ["image", "video", "document"] as const) {
     let payload: Record<string, unknown> | undefined;
     const result = await sendN8nOutboundMessage(input({
       mediaUrl: `https://tiendavirtualsuper.com/uploads/${type.toLowerCase()}.bin`,

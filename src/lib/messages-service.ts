@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { normalizeWhatsappPhone } from "@/lib/utils";
 import { triggerPusherEvent } from "@/lib/pusher-server";
 import {
+  N8nOutboundError,
   sendN8nOutboundMessage,
   type N8nOutboundMessageType,
 } from "@/lib/n8n-outbound";
@@ -82,6 +83,7 @@ export type GetConversationMessagesInput = z.infer<typeof getConversationMessage
 export const incomingMessageSchema = z.object({
   channel: z.nativeEnum(Channel),
   externalContactId: z.string().min(1).max(120),
+  manychatSubscriberId: z.string().trim().min(1).max(120).optional(),
   phone: z.string().max(32).optional(),
   name: z.string().max(180),
   externalMessageId: z.string().min(1).max(120),
@@ -403,9 +405,30 @@ const sendMessageSchema = z.object({
   content: z.string().trim().min(1),
   type: z.nativeEnum(MessageType).default("TEXT"),
   mediaUrl: z.string().url().optional(),
+  requestId: z.string().uuid(),
 });
 
 export type SendMessageInput = z.infer<typeof sendMessageSchema>;
+
+export function requireRealManychatSubscriber(contact: {
+  externalId: string | null;
+  manychatSubscriberId: string | null;
+}) {
+  if (contact.externalId?.startsWith("SIMULATOR:")) {
+    throw new N8nOutboundError("No se puede enviar un mensaje real a un contacto de simulación.", {
+      code: "SIMULATOR_CONTACT", statusCode: 400,
+    });
+  }
+
+  const manychatSubscriberId = contact.manychatSubscriberId?.trim();
+  if (!manychatSubscriberId) {
+    throw new N8nOutboundError("El contacto no tiene identificador ManyChat.", {
+      code: "MANYCHAT_SUBSCRIBER_ID_MISSING", statusCode: 422,
+    });
+  }
+
+  return manychatSubscriberId;
+}
 
 export async function sendInternalMessage(
   conversationId: string,
@@ -438,49 +461,69 @@ export async function sendInternalMessage(
     throw new Error("Se requiere mediaUrl para enviar archivos multimedia.");
   }
 
-  const outboundType = parsed.type as N8nOutboundMessageType;
-
-  const sent = await sendN8nOutboundMessage({
-    agentId,
-    channel: "WHATSAPP",
-    content: parsed.content,
-    conversationId,
-    mediaUrl: parsed.mediaUrl ?? null,
-    recipient,
-    type: outboundType,
-  });
-
-  return prisma.$transaction(async (tx) => {
-    const message = await tx.chatMessage.create({
+  const outboundType = parsed.type.toLowerCase() as N8nOutboundMessageType;
+  const message = await prisma.chatMessage.create({
       data: {
         conversationId,
-        externalMessageId: sent.messageId,
         direction: "OUTBOUND",
         senderType: "AGENT",
         messageType: parsed.type,
         content: parsed.content,
         mediaUrl: parsed.mediaUrl,
-        metadata: {
-          provider: sent.provider,
-          requestId: sent.requestId,
-        },
-        status: "sent",
+        metadata: { requestId: parsed.requestId },
+        status: "pending",
       },
+  });
+
+  console.info("[outbound] pending", { requestId: parsed.requestId, conversationId, messageId: message.id });
+  try {
+    const manychatSubscriberId = requireRealManychatSubscriber(conversation.contact);
+
+    const sent = await sendN8nOutboundMessage({
+      agentId, channel: "WHATSAPP", content: parsed.content, conversationId,
+      manychatSubscriberId, mediaUrl: parsed.mediaUrl ?? null, recipient,
+      requestId: parsed.requestId, type: outboundType,
     });
+
+    return prisma.$transaction(async (tx) => {
+      const sentMessage = await tx.chatMessage.update({
+        where: { id: message.id },
+        data: {
+          externalMessageId: sent.messageId,
+          metadata: { provider: sent.provider, requestId: sent.requestId },
+          status: "sent",
+        },
+      });
 
     await tx.conversation.update({
       where: { id: conversationId },
       data: {
-        lastMessageAt: message.createdAt,
+        lastMessageAt: sentMessage.createdAt,
         botEnabled: false,
         status: "ATENDIENDO",
         assignedUserId: agentId,
       },
     });
 
-    triggerPusherEvent(`chat-${conversationId}`, "new-message", message);
-    return message;
-  });
+      triggerPusherEvent(`chat-${conversationId}`, "new-message", sentMessage);
+      console.info("[outbound] sent", { requestId: parsed.requestId, conversationId, messageId: message.id });
+      return sentMessage;
+    });
+  } catch (error) {
+    const safeReason = error instanceof N8nOutboundError ? error.message : "No se pudo iniciar el envío hacia n8n.";
+    const failed = await prisma.chatMessage.update({
+      where: { id: message.id },
+      data: { status: "failed", metadata: { requestId: parsed.requestId, error: safeReason } },
+    });
+    triggerPusherEvent(`chat-${conversationId}`, "new-message", failed);
+    console.warn("[outbound] failed", { requestId: parsed.requestId, conversationId, messageId: message.id });
+    if (error instanceof N8nOutboundError) {
+      throw error.withContext({ requestId: parsed.requestId, messageId: message.id });
+    }
+    throw new N8nOutboundError(safeReason, {
+      code: "OUTBOUND_DELIVERY_FAILED", statusCode: 502,
+    }).withContext({ requestId: parsed.requestId, messageId: message.id });
+  }
 }
 
 const updateConversationSchema = z.object({
@@ -564,6 +607,10 @@ export async function processIncomingMessage(input: IncomingMessageInput) {
       dataToUpdate.externalId = parsed.externalContactId;
     }
 
+    if (parsed.manychatSubscriberId && !parsed.externalContactId.startsWith("SIMULATOR:") && parsed.manychatSubscriberId !== contact.manychatSubscriberId) {
+      dataToUpdate.manychatSubscriberId = parsed.manychatSubscriberId;
+    }
+
     if (Object.keys(dataToUpdate).length > 0) {
       contact = await prisma.chatContact.update({
         where: { id: contact.id },
@@ -578,6 +625,9 @@ export async function processIncomingMessage(input: IncomingMessageInput) {
         name: parsed.name,
         phone,
         phoneNormalized: normalizedPhone,
+        manychatSubscriberId: parsed.externalContactId.startsWith("SIMULATOR:")
+          ? null
+          : parsed.manychatSubscriberId ?? null,
       },
     });
   }

@@ -2,15 +2,19 @@ import type { ChatMessage } from "@/types/messages";
 
 interface Props {
   message: ChatMessage;
+  onRetry?: (message: ChatMessage) => void;
 }
 
-export function MessageBubble({ message }: Props) {
+export function MessageBubble({ message, onRetry }: Props) {
   const isCustomer = message.senderType === "CUSTOMER";
   const isBot = message.senderType === "BOT";
   const isAgent = message.senderType === "AGENT";
-  const isSending = message.status === "sending";
+  const isSending = message.status === "sending" || message.status === "pending";
   const isFailed = message.status === "failed";
   const isAcceptedForDelivery = isAgent && message.status === "sent";
+  const failureReason = isFailed && message.metadata && typeof message.metadata === "object" && !Array.isArray(message.metadata)
+    ? String((message.metadata as Record<string, unknown>).error || "No se pudo enviar el mensaje.")
+    : null;
   
   let bubbleClass = "message-customer";
   if (isBot) bubbleClass = "message-bot";
@@ -79,7 +83,12 @@ export function MessageBubble({ message }: Props) {
       </span>
       {isAcceptedForDelivery && <span style={{ fontSize: '10px', color: '#667781' }}>Aceptado; entrega no confirmada.</span>}
       {isSending && <span style={{ fontSize: '10px', color: '#92400e' }}>Enviando...</span>}
-      {isFailed && <span style={{ fontSize: '10px', color: '#b91c1c' }}>Error de envío. Reintenta.</span>}
+      {isFailed && <span style={{ fontSize: '10px', color: '#b91c1c' }}>{failureReason}</span>}
+      {isFailed && onRetry && (
+        <button type="button" onClick={() => onRetry(message)} style={{ alignSelf: "flex-end", color: "#b91c1c", fontSize: "11px", fontWeight: 700 }}>
+          Reintentar
+        </button>
+      )}
     </div>
   );
 }
