@@ -32,7 +32,7 @@ const formatSol = (v: number) => `S/ ${v.toFixed(0)}`;
 function CustomBarTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null;
   return (
-    <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 8, padding: "10px 14px", fontSize: 13 }}>
+    <div style={{ background: "var(--surface-strong)", color: "var(--foreground)", border: "1px solid var(--line)", borderRadius: 8, padding: "10px 14px", fontSize: 13 }}>
       <p style={{ fontWeight: 700, marginBottom: 4 }}>{label}</p>
       {payload.map((p: any) => (
         <p key={p.dataKey} style={{ color: p.color, margin: "2px 0" }}>
@@ -47,7 +47,7 @@ function CustomPieTooltip({ active, payload }: any) {
   if (!active || !payload?.length) return null;
   const d = payload[0];
   return (
-    <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 8, padding: "10px 14px", fontSize: 13 }}>
+    <div style={{ background: "var(--surface-strong)", color: "var(--foreground)", border: "1px solid var(--line)", borderRadius: 8, padding: "10px 14px", fontSize: 13 }}>
       <p style={{ fontWeight: 700 }}>{d.name}</p>
       <p style={{ color: d.payload.fill }}>
         {d.payload.isAmount ? formatSol(d.value) : `${d.value} ventas`}
@@ -80,10 +80,10 @@ export function CouponBarChart({ data }: { data: CouponBarData[] }) {
     <div style={{ width: "100%", height: 280 }}>
       <ResponsiveContainer>
         <BarChart data={data} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-          <XAxis dataKey="code" tick={{ fontSize: 12 }} />
-          <YAxis yAxisId="left" orientation="left" tickFormatter={(v) => v} tick={{ fontSize: 11 }} />
-          <YAxis yAxisId="right" orientation="right" tickFormatter={formatSol} tick={{ fontSize: 11 }} />
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" />
+          <XAxis dataKey="code" tick={{ fill: "var(--muted)", fontSize: 12 }} />
+          <YAxis yAxisId="left" orientation="left" tickFormatter={(v) => v} tick={{ fill: "var(--muted)", fontSize: 11 }} />
+          <YAxis yAxisId="right" orientation="right" tickFormatter={formatSol} tick={{ fill: "var(--muted)", fontSize: 11 }} />
           <Tooltip content={<CustomBarTooltip />} />
           <Legend wrapperStyle={{ fontSize: 12 }} />
           <Bar yAxisId="left" dataKey="usos" name="Usos" fill="#6366f1" radius={[4, 4, 0, 0]} />
@@ -193,7 +193,7 @@ export function DiscountVsNetDonut({ data }: { data: DonutData[] }) {
 // ─── Helper ───────────────────────────────────────────────────────────────────
 function EmptyChart({ label }: { label: string }) {
   return (
-    <div style={{ height: 280, display: "flex", alignItems: "center", justifyContent: "center", color: "#9ca3af", fontSize: 14 }}>
+    <div style={{ height: 280, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--muted)", fontSize: 14 }}>
       {label}
     </div>
   );

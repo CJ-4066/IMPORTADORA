@@ -70,7 +70,8 @@ export function AdminKpiChart({ currencySymbol, metrics }: AdminKpiChartProps) {
                 borderRadius: 16,
                 border: "1px solid rgba(41, 44, 149, 0.12)",
                 boxShadow: "0 20px 48px rgba(17, 24, 39, 0.16)",
-                background: "rgba(255, 255, 255, 0.96)",
+                background: "var(--surface-strong)",
+                color: "var(--foreground)",
               }}
               formatter={(value, name, item) => {
                 const numericValue = typeof value === "number" ? value : Number(value ?? 0);

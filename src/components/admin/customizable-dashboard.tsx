@@ -72,8 +72,8 @@ export function CustomizableDashboard({
 
   const renderWidgetContent = (id: DashboardWidgetId) => {
     const cardStyle: React.CSSProperties = {
-      background: "#fff",
-      border: "1px solid #e5e7eb",
+      background: "var(--surface-strong)", color: "var(--foreground)",
+      border: "1px solid var(--line)",
       borderRadius: 12,
       padding: "20px 24px",
       display: "flex",
@@ -115,7 +115,7 @@ export function CustomizableDashboard({
         return (
           <div style={cardStyle}>
             <div>
-              <p style={{ margin: 0, fontSize: 11, fontWeight: 700, textTransform: "uppercase", color: "#6b7280", letterSpacing: 1 }}>Comparativa de Códigos</p>
+              <p style={{ margin: 0, fontSize: 11, fontWeight: 700, textTransform: "uppercase", color: "var(--muted)", letterSpacing: 1 }}>Comparativa de Códigos</p>
               <h3 style={{ margin: "4px 0 0", fontSize: 16, fontWeight: 700 }}>📊 Usos vs Comisiones por Cupón</h3>
             </div>
             <CouponBarChart data={chartsData.couponBars} />
@@ -125,7 +125,7 @@ export function CustomizableDashboard({
         return (
           <div style={cardStyle}>
             <div>
-              <p style={{ margin: 0, fontSize: 11, fontWeight: 700, textTransform: "uppercase", color: "#6b7280", letterSpacing: 1 }}>Preferencia del Cliente</p>
+              <p style={{ margin: 0, fontSize: 11, fontWeight: 700, textTransform: "uppercase", color: "var(--muted)", letterSpacing: 1 }}>Preferencia del Cliente</p>
               <h3 style={{ margin: "4px 0 0", fontSize: 15, fontWeight: 700 }}>💳 Ventas por Método de Pago</h3>
             </div>
             <PaymentMethodDonut data={chartsData.paymentMethods} />
@@ -135,7 +135,7 @@ export function CustomizableDashboard({
         return (
           <div style={cardStyle}>
             <div>
-              <p style={{ margin: 0, fontSize: 11, fontWeight: 700, textTransform: "uppercase", color: "#6b7280", letterSpacing: 1 }}>Aporte de Promotores</p>
+              <p style={{ margin: 0, fontSize: 11, fontWeight: 700, textTransform: "uppercase", color: "var(--muted)", letterSpacing: 1 }}>Aporte de Promotores</p>
               <h3 style={{ margin: "4px 0 0", fontSize: 15, fontWeight: 700 }}>👥 Ventas por Influencer (S/)</h3>
             </div>
             <InfluencerDonut data={chartsData.influencers} />
@@ -145,7 +145,7 @@ export function CustomizableDashboard({
         return (
           <div style={cardStyle}>
             <div>
-              <p style={{ margin: 0, fontSize: 11, fontWeight: 700, textTransform: "uppercase", color: "#6b7280", letterSpacing: 1 }}>Análisis Financiero</p>
+              <p style={{ margin: 0, fontSize: 11, fontWeight: 700, textTransform: "uppercase", color: "var(--muted)", letterSpacing: 1 }}>Análisis Financiero</p>
               <h3 style={{ margin: "4px 0 0", fontSize: 15, fontWeight: 700 }}>💰 Descuentos vs Ingreso Neto</h3>
             </div>
             <DiscountVsNetDonut data={chartsData.discountVsNet} />
@@ -202,7 +202,7 @@ export function CustomizableDashboard({
         return (
           <div style={cardStyle}>
             <div>
-              <p style={{ margin: 0, fontSize: 11, fontWeight: 700, textTransform: "uppercase", color: "#6b7280", letterSpacing: 1 }}>Rendimiento General</p>
+              <p style={{ margin: 0, fontSize: 11, fontWeight: 700, textTransform: "uppercase", color: "var(--muted)", letterSpacing: 1 }}>Rendimiento General</p>
               <h3 style={{ margin: "4px 0 0", fontSize: 16, fontWeight: 700 }}>🔻 Embudo de Conversión</h3>
             </div>
             <FunnelChart data={[]} />
@@ -212,7 +212,7 @@ export function CustomizableDashboard({
         return (
           <div style={cardStyle}>
             <div>
-              <p style={{ margin: 0, fontSize: 11, fontWeight: 700, textTransform: "uppercase", color: "#6b7280", letterSpacing: 1 }}>Inventario Múltiple</p>
+              <p style={{ margin: 0, fontSize: 11, fontWeight: 700, textTransform: "uppercase", color: "var(--muted)", letterSpacing: 1 }}>Inventario Múltiple</p>
               <h3 style={{ margin: "4px 0 0", fontSize: 16, fontWeight: 700 }}>📦 Ventas por Categoría</h3>
             </div>
             <CategoryRevenueChart data={[]} />
@@ -222,7 +222,7 @@ export function CustomizableDashboard({
         return (
           <div style={cardStyle}>
             <div>
-              <p style={{ margin: 0, fontSize: 11, fontWeight: 700, textTransform: "uppercase", color: "#6b7280", letterSpacing: 1 }}>Evolución Mensual</p>
+              <p style={{ margin: 0, fontSize: 11, fontWeight: 700, textTransform: "uppercase", color: "var(--muted)", letterSpacing: 1 }}>Evolución Mensual</p>
               <h3 style={{ margin: "4px 0 0", fontSize: 16, fontWeight: 700 }}>📈 Cotizaciones vs Órdenes Cerradas</h3>
             </div>
             <QuotesVsOrdersChart data={[]} />
@@ -232,7 +232,7 @@ export function CustomizableDashboard({
         return (
           <div style={cardStyle}>
             <div>
-              <p style={{ margin: 0, fontSize: 11, fontWeight: 700, textTransform: "uppercase", color: "#6b7280", letterSpacing: 1 }}>Influencers Activos</p>
+              <p style={{ margin: 0, fontSize: 11, fontWeight: 700, textTransform: "uppercase", color: "var(--muted)", letterSpacing: 1 }}>Influencers Activos</p>
               <h3 style={{ margin: "4px 0 0", fontSize: 16, fontWeight: 700 }}>🏆 Top Promotores (Ventas)</h3>
             </div>
             <TopPromotersChart data={[]} />
@@ -242,7 +242,7 @@ export function CustomizableDashboard({
         return (
           <div style={cardStyle}>
             <div>
-              <p style={{ margin: 0, fontSize: 11, fontWeight: 700, textTransform: "uppercase", color: "#6b7280", letterSpacing: 1 }}>Intención de Compra</p>
+              <p style={{ margin: 0, fontSize: 11, fontWeight: 700, textTransform: "uppercase", color: "var(--muted)", letterSpacing: 1 }}>Intención de Compra</p>
               <h3 style={{ margin: "4px 0 0", fontSize: 16, fontWeight: 700 }}>🔥 Horas Pico de Transacciones</h3>
             </div>
             <PeakHoursChart data={[]} />

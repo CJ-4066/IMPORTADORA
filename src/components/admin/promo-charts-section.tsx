@@ -21,8 +21,8 @@ export type ChartsData = {
 
 export function PromoChartsSection({ data }: { data: ChartsData }) {
   const cardStyle: React.CSSProperties = {
-    background: "#fff",
-    border: "1px solid #e5e7eb",
+    background: "var(--surface-strong)", color: "var(--foreground)",
+    border: "1px solid var(--line)",
     borderRadius: 12,
     padding: "20px 24px",
     display: "flex",
@@ -64,7 +64,7 @@ export function PromoChartsSection({ data }: { data: ChartsData }) {
       <div style={cardStyle}>
         <div style={headStyle}>
           <div>
-            <p style={{ margin: 0, fontSize: 11, fontWeight: 700, textTransform: "uppercase", color: "#6b7280", letterSpacing: 1 }}>
+            <p style={{ margin: 0, fontSize: 11, fontWeight: 700, textTransform: "uppercase", color: "var(--muted)", letterSpacing: 1 }}>
               Comparativa de Códigos
             </p>
             <h3 style={{ margin: "4px 0 0", fontSize: 16, fontWeight: 700 }}>📊 Usos vs Comisiones por Cupón</h3>
@@ -78,7 +78,7 @@ export function PromoChartsSection({ data }: { data: ChartsData }) {
         {/* Donut 1 — Payment method */}
         <div style={cardStyle}>
           <div>
-            <p style={{ margin: 0, fontSize: 11, fontWeight: 700, textTransform: "uppercase", color: "#6b7280", letterSpacing: 1 }}>
+            <p style={{ margin: 0, fontSize: 11, fontWeight: 700, textTransform: "uppercase", color: "var(--muted)", letterSpacing: 1 }}>
               Preferencia del Cliente
             </p>
             <h3 style={{ margin: "4px 0 0", fontSize: 15, fontWeight: 700 }}>💳 Ventas por Método de Pago</h3>
@@ -89,7 +89,7 @@ export function PromoChartsSection({ data }: { data: ChartsData }) {
         {/* Donut 2 — Influencer */}
         <div style={cardStyle}>
           <div>
-            <p style={{ margin: 0, fontSize: 11, fontWeight: 700, textTransform: "uppercase", color: "#6b7280", letterSpacing: 1 }}>
+            <p style={{ margin: 0, fontSize: 11, fontWeight: 700, textTransform: "uppercase", color: "var(--muted)", letterSpacing: 1 }}>
               Aporte de Promotores
             </p>
             <h3 style={{ margin: "4px 0 0", fontSize: 15, fontWeight: 700 }}>👥 Ventas por Influencer (S/)</h3>
@@ -100,7 +100,7 @@ export function PromoChartsSection({ data }: { data: ChartsData }) {
         {/* Donut 3 — Discount vs Net */}
         <div style={cardStyle}>
           <div>
-            <p style={{ margin: 0, fontSize: 11, fontWeight: 700, textTransform: "uppercase", color: "#6b7280", letterSpacing: 1 }}>
+            <p style={{ margin: 0, fontSize: 11, fontWeight: 700, textTransform: "uppercase", color: "var(--muted)", letterSpacing: 1 }}>
               Análisis Financiero
             </p>
             <h3 style={{ margin: "4px 0 0", fontSize: 15, fontWeight: 700 }}>💰 Descuentos vs Ingreso Neto</h3>
