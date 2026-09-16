@@ -9,6 +9,7 @@ const outgoingMessageSchema = z.object({
   content: z.string().trim().min(1).max(4000),
   conversationId: z.string().trim().min(1).max(191),
   externalMessageId: z.string().trim().min(1).max(120).optional(),
+  provider: z.enum(["manychat", "meta-cloud"]).default("manychat"),
   mediaUrl: z.string().trim().url().nullable().optional(),
   requestId: z.string().trim().min(1).max(120).optional(),
   type: z.nativeEnum(MessageType).default("TEXT"),
@@ -36,7 +37,7 @@ export async function POST(request: Request) {
         ok: true,
         duplicate: true,
         messageId: existing.id,
-        provider: "internal-simulator",
+        provider: input.provider,
       });
     }
 
@@ -51,7 +52,7 @@ export async function POST(request: Request) {
           messageType: input.type,
           metadata: {
             agentId: input.agentId,
-            provider: "internal-simulator",
+            provider: input.provider,
             requestId: input.requestId ?? null,
           },
           senderType: "BOT",
@@ -74,7 +75,7 @@ export async function POST(request: Request) {
       ok: true,
       duplicate: false,
       messageId: message.id,
-      provider: "internal-simulator",
+      provider: input.provider,
     });
   } catch (error: unknown) {
     if (error instanceof z.ZodError) {
