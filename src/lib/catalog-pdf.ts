@@ -15,6 +15,8 @@ const BRAND_PRIMARY = "#2320DA";
 
 type CatalogProductImage = {
   id: string;
+  name: string;
+  code: string;
   imageUrls: string[];
   updatedAt: Date;
 };
@@ -53,6 +55,8 @@ async function findProjectorImages(): Promise<CatalogProductImage[]> {
     orderBy: [{ isFeatured: "desc" }, { name: "asc" }],
     select: {
       id: true,
+      name: true,
+      code: true,
       imageUrl: true,
       localImageUrl: true,
       media: {
@@ -76,16 +80,19 @@ async function findProjectorImages(): Promise<CatalogProductImage[]> {
       ),
     );
 
-    return imageUrls.length ? [{ id: product.id, imageUrls, updatedAt: product.updatedAt }] : [];
+    return imageUrls.length ? [{ id: product.id, name: product.name, code: product.code, imageUrls, updatedAt: product.updatedAt }] : [];
   });
 }
 
 function getCatalogFingerprint(products: CatalogProductImage[]) {
   return createHash("sha256")
+    .update("large-product-page-v2")
     .update(
       JSON.stringify(
         products.map((product) => [
           product.id,
+          product.name,
+          product.code,
           product.imageUrls,
           product.updatedAt.toISOString(),
         ]),
@@ -137,17 +144,27 @@ async function loadImage(imageUrl: string) {
     }
   }
 
-  return sharp(source)
-    .rotate()
+  return prepareCatalogImage(source);
+}
+
+export async function prepareCatalogImage(source: Buffer) {
+  // Flatten transparency and remove only near-white padding, preserving artwork.
+  const flattened = await sharp(source).rotate().flatten({ background: "#FFFFFF" }).png().toBuffer();
+  let cropped = flattened;
+  try {
+    cropped = await sharp(flattened).trim({ background: "#FFFFFF", threshold: 8 }).toBuffer();
+  } catch {
+    // Uniform images cannot always be trimmed.
+  }
+  return sharp(cropped)
     .resize({
-      width: 1000,
-      height: 1000,
-      fit: "contain",
-      background: "#FFFFFF",
+      width: 1800,
+      height: 2200,
+      fit: "inside",
       withoutEnlargement: true,
     })
     .flatten({ background: "#FFFFFF" })
-    .jpeg({ quality: 86, mozjpeg: true })
+    .jpeg({ quality: 90, mozjpeg: true })
     .toBuffer();
 }
 
@@ -163,7 +180,7 @@ async function loadFirstAvailableImage(product: CatalogProductImage) {
   throw new Error(`No available image for product ${product.id}`);
 }
 
-export function renderCatalogImagePdf(images: Buffer[]) {
+export function renderCatalogImagePdf(images: { image: Buffer; name: string; code: string }[]) {
   return new Promise<Buffer>((resolve, reject) => {
     const document = new PDFDocument({
       autoFirstPage: false,
@@ -187,52 +204,36 @@ export function renderCatalogImagePdf(images: Buffer[]) {
     const pageWidth = 595.28;
     const pageHeight = 841.89;
     const marginX = 36;
-    const bottomMargin = 34;
-    const columns = 2;
-    const rows = 3;
-    const gapX = 16;
-    const gapY = 16;
     const headerHeight = 82;
-    const cardWidth = (pageWidth - marginX * 2 - gapX) / columns;
-    const cardHeight = (pageHeight - headerHeight - bottomMargin - gapY * (rows - 1)) / rows;
+    const imageWidth = pageWidth - marginX * 2;
 
-    images.forEach((image, index) => {
-      const positionOnPage = index % (columns * rows);
-
-      if (positionOnPage === 0) {
-        document.addPage({ margin: 0, size: "A4" });
-        document
-          .fillColor(BRAND_PRIMARY)
-          .font("Helvetica-Bold")
-          .fontSize(23)
-          .text("CATÁLOGO DE PROYECTORES", marginX, 30, {
-            align: "center",
-            width: pageWidth - marginX * 2,
-          });
-        document
-          .moveTo(marginX, 66)
-          .lineTo(pageWidth - marginX, 66)
-          .lineWidth(2)
-          .strokeColor(BRAND_PRIMARY)
-          .stroke();
-      }
-
-      const column = positionOnPage % columns;
-      const row = Math.floor(positionOnPage / columns);
-      const x = marginX + column * (cardWidth + gapX);
-      const y = headerHeight + row * (cardHeight + gapY);
-
+    images.forEach((product, index) => {
+      document.addPage({ margin: 0, size: "A4" });
       document
-        .roundedRect(x, y, cardWidth, cardHeight, 10)
-        .lineWidth(0.8)
-        .strokeColor("#D9DDFC")
-        .fillAndStroke("#FFFFFF", "#D9DDFC");
-
-      document.image(image, x + 12, y + 12, {
+        .fillColor(BRAND_PRIMARY)
+        .font("Helvetica-Bold")
+        .fontSize(23)
+        .text("CATÁLOGO DE PROYECTORES", marginX, 30, {
+          align: "center",
+          width: imageWidth,
+        });
+      document.moveTo(marginX, 66).lineTo(pageWidth - marginX, 66)
+        .lineWidth(2).strokeColor(BRAND_PRIMARY).stroke();
+      document.image(product.image, marginX, headerHeight, {
         align: "center",
-        fit: [cardWidth - 24, cardHeight - 24],
+        fit: [imageWidth, 605],
         valign: "center",
       });
+      document.fillColor("#17172B").font("Helvetica-Bold").fontSize(17);
+      let nameSize = 17;
+      while (document.heightOfString(product.name, { width: imageWidth }) > 56 && nameSize > 11) {
+        document.fontSize(--nameSize);
+      }
+      document.text(product.name, marginX, 704, { width: imageWidth, align: "center" });
+      document.fillColor(BRAND_PRIMARY).font("Helvetica-Bold").fontSize(15)
+        .text(`Código: ${product.code}`, marginX, 768, { width: imageWidth, align: "center" });
+      document.fillColor("#666666").font("Helvetica").fontSize(9)
+        .text(`${index + 1} / ${images.length}`, marginX, pageHeight - 28, { width: imageWidth, align: "center" });
     });
 
     document.end();
@@ -260,8 +261,8 @@ async function createProjectorCatalogPdf(products: CatalogProductImage[], finger
   }
 
   const imageResults = await Promise.allSettled(products.map(loadFirstAvailableImage));
-  const images = imageResults.flatMap((result) =>
-    result.status === "fulfilled" ? [result.value] : [],
+  const images = imageResults.flatMap((result, index) =>
+    result.status === "fulfilled" ? [{ image: result.value, name: products[index].name, code: products[index].code }] : [],
   );
 
   if (!images.length) {

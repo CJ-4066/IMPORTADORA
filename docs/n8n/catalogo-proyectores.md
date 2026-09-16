@@ -8,16 +8,28 @@ palabras `catálogo` y `proyector`:
    `POST /api/internal/catalogs/projectors`.
 2. La aplicación verifica que la conversación continúe en modo automático, que
    no esté asignada a un agente y que el contacto sea real.
-3. La aplicación genera o reutiliza un PDF inmutable con las imágenes de todos
-   los proyectores visibles.
-4. n8n entrega al contacto un mensaje de WhatsApp con el enlace público al PDF.
+3. La aplicación genera o reutiliza un PDF inmutable con una imagen grande por
+   página, el nombre y el código de cada proyector visible. Recorta márgenes
+   blancos o transparentes y conserva las proporciones sin añadir cuadrados.
+4. n8n entrega al contacto un documento PDF nativo de WhatsApp mediante la
+   credencial existente de Cloud API y el mismo número de WhatsApp de la tienda.
 5. Solo después de una respuesta exitosa del workflow outbound, n8n registra el
    mensaje como enviado en el Centro de Mensajes.
 
-El enlace se envía como texto porque la operación dinámica `sendContent` de
-ManyChat para WhatsApp no admite archivos. El mensaje se registra internamente
-como `DOCUMENT` con su `mediaUrl`, de modo que el Centro de Mensajes conserva la
-representación correcta del catálogo.
+La URL pública se utiliza solo como origen del archivo para Meta. El cliente
+recibe una tarjeta de documento descargable llamada `Catalogo-de-proyectores.pdf`,
+no un enlace de texto. ManyChat continúa gestionando las entradas y los mensajes
+de texto; `sendContent` no permite documentos de WhatsApp.
+
+Se conserva el control de idempotencia del outbound y solo se registra `sent`
+si Meta devuelve un identificador `wamid.*`. Un error o respuesta sin ID sigue
+la salida de fallo; nunca se sustituye el documento por un enlace silenciosamente.
+El proveedor del registro es `meta-cloud` y el tipo es `DOCUMENT`.
+
+`scripts/n8n/enable-catalog-documents.mjs` prepara este ajuste sobre exportaciones
+respaldadas de los dos workflows; reutiliza el emisor y las referencias a las
+credenciales existentes y no contiene secretos. No ejecutarlo sobre workflows
+que ya tengan la rama de documentos.
 
 Los contactos del simulador se omiten de la entrega real y nunca se utilizan
 para probar envíos a ManyChat.
