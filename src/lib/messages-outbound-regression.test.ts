@@ -50,3 +50,9 @@ test("no infiere manychatSubscriberId desde externalContactId", () => {
   assert.match(messagesService, /getManychatSubscriberIdFromMetadata\(parsed\.metadata\)/);
   assert.match(messagesService, /parsed\.manychatSubscriberId \?\? getManychatSubscriberIdFromMetadata/);
 });
+
+test("los contactos del simulador nunca se relacionan por un teléfono inferido", () => {
+  assert.match(messagesService, /const isSimulator = parsed\.externalContactId\.startsWith\("SIMULATOR:"\)/);
+  assert.match(messagesService, /isSimulator \? "" : parsed\.externalContactId/);
+  assert.match(messagesService, /if \(!contact && normalizedPhone && !isSimulator\)/);
+});

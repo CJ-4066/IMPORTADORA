@@ -570,9 +570,10 @@ export async function updateConversation(id: string, input: UpdateConversationIn
 export async function processIncomingMessage(input: IncomingMessageInput) {
   const parsed = incomingMessageSchema.parse(input);
   const timestamp = new Date(parsed.timestamp);
-  const normalizedPhone = normalizeMessagePhone(parsed.phone ?? parsed.externalContactId);
-  const phone = parsed.phone?.trim() || normalizedPhone || null;
-  const manychatSubscriberId = parsed.externalContactId.startsWith("SIMULATOR:")
+  const isSimulator = parsed.externalContactId.startsWith("SIMULATOR:");
+  const normalizedPhone = normalizeMessagePhone(parsed.phone ?? (isSimulator ? "" : parsed.externalContactId));
+  const phone = parsed.phone?.trim() || (isSimulator ? null : normalizedPhone) || null;
+  const manychatSubscriberId = isSimulator
     ? null
     : parsed.manychatSubscriberId ?? getManychatSubscriberIdFromMetadata(parsed.metadata);
 
@@ -598,7 +599,7 @@ export async function processIncomingMessage(input: IncomingMessageInput) {
     },
   });
 
-  if (!contact && normalizedPhone) {
+  if (!contact && normalizedPhone && !isSimulator) {
     contact = await prisma.chatContact.findFirst({
       where: {
         channel: parsed.channel,

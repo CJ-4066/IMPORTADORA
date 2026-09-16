@@ -74,9 +74,9 @@ function patchIncoming(workflow) {
     id: "continue-simulator-without-manychat",
     name: "Continuar sin consultar ManyChat",
     position: [700, -80],
-    type: "n8n-nodes-base.set",
-    typeVersion: 3.4,
-    parameters: { options: {} },
+    type: "n8n-nodes-base.noOp",
+    typeVersion: 1,
+    parameters: {},
   };
   workflow.nodes.push(simulationCheck, simulationPass);
   workflow.connections[edit.name] = { main: [[edge(simulationCheck.name)]] };
