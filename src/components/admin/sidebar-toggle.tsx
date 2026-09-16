@@ -8,12 +8,16 @@ export function SidebarToggle() {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
-    const saved = localStorage.getItem("admin-sidebar-collapsed");
-    if (saved === "true") {
-      setCollapsed(true);
-      document.body.classList.add("admin-sidebar-collapsed");
-    }
+    const frame = window.requestAnimationFrame(() => {
+      setMounted(true);
+      const saved = localStorage.getItem("admin-sidebar-collapsed");
+      if (saved === "true") {
+        setCollapsed(true);
+        document.body.classList.add("admin-sidebar-collapsed");
+      }
+    });
+
+    return () => window.cancelAnimationFrame(frame);
   }, []);
 
   const toggle = () => {
@@ -31,10 +35,12 @@ export function SidebarToggle() {
 
   return (
     <button 
+      aria-label={collapsed ? "Expandir menú" : "Colapsar menú"}
+      aria-pressed={collapsed}
       onClick={toggle}
-      className="icon-button"
-      style={{ color: "var(--muted)", width: "36px", height: "36px", display: "flex", alignItems: "center", justifyContent: "center" }}
+      className="icon-button admin-shell-icon-button"
       title={collapsed ? "Expandir menú" : "Colapsar menú"}
+      type="button"
     >
       {collapsed ? <PanelLeftOpen size={20} /> : <PanelLeftClose size={20} />}
     </button>

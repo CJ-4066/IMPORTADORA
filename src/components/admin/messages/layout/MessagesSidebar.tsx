@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Inbox, Zap, FileCode2, Users, Activity, Settings, Bug } from "lucide-react";
+import { Inbox, Zap, FileCode2, Users, Activity, Settings, Bug, MessageCircleMore } from "lucide-react";
 
 export function MessagesSidebar() {
   const pathname = usePathname();
@@ -18,11 +18,17 @@ export function MessagesSidebar() {
   ];
 
   return (
-    <aside className="messages-app-sidebar">
-      <div className="messages-app-sidebar-header">
-        <h3>Conversaciones</h3>
+    <header className="messages-app-navigation">
+      <div className="messages-app-navigation-title">
+        <span className="messages-app-navigation-icon" aria-hidden="true">
+          <MessageCircleMore size={20} />
+        </span>
+        <div>
+          <p>Atención al cliente</p>
+          <h2>Centro de Mensajes</h2>
+        </div>
       </div>
-      <nav className="messages-app-sidebar-nav">
+      <nav aria-label="Secciones del Centro de Mensajes" className="messages-app-sidebar-nav">
         {navItems.map((item) => {
           const isActive = item.exact 
             ? pathname === item.href 
@@ -32,6 +38,7 @@ export function MessagesSidebar() {
             <Link
               key={item.name}
               href={item.href}
+              aria-current={isActive ? "page" : undefined}
               className={`messages-app-sidebar-link ${isActive ? "is-active" : ""}`}
             >
               <item.icon size={18} />
@@ -40,6 +47,6 @@ export function MessagesSidebar() {
           );
         })}
       </nav>
-    </aside>
+    </header>
   );
 }

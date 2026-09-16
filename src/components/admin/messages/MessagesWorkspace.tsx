@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { MessageCircle } from "lucide-react";
+import { MessageCircle, TriangleAlert, X } from "lucide-react";
 import { ChatHeader } from "./ChatHeader";
 import { ConversationList, type ConversationFilters } from "./ConversationList";
 import { CustomerPanel } from "./CustomerPanel";
@@ -215,6 +215,7 @@ export function MessagesWorkspace() {
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [loadingOlderMessages, setLoadingOlderMessages] = useState(false);
   const [refreshNonce, setRefreshNonce] = useState(0);
+  const [workspaceError, setWorkspaceError] = useState<string | null>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const activeMessagesRef = useRef<ChatMessage[]>([]);
@@ -245,12 +246,14 @@ export function MessagesWorkspace() {
 
       try {
         const data = await fetchConversationsPage(filtersSnapshot, 1, controller.signal);
+        setWorkspaceError(null);
         setConversations(data.items);
         setConversationTotal(data.total);
         setConversationHasMore(data.hasMore);
       } catch (error) {
         if (!controller.signal.aborted) {
           console.error("Failed to fetch conversations", error);
+          setWorkspaceError(error instanceof Error ? error.message : "No se pudieron cargar las conversaciones.");
         }
       } finally {
         if (!controller.signal.aborted) {
@@ -293,6 +296,7 @@ export function MessagesWorkspace() {
 
       try {
         const data = await fetchMessagesPage(activeId, filtersSnapshot, undefined, controller.signal);
+        setWorkspaceError(null);
         setActiveMessages(data.items);
         setMessageTotal(data.total);
         setMessageHasMore(data.hasMore);
@@ -300,6 +304,7 @@ export function MessagesWorkspace() {
       } catch (error) {
         if (!controller.signal.aborted) {
           console.error("Failed to fetch messages", error);
+          setWorkspaceError(error instanceof Error ? error.message : "No se pudieron cargar los mensajes.");
         }
       } finally {
         if (!controller.signal.aborted) {
@@ -440,6 +445,13 @@ export function MessagesWorkspace() {
         conversation.id === id ? { ...conversation, unreadCount: 0 } : conversation,
       ),
     );
+    setActiveMessages([]);
+    setMessageTotal(0);
+    setMessageHasMore(false);
+  };
+
+  const handleBackToConversations = () => {
+    setActiveId(undefined);
     setActiveMessages([]);
     setMessageTotal(0);
     setMessageHasMore(false);
@@ -598,6 +610,20 @@ export function MessagesWorkspace() {
 
   return (
     <div className={`messages-workspace ${activeId ? "chat-open" : ""}`}>
+      {workspaceError ? (
+        <div className="messages-workspace-alert" role="alert">
+          <TriangleAlert size={18} />
+          <span>{workspaceError}</span>
+          <button
+            aria-label="Cerrar aviso"
+            className="icon-btn"
+            onClick={() => setWorkspaceError(null)}
+            type="button"
+          >
+            <X size={17} />
+          </button>
+        </div>
+      ) : null}
       <ConversationList
         activeId={activeId}
         conversations={conversations}
@@ -617,6 +643,7 @@ export function MessagesWorkspace() {
           <div className="messages-main">
             <ChatHeader
               conversation={activeConversation}
+              onBack={handleBackToConversations}
               onCloseConversation={handleCloseConversation}
               onTakeConversation={handleTakeConversation}
               onToggleBot={handleToggleBot}

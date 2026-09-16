@@ -9,7 +9,6 @@ import {
   FileText,
   FolderTree,
   ImagePlus,
-  LogOut,
   MessageCircle,
   MessageSquareHeart,
   PackagePlus,
@@ -103,12 +102,18 @@ export function AdminNav({ badges }: AdminNavProps) {
   });
   
   useEffect(() => {
-    const saved = localStorage.getItem("admin-nav-expanded");
-    if (saved) {
-      try {
-        setExpandedSections(JSON.parse(saved));
-      } catch (e) {}
-    }
+    const frame = window.requestAnimationFrame(() => {
+      const saved = localStorage.getItem("admin-nav-expanded");
+      if (saved) {
+        try {
+          setExpandedSections(JSON.parse(saved));
+        } catch {
+          localStorage.removeItem("admin-nav-expanded");
+        }
+      }
+    });
+
+    return () => window.cancelAnimationFrame(frame);
   }, []);
 
   const toggleSection = (title: string) => {
@@ -133,6 +138,8 @@ export function AdminNav({ badges }: AdminNavProps) {
             <button 
               type="button"
               className="admin-nav-section-title"
+              aria-expanded={isExpanded}
+              aria-controls={`admin-nav-${section.title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`}
               onClick={() => toggleSection(section.title)}
               style={{
                 display: "flex",
@@ -157,7 +164,10 @@ export function AdminNav({ badges }: AdminNavProps) {
               <span>{section.title}</span>
               {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
             </button>
-            <div className={cn("admin-nav-links", !isExpanded && "is-accordion-closed")}>
+            <div
+              className={cn("admin-nav-links", !isExpanded && "is-accordion-closed")}
+              id={`admin-nav-${section.title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`}
+            >
               {section.links.map((link) => {
                 const Icon = link.icon;
                 const isLink = link.kind !== "action" && Boolean(link.href);

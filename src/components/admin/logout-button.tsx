@@ -7,9 +7,9 @@ export function LogoutButton() {
   return (
     <form action={logoutAction} style={{ margin: 0 }}>
       <button 
+        aria-label="Cerrar sesión"
         type="submit"
-        className="icon-button"
-        style={{ color: "var(--brand-danger, #ef4444)", width: "36px", height: "36px", display: "flex", alignItems: "center", justifyContent: "center", background: "transparent", border: "none", cursor: "pointer", borderRadius: "6px" }}
+        className="icon-button admin-shell-icon-button admin-shell-logout-button"
         title="Cerrar sesión"
       >
         <LogOut size={18} />

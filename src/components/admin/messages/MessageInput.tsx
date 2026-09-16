@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import type { KeyboardEvent, ChangeEvent } from "react";
-import { Paperclip, Smile, Send, Loader2 } from "lucide-react";
+import { Paperclip, Send, Loader2 } from "lucide-react";
 
 interface Props {
   onSendMessage: (content: string, mediaUrl?: string, type?: string) => Promise<void> | void;
@@ -9,6 +9,7 @@ interface Props {
 export function MessageInput({ onSendMessage }: Props) {
   const [message, setMessage] = useState("");
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSend = () => {
@@ -35,6 +36,7 @@ export function MessageInput({ onSendMessage }: Props) {
     }
 
     setIsUploading(true);
+    setUploadError(null);
     try {
       const formData = new FormData();
       formData.append("file", file);
@@ -46,8 +48,8 @@ export function MessageInput({ onSendMessage }: Props) {
       });
 
       if (!res.ok) {
-        const error = await res.json();
-        alert(error.error || "Error al subir archivo");
+        const error = (await res.json().catch(() => ({}))) as { error?: string };
+        setUploadError(error.error || "No se pudo subir el archivo. Intenta nuevamente.");
         return;
       }
 
@@ -63,7 +65,7 @@ export function MessageInput({ onSendMessage }: Props) {
       setMessage("");
     } catch (err) {
       console.error(err);
-      alert("Error al enviar archivo");
+      setUploadError("No se pudo enviar el archivo. Revisa tu conexión e intenta nuevamente.");
     } finally {
       setIsUploading(false);
     }
@@ -84,6 +86,7 @@ export function MessageInput({ onSendMessage }: Props) {
           accept="image/*,video/*,application/pdf"
         />
         <button 
+          aria-label="Adjuntar archivo"
           className="icon-btn" 
           title="Adjuntar" 
           type="button" 
@@ -94,6 +97,8 @@ export function MessageInput({ onSendMessage }: Props) {
         </button>
         
         <textarea 
+          aria-describedby="message-input-help"
+          aria-label="Mensaje para el cliente"
           className="chat-input-textarea" 
           placeholder={isUploading ? "Subiendo archivo..." : "Escribe un mensaje..."}
           value={message}
@@ -104,12 +109,9 @@ export function MessageInput({ onSendMessage }: Props) {
         />
         
         <div className="chat-input-actions">
-          <button className="icon-btn" title="Emoji" type="button" disabled={isUploading}>
-            <Smile size={18} />
-          </button>
           <button 
+            aria-label="Enviar mensaje"
             className="icon-btn" 
-            style={{ color: message.trim() && !isUploading ? 'var(--primary)' : 'var(--text-muted)' }}
             onClick={handleSend}
             disabled={!message.trim() || isUploading}
             title="Enviar"
@@ -119,9 +121,10 @@ export function MessageInput({ onSendMessage }: Props) {
           </button>
         </div>
       </div>
-      <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '8px', textAlign: 'center' }}>
+      <div className="chat-input-help" id="message-input-help">
         Presiona Enter para enviar, Shift + Enter para salto de línea.
       </div>
+      {uploadError ? <p className="chat-input-error" role="alert">{uploadError}</p> : null}
     </div>
   );
 }

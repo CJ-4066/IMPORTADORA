@@ -1,6 +1,6 @@
 import type { Conversation } from "@/types/messages";
 import { ConversationStatus } from "./ConversationStatus";
-import { UserPlus, StopCircle, PlayCircle, CheckCircle } from "lucide-react";
+import { ArrowLeft, UserPlus, StopCircle, PlayCircle, CheckCircle } from "lucide-react";
 import { DynamicAvatar } from "./ConversationItem";
 
 interface Props {
@@ -8,13 +8,17 @@ interface Props {
   onToggleBot: () => void;
   onTakeConversation: () => void;
   onCloseConversation: () => void;
+  onBack: () => void;
 }
 
-export function ChatHeader({ conversation, onToggleBot, onTakeConversation, onCloseConversation }: Props) {
+export function ChatHeader({ conversation, onToggleBot, onTakeConversation, onCloseConversation, onBack }: Props) {
   const { contact, botEnabled } = conversation;
 
   return (
     <div className="chat-header">
+      <button aria-label="Volver a conversaciones" className="icon-btn chat-header-back" onClick={onBack} type="button">
+        <ArrowLeft size={20} />
+      </button>
       <div className="chat-header-info">
         <div style={{ width: '40px', height: '40px', marginRight: '12px' }}>
           {contact.avatar ? (
@@ -53,7 +57,7 @@ export function ChatHeader({ conversation, onToggleBot, onTakeConversation, onCl
           <UserPlus size={14} /> Tomar
         </button>
         
-        <button className="btn btn-outline" onClick={onCloseConversation} title="Cerrar conversación" type="button">
+        <button aria-label="Cerrar conversación" className="btn btn-outline chat-header-close" onClick={onCloseConversation} title="Cerrar conversación" type="button">
           <CheckCircle size={14} />
         </button>
       </div>

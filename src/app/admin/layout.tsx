@@ -35,6 +35,9 @@ export default async function AdminLayout({
 
   return (
     <main className="admin-shell">
+      <a className="admin-skip-link" href="#admin-main-content">
+        Ir al contenido principal
+      </a>
       <aside className="admin-sidebar">
         <div className="admin-sidebar-main" style={{ display: "flex", flexDirection: "column", height: "100%" }}>
           <div className="admin-sidebar-brand" style={{ display: "flex", flexDirection: "column", gap: "1rem", marginBottom: "1rem" }}>
@@ -65,7 +68,7 @@ export default async function AdminLayout({
         </div>
       </aside>
 
-      <section className="admin-content">{children}</section>
+      <section className="admin-content" id="admin-main-content" tabIndex={-1}>{children}</section>
     </main>
   );
 }

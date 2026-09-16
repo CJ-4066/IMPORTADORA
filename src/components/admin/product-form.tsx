@@ -6,7 +6,16 @@ import type { CatalogProduct, CategoryOption } from "@/lib/store";
 import type { ProductActionState } from "@/components/admin/product-form-state";
 import { ProductCoverField } from "@/components/admin/product-cover-field";
 import { ProductMediaManager } from "@/components/admin/product-media-manager";
+import { AdminFormSectionNav } from "@/components/admin/admin-form-section-nav";
 import { SubmitButton } from "@/components/ui/submit-button";
+
+const PRODUCT_FORM_SECTIONS = [
+  { id: "product-identity", label: "Identidad", description: "Código, nombre, marca y categoría" },
+  { id: "product-commerce", label: "Comercio", description: "Descripción, precios y existencias" },
+  { id: "product-cover", label: "Portada", description: "Imagen principal del catálogo" },
+  { id: "product-media", label: "Multimedia", description: "Galería, videos y documentos" },
+  { id: "product-publishing", label: "Publicación", description: "Visibilidad y destacado" },
+] as const;
 
 type ProductFormProps = {
   title: string;
@@ -49,16 +58,16 @@ export function ProductForm({
         </div>
       </div>
 
-      <form action={formAction} className="stack-lg">
+      <form action={formAction} className="stack-lg admin-long-form">
         {product ? <input type="hidden" name="productId" value={product.id} /> : null}
         {state.message ? (
-          <div className="admin-toast admin-toast-error">
+          <div aria-live="assertive" className="admin-toast admin-toast-error" role="alert">
             <strong>Error</strong>
             <span>{state.message}</span>
           </div>
         ) : null}
         {status ? (
-          <div className="admin-toast admin-toast-success">
+          <div aria-live="polite" className="admin-toast admin-toast-success" role="status">
             <strong>Listo</strong>
             <span>
               {status === "updated"
@@ -68,9 +77,11 @@ export function ProductForm({
           </div>
         ) : null}
 
+        <AdminFormSectionNav label="Secciones del producto" sections={[...PRODUCT_FORM_SECTIONS]} />
+
         <div className="product-editor-grid">
           <div className="product-editor-main">
-            <section className="product-section-card">
+            <section className="product-section-card admin-form-anchor" id="product-identity">
               <div className="product-section-head">
                 <div>
                   <p className="eyebrow">Identidad</p>
@@ -132,7 +143,7 @@ export function ProductForm({
               </div>
             </section>
 
-            <section className="product-section-card">
+            <section className="product-section-card admin-form-anchor" id="product-commerce">
               <div className="product-section-head">
                 <div>
                   <p className="eyebrow">Precio y stock</p>
@@ -266,17 +277,19 @@ export function ProductForm({
               </div>
             </section>
 
-            <ProductCoverField
-              key={`${values.code}-${values.imageUrl}`}
-              error={fieldErrors.imageUrl}
-              value={values.imageUrl}
-            />
+            <div className="admin-form-anchor" id="product-cover">
+              <ProductCoverField
+                key={`${values.code}-${values.imageUrl}`}
+                error={fieldErrors.imageUrl}
+                value={values.imageUrl}
+              />
+            </div>
 
-            <div id="media">
+            <div className="admin-form-anchor" id="product-media">
               <ProductMediaManager error={fieldErrors.media} initialItems={values.media} />
             </div>
 
-            <section className="product-section-card">
+            <section className="product-section-card admin-form-anchor" id="product-publishing">
               <div className="product-section-head">
                 <div>
                   <p className="eyebrow">Estado</p>
@@ -317,7 +330,8 @@ export function ProductForm({
           </aside>
         </div>
 
-        <div className="actions-row product-editor-actions">
+        <div className="actions-row product-editor-actions admin-form-sticky-actions">
+          <span className="admin-form-save-hint">Revisa las secciones antes de guardar.</span>
           <SubmitButton pendingLabel={product ? "Guardando cambios..." : "Creando producto..."}>
             {product ? "Guardar cambios" : "Crear producto"}
           </SubmitButton>
