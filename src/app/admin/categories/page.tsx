@@ -1,28 +1,27 @@
 import Link from "next/link";
-import {
-  ArrowUpRight,
-  Boxes,
-  ExternalLink,
-  Filter,
-  FolderPlus,
-  FolderTree,
-  PackageSearch,
-  Search,
-  Trash2,
-} from "lucide-react";
-import {
-  createCategoryAction,
-  deleteCategoryAction,
-  updateCategoryAction,
-} from "@/app/admin/actions";
+import { ExternalLink, FolderPlus, FolderTree, PackageSearch, Pencil, Plus, Search, X } from "lucide-react";
+import { createCategoryAction, updateCategoryAction } from "@/app/admin/actions";
+import { CategoryDeleteForm } from "@/components/admin/category-delete-form";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { getAdminCategories } from "@/lib/store";
 
-type CategoriesPageProps = {
-  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+type CategoriesPageProps = { searchParams?: Promise<Record<string, string | string[] | undefined>> };
+export const dynamic = "force-dynamic";
+
+const statusMessages: Record<string, string> = {
+  created: "Categoría creada correctamente.", updated: "Categoría actualizada correctamente.", deleted: "Categoría eliminada correctamente.",
 };
 
-export const dynamic = "force-dynamic";
+function categoryUrl(params: { q?: string; filter?: string; sort?: string; edit?: string; create?: boolean }) {
+  const query = new URLSearchParams();
+  if (params.q) query.set("q", params.q);
+  if (params.filter && params.filter !== "all") query.set("filter", params.filter);
+  if (params.sort && params.sort !== "name") query.set("sort", params.sort);
+  if (params.edit) query.set("edit", params.edit);
+  if (params.create) query.set("create", "1");
+  const suffix = query.toString();
+  return `/admin/categories${suffix ? `?${suffix}` : ""}`;
+}
 
 export default async function CategoriesPage({ searchParams }: CategoriesPageProps) {
   const categories = await getAdminCategories();
@@ -31,226 +30,88 @@ export default async function CategoriesPage({ searchParams }: CategoriesPagePro
   const error = typeof params?.error === "string" ? params.error : "";
   const query = typeof params?.q === "string" ? params.q.trim() : "";
   const filter = typeof params?.filter === "string" ? params.filter : "all";
-  
-  const normalizedQuery = query.toLowerCase();
-  
-  const filteredCategories = categories.filter((category) => {
-    const matchesQuery = !normalizedQuery || (
-      category.name.toLowerCase().includes(normalizedQuery) ||
-      category.slug.toLowerCase().includes(normalizedQuery)
-    );
-
-    if (!matchesQuery) return false;
-
-    if (filter === "active") return category.productCount > 0;
-    if (filter === "empty") return category.productCount === 0;
-
-    return true;
-  });
-
+  const sort = typeof params?.sort === "string" ? params.sort : "name";
+  const editId = typeof params?.edit === "string" ? params.edit : "";
+  const isCreating = params?.create === "1";
   const activeCategories = categories.filter((category) => category.productCount > 0).length;
   const emptyCategories = categories.length - activeCategories;
+  const normalizedQuery = query.toLocaleLowerCase("es");
+
+  const filteredCategories = categories.filter((category) => {
+    const matchesQuery = !normalizedQuery || category.name.toLocaleLowerCase("es").includes(normalizedQuery) || category.slug.toLocaleLowerCase("es").includes(normalizedQuery);
+    if (!matchesQuery) return false;
+    if (filter === "active") return category.productCount > 0;
+    if (filter === "empty") return category.productCount === 0;
+    return true;
+  }).sort((a, b) => {
+    if (sort === "products-desc") return b.productCount - a.productCount || a.name.localeCompare(b.name, "es");
+    if (sort === "products-asc") return a.productCount - b.productCount || a.name.localeCompare(b.name, "es");
+    return a.name.localeCompare(b.name, "es");
+  });
+
+  const selectedCategory = editId ? categories.find((category) => category.id === editId) : undefined;
+  const showEditor = isCreating || Boolean(selectedCategory);
+  const persistentParams = { q: query, filter, sort };
 
   return (
-    <section className="panel admin-categories-workspace">
-      <div className="panel-header">
-        <div>
-          <p className="eyebrow">Categorías del Catálogo</p>
-          <h1>Gestión y Estructura Comercial</h1>
+    <section className="panel category-manager">
+      <header className="category-manager-header">
+        <div><p className="eyebrow">Estructura del catálogo</p><h1>Categorías</h1><p className="muted">Organiza los productos y controla cómo aparecen en la tienda.</p></div>
+        <Link className="button button-primary" href={categoryUrl({ ...persistentParams, create: true })}><Plus size={17} /> Nueva categoría</Link>
+      </header>
+
+      {statusMessages[status] ? <div className="admin-toast admin-toast-success"><strong>Listo</strong><span>{statusMessages[status]}</span></div> : null}
+      {error ? <div className="admin-toast admin-toast-error"><strong>No se pudo completar</strong><span>{error}</span></div> : null}
+
+      <nav className="category-filter-tabs" aria-label="Filtrar categorías">
+        {[
+          { value: "all", label: "Todas", count: categories.length },
+          { value: "active", label: "Con productos", count: activeCategories },
+          { value: "empty", label: "Vacías", count: emptyCategories },
+        ].map((item) => (
+          <Link aria-current={filter === item.value ? "page" : undefined} className={filter === item.value ? "is-active" : ""} href={categoryUrl({ q: query, filter: item.value, sort })} key={item.value}>
+            {item.label}<span>{item.count}</span>
+          </Link>
+        ))}
+      </nav>
+
+      <form className="category-manager-toolbar" method="get">
+        <label className="category-manager-search"><Search size={18} aria-hidden="true" /><input defaultValue={query} name="q" placeholder="Buscar por nombre o URL…" type="search" /></label>
+        <input name="filter" type="hidden" value={filter} />
+        <label className="category-sort-field"><span>Ordenar</span><select defaultValue={sort} name="sort"><option value="name">Nombre A–Z</option><option value="products-desc">Más productos</option><option value="products-asc">Menos productos</option></select></label>
+        <button className="button button-secondary" type="submit">Aplicar</button>
+        {query || filter !== "all" || sort !== "name" ? <Link className="button button-ghost" href="/admin/categories">Limpiar</Link> : null}
+      </form>
+
+      <div className="category-manager-layout">
+        <div className="category-table-card">
+          <div className="category-table-head" aria-hidden="true"><span>Categoría</span><span>Productos</span><span>URL pública</span><span>Acciones</span></div>
+          {filteredCategories.length ? <div className="category-table-body">
+            {filteredCategories.map((category) => (
+              <article className={selectedCategory?.id === category.id ? "category-table-row is-selected" : "category-table-row"} key={category.id}>
+                <div className="category-table-name"><span className="category-table-icon"><FolderTree size={17} /></span><div><strong>{category.name}</strong><small>{category.productCount ? "Visible en el catálogo" : "Sin productos asignados"}</small></div></div>
+                <Link className="category-product-count" href={`/admin/products?category=${encodeURIComponent(category.slug)}`}><strong>{category.productCount}</strong><span>producto{category.productCount === 1 ? "" : "s"}</span></Link>
+                <a className="category-public-link" href={`/categoria/${encodeURIComponent(category.slug)}`} target="_blank" rel="noreferrer">/{category.slug}<ExternalLink size={13} /></a>
+                <div className="category-row-actions">
+                  <Link className="icon-button" href={categoryUrl({ ...persistentParams, edit: category.id })} title={`Editar ${category.name}`}><Pencil size={16} /><span className="sr-only">Editar {category.name}</span></Link>
+                  <Link className="icon-button" href={`/admin/products?category=${encodeURIComponent(category.slug)}`} title="Ver productos"><PackageSearch size={16} /><span className="sr-only">Ver productos</span></Link>
+                </div>
+              </article>
+            ))}
+          </div> : <div className="category-manager-empty"><FolderTree size={28} /><strong>No encontramos categorías</strong><p>{categories.length ? "Prueba con otro término o limpia los filtros." : "Crea la primera categoría para organizar tu catálogo."}</p><Link className="button button-secondary" href="/admin/categories">Limpiar filtros</Link></div>}
         </div>
-      </div>
 
-      {status ? (
-        <div className="admin-toast admin-toast-success">
-          <strong>Listo</strong>
-          <span>Operación completada: {status}</span>
-        </div>
-      ) : null}
-      {error ? (
-        <div className="admin-toast admin-toast-error">
-          <strong>Error</strong>
-          <span>{error}</span>
-        </div>
-      ) : null}
-
-      {/* KPI Cards Row */}
-      <div className="category-summary-grid">
-        <article className="category-summary-card">
-          <span className="category-summary-icon">
-            <FolderTree size={20} />
-          </span>
-          <div>
-            <strong>{categories.length}</strong>
-            <span>Total categorías</span>
-          </div>
-        </article>
-
-        <article className="category-summary-card is-active-kpi">
-          <span className="category-summary-icon">
-            <Boxes size={20} />
-          </span>
-          <div>
-            <strong>{activeCategories}</strong>
-            <span>Con productos activos</span>
-          </div>
-        </article>
-
-        <article className="category-summary-card is-empty-kpi">
-          <span className="category-summary-icon">
-            <Trash2 size={20} />
-          </span>
-          <div>
-            <strong>{emptyCategories}</strong>
-            <span>Sin productos (Vacías)</span>
-          </div>
-        </article>
-      </div>
-
-      {/* Search & Filter Bar */}
-      <article className="category-toolbar-card">
-        <form className="category-search-form" method="get">
-          <label className="category-search-field">
-            <Search size={18} />
-            <input
-              defaultValue={query}
-              name="q"
-              placeholder="Buscar categoría por nombre o slug..."
-              type="search"
-            />
-          </label>
-
-          <select defaultValue={filter} name="filter" className="category-filter-select">
-            <option value="all">Todas las categorías ({categories.length})</option>
-            <option value="active">Solo con productos ({activeCategories})</option>
-            <option value="empty">Solo vacías ({emptyCategories})</option>
-          </select>
-
-          <button className="button button-primary" type="submit">
-            <Filter size={16} />
-            Filtrar
-          </button>
-
-          {query || filter !== "all" ? (
-            <Link className="button button-secondary" href="/admin/categories">
-              Limpiar
-            </Link>
-          ) : null}
-        </form>
-      </article>
-
-      {/* 2-Column Main Workspace */}
-      <div className="admin-categories-grid">
-        {/* Left Column: Create New Category */}
-        <aside className="admin-categories-sidebar">
-          <article className="category-create-card">
-            <div className="stack-sm">
-              <div className="category-icon">
-                <FolderPlus size={20} />
-              </div>
-              <h2>Crear Categoría</h2>
-              <p className="muted text-sm">
-                Agrega una nueva categoría al catálogo. El slug amigable se generará automáticamente.
-              </p>
-            </div>
-
-            <form action={createCategoryAction} className="stack-md margin-top-sm">
-              <label className="field">
-                <span>Nombre de la categoría</span>
-                <input name="name" placeholder="Ej. Accesorios para Celular" required />
-              </label>
-
-              <SubmitButton pendingLabel="Creando...">
-                Crear categoría
-              </SubmitButton>
-            </form>
-          </article>
-        </aside>
-
-        {/* Right Column: Category List Cards/Table */}
-        <main className="admin-categories-main">
-          {filteredCategories.length ? (
-            <div className="category-card-grid">
-              {filteredCategories.map((category) => (
-                <article className="category-card" key={category.id}>
-                  <div className="category-card-top">
-                    <div className="category-card-header-info">
-                      <div className="category-card-badge">
-                        <FolderTree size={18} />
-                      </div>
-                      <div>
-                        <code className="category-slug-tag">/{category.slug}</code>
-                      </div>
-                    </div>
-                    <span className={`status-badge ${category.productCount > 0 ? "is-visible" : "is-hidden"}`}>
-                      {category.productCount} producto{category.productCount === 1 ? "" : "s"}
-                    </span>
-                  </div>
-
-                  <form action={updateCategoryAction} className="category-card-form">
-                    <input name="categoryId" type="hidden" value={category.id} />
-                    <label className="field">
-                      <span>Nombre comercial</span>
-                      <input defaultValue={category.name} name="name" required />
-                    </label>
-                    <div className="category-card-actions-row">
-                      <SubmitButton pendingLabel="Guardando...">Guardar</SubmitButton>
-                      
-                      <Link
-                        className="button button-secondary button-chip"
-                        href={`/admin/products?category=${encodeURIComponent(category.slug)}`}
-                        title="Ver productos en el panel de admin"
-                      >
-                        <PackageSearch size={14} />
-                        Productos ({category.productCount})
-                      </Link>
-
-                      <a
-                        className="button button-ghost button-chip"
-                        href={`/categoria/${encodeURIComponent(category.slug)}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        title="Ver en la tienda pública"
-                      >
-                        <ExternalLink size={14} />
-                      </a>
-                    </div>
-                  </form>
-
-                  <div className="category-card-footer">
-                    <form action={deleteCategoryAction}>
-                      <input name="categoryId" type="hidden" value={category.id} />
-                      <button
-                        className="icon-button danger category-delete-button"
-                        type="submit"
-                        title={
-                          category.productCount > 0
-                            ? `Esta categoría tiene ${category.productCount} productos vinculados`
-                            : "Eliminar categoría"
-                        }
-                      >
-                        <Trash2 size={16} />
-                        <span className="text-xs">Eliminar</span>
-                      </button>
-                    </form>
-                  </div>
-                </article>
-              ))}
-            </div>
-          ) : (
-            <article className="panel panel-slim empty-state">
-              <p className="muted">
-                {categories.length ? "No se encontraron categorías con los filtros aplicados." : "Aún no hay categorías registradas."}
-              </p>
-              {query || filter !== "all" ? (
-                <Link className="button button-secondary" href="/admin/categories">
-                  Limpiar filtros
-                </Link>
-              ) : null}
-            </article>
-          )}
-        </main>
+        {showEditor ? <aside className="category-editor-panel" aria-label={isCreating ? "Crear categoría" : "Editar categoría"}>
+          <div className="category-editor-heading"><span className="category-editor-icon">{isCreating ? <FolderPlus size={19} /> : <Pencil size={18} />}</span><div><p>{isCreating ? "Nueva categoría" : "Editar categoría"}</p><h2>{isCreating ? "Crear categoría" : selectedCategory?.name}</h2></div><Link className="icon-button" href={categoryUrl(persistentParams)} title="Cerrar panel"><X size={17} /></Link></div>
+          <form action={isCreating ? createCategoryAction : updateCategoryAction} className="category-editor-form">
+            {!isCreating && selectedCategory ? <input name="categoryId" type="hidden" value={selectedCategory.id} /> : null}
+            <label className="field"><span>Nombre comercial</span><input autoFocus defaultValue={selectedCategory?.name ?? ""} name="name" placeholder="Ej. Accesorios para celular" required /><small>La URL amigable se genera automáticamente desde el nombre.</small></label>
+            {selectedCategory ? <div className="category-editor-preview"><span>URL pública</span><code>/categoria/{selectedCategory.slug}</code></div> : null}
+            <SubmitButton pendingLabel={isCreating ? "Creando…" : "Guardando…"}>{isCreating ? "Crear categoría" : "Guardar cambios"}</SubmitButton>
+          </form>
+          {selectedCategory ? <div className="category-danger-zone"><div><strong>Eliminar categoría</strong><p>{selectedCategory.productCount ? "Puedes trasladar sus productos antes de eliminarla." : "Esta categoría no tiene productos asignados."}</p></div><CategoryDeleteForm categoryId={selectedCategory.id} categoryName={selectedCategory.name} productCount={selectedCategory.productCount} replacementOptions={categories.filter((category) => category.id !== selectedCategory.id)} /></div> : null}
+        </aside> : null}
       </div>
     </section>
   );
 }
-

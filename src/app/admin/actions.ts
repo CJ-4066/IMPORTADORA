@@ -678,13 +678,26 @@ export async function updateCategoryAction(formData: FormData) {
 export async function deleteCategoryAction(formData: FormData) {
   await requireAdmin();
   const categoryId = String(formData.get("categoryId") ?? "");
+  const replacementCategoryId = String(formData.get("replacementCategoryId") ?? "").trim();
 
   await prisma.$transaction(async (tx) => {
+    if (replacementCategoryId === categoryId) {
+      throw new Error("La categoría de destino debe ser diferente.");
+    }
+
+    const replacementCategory = replacementCategoryId
+      ? await tx.category.findUnique({ where: { id: replacementCategoryId } })
+      : null;
+
+    if (replacementCategoryId && !replacementCategory) {
+      throw new Error("La categoría de destino ya no existe.");
+    }
+
     await tx.product.updateMany({
       where: { categoryId },
       data: {
-        categoryId: null,
-        category: null,
+        categoryId: replacementCategory?.id ?? null,
+        category: replacementCategory?.name ?? null,
       },
     });
 
