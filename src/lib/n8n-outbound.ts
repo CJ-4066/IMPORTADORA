@@ -75,14 +75,23 @@ function getRequiredConfig() {
 }
 
 function getRemoteError(payload: unknown) {
-  if (!payload || typeof payload !== "object" || !("error" in payload)) {
+  if (!payload || typeof payload !== "object") {
     return "n8n rechazó el envío outbound.";
   }
 
-  const error = typeof payload.error === "string" ? payload.error.toLowerCase() : "";
-  if (error.includes("window") || error.includes("ventana")) {
+  const details = [payload.error, payload.message]
+    .filter((value): value is string => typeof value === "string")
+    .join(" ")
+    .toLowerCase();
+
+  if (details.includes("window") || details.includes("ventana")) {
     return "ManyChat rechazó el envío: ventana de conversación no disponible.";
   }
+
+  if (details.includes("workflow")) {
+    return "n8n no pudo ejecutar el flujo de envío.";
+  }
+
   return "No se pudo iniciar el envío hacia n8n.";
 }
 

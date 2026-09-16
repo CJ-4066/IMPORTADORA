@@ -75,6 +75,19 @@ test("conserva el error remoto 401, 403 o 500 sin exponer secretos", async () =>
   }
 });
 
+test("convierte un error interno del workflow en una razón segura para la UI", async () => {
+  configureOutbound();
+
+  await assert.rejects(
+    sendN8nOutboundMessage(input(), {
+      fetchImpl: async () => jsonResponse(500, { message: "Workflow execution failed" }),
+    }),
+    (error: unknown) => error instanceof N8nOutboundError
+      && error.code === "N8N_REMOTE_ERROR"
+      && error.message === "n8n no pudo ejecutar el flujo de envío.",
+  );
+});
+
 test("convierte timeout en error controlado", async () => {
   configureOutbound();
 
