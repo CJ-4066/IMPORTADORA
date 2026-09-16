@@ -702,6 +702,7 @@ export async function processIncomingMessage(input: IncomingMessageInput) {
   return {
     ok: true,
     duplicate: false,
+    simulation: isSimulator,
     contactId: contact.id,
     conversationId: updatedConversation.id,
     messageId: message.id,

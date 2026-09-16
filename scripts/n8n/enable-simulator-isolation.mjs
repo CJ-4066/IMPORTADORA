@@ -98,7 +98,7 @@ function patchRouter(workflow) {
 
   normalize.parameters.jsCode = normalize.parameters.jsCode.replace(
     "receivedAt: typeof source.timestamp === 'string' ? source.timestamp : new Date().toISOString()",
-    "receivedAt: typeof source.timestamp === 'string' ? source.timestamp : new Date().toISOString(),\n    isSimulation: String(triggerMessageId).startsWith('SIM-CUSTOMER-')",
+    "receivedAt: typeof source.timestamp === 'string' ? source.timestamp : new Date().toISOString(),\n    isSimulation: source.simulation === true || String(triggerMessageId).startsWith('SIM-CUSTOMER-')",
   );
   prepare.parameters.jsCode = prepare.parameters.jsCode.replace(
     "timestamp: new Date().toISOString()",

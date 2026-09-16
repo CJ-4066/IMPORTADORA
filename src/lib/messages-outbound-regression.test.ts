@@ -55,4 +55,5 @@ test("los contactos del simulador nunca se relacionan por un teléfono inferido"
   assert.match(messagesService, /const isSimulator = parsed\.externalContactId\.startsWith\("SIMULATOR:"\)/);
   assert.match(messagesService, /isSimulator \? "" : parsed\.externalContactId/);
   assert.match(messagesService, /if \(!contact && normalizedPhone && !isSimulator\)/);
+  assert.match(messagesService, /simulation: isSimulator/);
 });

@@ -42,7 +42,7 @@ test("adds isolated simulator routes without changing the real delivery branch",
   assert.equal(incoming.connections["¿Es una simulación?"].main[0][0].node, "Continuar sin consultar ManyChat");
   assert.equal(incoming.connections["¿Es una simulación?"].main[1][0].node, "Get ManyChat custom fields");
   assert.equal(incoming.nodes.find((item) => item.name === "Continuar sin consultar ManyChat").type, "n8n-nodes-base.noOp");
-  assert.match(router.nodes.find((item) => item.name === "Normalize Router Input").parameters.jsCode, /SIM-CUSTOMER-/);
+  assert.match(router.nodes.find((item) => item.name === "Normalize Router Input").parameters.jsCode, /source\.simulation === true/);
   assert.equal(router.connections["¿Salida de simulación?"].main[1][0].node, "Dispatch via Outbound V2");
   assert.equal(catalog.connections["¿Es catálogo simulado?"].main[0][0].node, "Registrar catálogo simulado");
   assert.equal(catalog.connections["¿Es catálogo simulado?"].main[1][0].node, "Enviar PDF por WhatsApp");
