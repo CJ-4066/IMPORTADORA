@@ -79,7 +79,8 @@ function getRemoteError(payload: unknown) {
     return "n8n rechazó el envío outbound.";
   }
 
-  const details = [payload.error, payload.message]
+  const responseBody = payload as Record<string, unknown>;
+  const details = [responseBody.error, responseBody.message]
     .filter((value): value is string => typeof value === "string")
     .join(" ")
     .toLowerCase();
