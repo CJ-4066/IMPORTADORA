@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { Settings, Check, X, GripVertical } from "lucide-react";
+import { Settings } from "lucide-react";
 import { CouponBarChart, PaymentMethodDonut, InfluencerDonut, DiscountVsNetDonut } from "./promo-charts";
 import { formatCurrency } from "@/lib/utils";
 import { UsersRound } from "lucide-react";
@@ -18,6 +18,15 @@ export type ChartsData = {
 import { QrScansCard, QuotesTotalCard, TopProductList } from "./analytics-widgets";
 import { FunnelChart, CategoryRevenueChart, QuotesVsOrdersChart, TopPromotersChart, PeakHoursChart } from "./advanced-dashboard-charts";
 import { QrCode, ShoppingCart } from "lucide-react";
+import {
+  DASHBOARD_PREFERENCES_KEY,
+  DASHBOARD_WIDGET_META,
+  DEFAULT_DASHBOARD_PREFERENCES,
+  LEGACY_DASHBOARD_PREFERENCES_KEY,
+  parseDashboardPreferences,
+  type DashboardPreferences,
+  type DashboardWidgetId,
+} from "@/lib/dashboard-preferences";
 
 export type PromoStats = {
   id: string;
@@ -27,48 +36,6 @@ export type PromoStats = {
   creatorName: string;
   uses: number;
   totalGenerated: number;
-};
-
-type WidgetId = "coupon_bar" | "payment_donut" | "influencer_donut" | "discount_donut" | "promo_table" | "qr_scans" | "quotes_total" | "top_scanned" | "top_quoted" | "advanced_funnel" | "advanced_category" | "advanced_quotes_orders" | "advanced_promoters" | "advanced_heatmap";
-
-interface WidgetConfig {
-  id: WidgetId;
-  enabled: boolean;
-  order: number;
-}
-
-const DEFAULT_WIDGETS: WidgetConfig[] = [
-  { id: "qr_scans", enabled: true, order: 0 },
-  { id: "quotes_total", enabled: true, order: 1 },
-  { id: "top_scanned", enabled: true, order: 2 },
-  { id: "top_quoted", enabled: true, order: 3 },
-  { id: "coupon_bar", enabled: true, order: 4 },
-  { id: "payment_donut", enabled: true, order: 5 },
-  { id: "influencer_donut", enabled: true, order: 6 },
-  { id: "discount_donut", enabled: true, order: 7 },
-  { id: "promo_table", enabled: true, order: 8 },
-  { id: "advanced_funnel", enabled: true, order: 9 },
-  { id: "advanced_category", enabled: true, order: 10 },
-  { id: "advanced_quotes_orders", enabled: true, order: 11 },
-  { id: "advanced_promoters", enabled: true, order: 12 },
-  { id: "advanced_heatmap", enabled: true, order: 13 },
-];
-
-const WIDGET_META: Record<WidgetId, { title: string; subtitle: string; icon: string; fullWidth: boolean; category: string }> = {
-  qr_scans: { title: "Escaneos QR", subtitle: "Interacciones", icon: "📱", fullWidth: false, category: "Tienda" },
-  quotes_total: { title: "Total Valorizado", subtitle: "Cotizaciones", icon: "🛒", fullWidth: false, category: "Tienda" },
-  top_scanned: { title: "Fichas más Escaneadas", subtitle: "Interés", icon: "📑", fullWidth: false, category: "Tienda" },
-  top_quoted: { title: "Productos más Solicitados", subtitle: "Demanda", icon: "📦", fullWidth: false, category: "Tienda" },
-  coupon_bar: { title: "Usos vs Comisiones", subtitle: "Gráfico de Barras", icon: "📊", fullWidth: true, category: "Promotores" },
-  payment_donut: { title: "Ventas por Método de Pago", subtitle: "Gráfico Circular", icon: "💳", fullWidth: false, category: "Promotores" },
-  influencer_donut: { title: "Ventas por Influencer", subtitle: "Gráfico Circular", icon: "👥", fullWidth: false, category: "Promotores" },
-  discount_donut: { title: "Descuentos vs Ingreso Neto", subtitle: "Gráfico Circular", icon: "💰", fullWidth: false, category: "Promotores" },
-  promo_table: { title: "Tabla de Rendimiento", subtitle: "Lista Detallada", icon: "📋", fullWidth: true, category: "Promotores" },
-  advanced_funnel: { title: "Embudo de Conversión", subtitle: "Tráfico vs Compras", icon: "🔻", fullWidth: false, category: "E-Commerce" },
-  advanced_category: { title: "Ventas por Categoría", subtitle: "Rentabilidad", icon: "📦", fullWidth: false, category: "E-Commerce" },
-  advanced_quotes_orders: { title: "Cotizaciones vs Órdenes", subtitle: "Tasa de Cierre", icon: "📈", fullWidth: true, category: "E-Commerce" },
-  advanced_promoters: { title: "Top Promotores", subtitle: "Ranking de Ventas", icon: "🏆", fullWidth: false, category: "Promotores" },
-  advanced_heatmap: { title: "Horas Pico", subtitle: "Comportamiento de Compra", icon: "🔥", fullWidth: false, category: "E-Commerce" },
 };
 
 export function CustomizableDashboard({
@@ -82,62 +49,28 @@ export function CustomizableDashboard({
   storeData: any;
   children?: React.ReactNode;
 }) {
-  const [widgets, setWidgets] = useState<WidgetConfig[]>([]);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingWidgets, setEditingWidgets] = useState<WidgetConfig[]>([]);
+  const [preferences, setPreferences] = useState<DashboardPreferences>(DEFAULT_DASHBOARD_PREFERENCES);
   const [portalNode, setPortalNode] = useState<HTMLElement | null>(null);
 
   useEffect(() => {
-    const saved = localStorage.getItem("dashboard_prefs");
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        const merged = DEFAULT_WIDGETS.map(dw => {
-          const found = parsed.find((pw: WidgetConfig) => pw.id === dw.id);
-          return found ? { ...dw, ...found } : dw;
-        });
-        setWidgets(merged.sort((a, b) => a.order - b.order));
-      } catch (e) {
-        setWidgets(DEFAULT_WIDGETS);
-      }
-    } else {
-      setWidgets(DEFAULT_WIDGETS);
-    }
+    const loadPreferences = () => setPreferences(parseDashboardPreferences(
+      localStorage.getItem(DASHBOARD_PREFERENCES_KEY),
+      localStorage.getItem(LEGACY_DASHBOARD_PREFERENCES_KEY),
+    ));
+    queueMicrotask(loadPreferences);
+    window.addEventListener("pageshow", loadPreferences);
     
     // Find portal node for settings icon
     const node = document.getElementById("dashboard-settings-portal");
-    if (node) setPortalNode(node);
+    if (node) queueMicrotask(() => setPortalNode(node));
+    return () => window.removeEventListener("pageshow", loadPreferences);
   }, []);
 
   const handleOpenConfig = () => {
-    window.open("/admin/dashboard-settings", "_blank");
+    window.location.assign("/admin/dashboard-settings");
   };
 
-  const handleSaveConfig = () => {
-    const finalized = editingWidgets.map((w, idx) => ({ ...w, order: idx }));
-    setWidgets(finalized);
-    localStorage.setItem("dashboard_prefs", JSON.stringify(finalized));
-    setIsModalOpen(false);
-  };
-
-  const toggleWidget = (id: WidgetId) => {
-    setEditingWidgets(prev => 
-      prev.map(w => w.id === id ? { ...w, enabled: !w.enabled } : w)
-    );
-  };
-
-  const moveWidget = (index: number, direction: -1 | 1) => {
-    const newWidgets = [...editingWidgets];
-    if (index + direction < 0 || index + direction >= newWidgets.length) return;
-    
-    const temp = newWidgets[index];
-    newWidgets[index] = newWidgets[index + direction];
-    newWidgets[index + direction] = temp;
-    
-    setEditingWidgets(newWidgets);
-  };
-
-  const renderWidgetContent = (id: WidgetId) => {
+  const renderWidgetContent = (id: DashboardWidgetId) => {
     const cardStyle: React.CSSProperties = {
       background: "#fff",
       border: "1px solid #e5e7eb",
@@ -338,12 +271,12 @@ export function CustomizableDashboard({
 
       {children}
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 24, marginTop: 12 }}>
-        {widgets.filter(w => w.enabled).map((w, index) => (
+      <div className={`dashboard-widgets-grid density-${preferences.density} columns-${preferences.columns}`}>
+        {preferences.widgets.filter(w => w.enabled).map((w, index) => (
           <div 
             key={w.id} 
             style={{ 
-              gridColumn: WIDGET_META[w.id].fullWidth ? "1 / -1" : "auto",
+              gridColumn: DASHBOARD_WIDGET_META[w.id].fullWidth ? "1 / -1" : "auto",
               order: index,
               minHeight: 300
             }}
@@ -353,87 +286,6 @@ export function CustomizableDashboard({
         ))}
       </div>
 
-      {isModalOpen && (
-        <div 
-          className="cart-quote-overlay"
-          style={{ zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center" }}
-        >
-          <div className="" style={{ width: "90%", maxWidth: 500, borderRadius: 16, height: "auto", maxHeight: "85vh", position: "relative", display: "flex", flexDirection: "column", background: "#fff", boxShadow: "0 24px 60px rgba(0,0,0,0.15)" }}>
-            <div className="dashboard-config-head" style={{ display: "flex", justifyContent: "space-between", padding: 24 }}>
-              <div>
-                <h3>Personalizar Dashboard</h3>
-                <p className="checkout-step-copy">Activa o reordena los gráficos de tu panel principal.</p>
-              </div>
-              <button className="icon-button icon-button-close" onClick={() => setIsModalOpen(false)}>
-                <X size={16} />
-              </button>
-            </div>
-            
-            <div style={{ padding: "0 24px 24px", display: "flex", flexDirection: "column", gap: 12, overflowY: "auto" }}>
-              {editingWidgets.map((w, index) => {
-                const meta = WIDGET_META[w.id];
-                return (
-                  <div 
-                    key={w.id} 
-                    style={{ 
-                      display: "flex", 
-                      alignItems: "center", 
-                      gap: 12, 
-                      padding: 12, 
-                      background: w.enabled ? "#fff" : "#f9fafb", 
-                      border: "1px solid #e5e7eb", 
-                      borderRadius: 12,
-                      opacity: w.enabled ? 1 : 0.6
-                    }}
-                  >
-                    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                      <button 
-                        className="icon-button" 
-                        onClick={() => moveWidget(index, -1)} 
-                        disabled={index === 0}
-                        style={{ padding: 4, height: "auto" }}
-                      >
-                        ↑
-                      </button>
-                      <button 
-                        className="icon-button" 
-                        onClick={() => moveWidget(index, 1)} 
-                        disabled={index === editingWidgets.length - 1}
-                        style={{ padding: 4, height: "auto" }}
-                      >
-                        ↓
-                      </button>
-                    </div>
-                    
-                    <div style={{ fontSize: 24, width: 40, textAlign: "center" }}>{meta.icon}</div>
-                    
-                    <div style={{ flex: 1 }}>
-                      <strong style={{ display: "block", fontSize: 14 }}>{meta.title}</strong>
-                      <span style={{ fontSize: 12, color: "#6b7280" }}>{meta.subtitle}</span>
-                    </div>
-
-                    <label style={{ display: "flex", alignItems: "center", cursor: "pointer" }}>
-                      <input 
-                        type="checkbox" 
-                        checked={w.enabled} 
-                        onChange={() => toggleWidget(w.id)} 
-                        style={{ width: 18, height: 18, accentColor: "var(--brand-primary)" }}
-                      />
-                    </label>
-                  </div>
-                );
-              })}
-            </div>
-
-            <div style={{ padding: 24, borderTop: "1px solid #e5e7eb", display: "flex", justifyContent: "flex-end", gap: 12 }}>
-              <button className="button button-ghost" onClick={() => setIsModalOpen(false)}>Cancelar</button>
-              <button className="button button-primary" onClick={handleSaveConfig}>
-                <Check size={16} /> Guardar Preferencias
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
