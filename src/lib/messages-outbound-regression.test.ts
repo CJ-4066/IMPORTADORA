@@ -47,6 +47,6 @@ test("precondiciones ManyChat y simulador fallan antes de invocar n8n y quedan f
 });
 
 test("no infiere manychatSubscriberId desde externalContactId", () => {
-  assert.doesNotMatch(messagesService, /manychatSubscriberId\s*=\s*parsed\.externalContactId/);
-  assert.match(messagesService, /manychatSubscriberId:\s*parsed\.externalContactId\.startsWith\("SIMULATOR:"\)[\s\S]*parsed\.manychatSubscriberId \?\? null/);
+  assert.match(messagesService, /getManychatSubscriberIdFromMetadata\(parsed\.metadata\)/);
+  assert.match(messagesService, /parsed\.manychatSubscriberId \?\? getManychatSubscriberIdFromMetadata/);
 });

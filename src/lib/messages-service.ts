@@ -410,6 +410,24 @@ const sendMessageSchema = z.object({
 
 export type SendMessageInput = z.infer<typeof sendMessageSchema>;
 
+export function getManychatSubscriberIdFromMetadata(metadata: Record<string, unknown>) {
+  const candidate =
+    metadata.manychatSubscriberId ??
+    metadata.manychat_subscriber_id ??
+    metadata.subscriberId ??
+    metadata.subscriber_id;
+
+  if (typeof candidate === "number" && Number.isSafeInteger(candidate) && candidate > 0) {
+    return String(candidate);
+  }
+
+  if (typeof candidate === "string" && /^\d{1,120}$/.test(candidate.trim())) {
+    return candidate.trim();
+  }
+
+  return null;
+}
+
 export function requireRealManychatSubscriber(contact: {
   externalId: string | null;
   manychatSubscriberId: string | null;
@@ -552,6 +570,9 @@ export async function processIncomingMessage(input: IncomingMessageInput) {
   const timestamp = new Date(parsed.timestamp);
   const normalizedPhone = normalizeMessagePhone(parsed.phone ?? parsed.externalContactId);
   const phone = parsed.phone?.trim() || normalizedPhone || null;
+  const manychatSubscriberId = parsed.externalContactId.startsWith("SIMULATOR:")
+    ? null
+    : parsed.manychatSubscriberId ?? getManychatSubscriberIdFromMetadata(parsed.metadata);
 
   const existingMsg = await prisma.chatMessage.findUnique({
     where: { externalMessageId: parsed.externalMessageId },
@@ -607,8 +628,8 @@ export async function processIncomingMessage(input: IncomingMessageInput) {
       dataToUpdate.externalId = parsed.externalContactId;
     }
 
-    if (parsed.manychatSubscriberId && !parsed.externalContactId.startsWith("SIMULATOR:") && parsed.manychatSubscriberId !== contact.manychatSubscriberId) {
-      dataToUpdate.manychatSubscriberId = parsed.manychatSubscriberId;
+    if (manychatSubscriberId && manychatSubscriberId !== contact.manychatSubscriberId) {
+      dataToUpdate.manychatSubscriberId = manychatSubscriberId;
     }
 
     if (Object.keys(dataToUpdate).length > 0) {
@@ -625,9 +646,7 @@ export async function processIncomingMessage(input: IncomingMessageInput) {
         name: parsed.name,
         phone,
         phoneNormalized: normalizedPhone,
-        manychatSubscriberId: parsed.externalContactId.startsWith("SIMULATOR:")
-          ? null
-          : parsed.manychatSubscriberId ?? null,
+        manychatSubscriberId,
       },
     });
   }

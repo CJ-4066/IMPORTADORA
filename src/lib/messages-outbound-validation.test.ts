@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { N8nOutboundError } from "./n8n-outbound";
-import { requireRealManychatSubscriber } from "./messages-service";
+import {
+  getManychatSubscriberIdFromMetadata,
+  requireRealManychatSubscriber,
+} from "./messages-service";
 
 test("acepta únicamente el subscriber ID explícito del contacto real", () => {
   assert.equal(requireRealManychatSubscriber({
@@ -26,4 +29,9 @@ test("bloquea contactos de simulador aunque tengan subscriber ID", () => {
       && error.code === "SIMULATOR_CONTACT"
       && error.statusCode === 400,
   );
+});
+
+test("acepta subscriber ID explícito desde metadata sin usar externalContactId", () => {
+  assert.equal(getManychatSubscriberIdFromMetadata({ subscriber_id: 910854597 }), "910854597");
+  assert.equal(getManychatSubscriberIdFromMetadata({ externalContactId: "910854597" }), null);
 });
