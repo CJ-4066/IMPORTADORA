@@ -12,7 +12,7 @@ export type SessionUser = {
   userId: string;
   email: string;
   name: string;
-  role: "ADMIN" | "USERSHOP";
+  role: "ADMIN" | "USERSHOP" | "PROMOTOR";
   requirePasswordChange?: boolean;
 };
 
@@ -111,7 +111,7 @@ export async function getSession() {
       typeof payload.userId !== "string" ||
       typeof payload.email !== "string" ||
       typeof payload.name !== "string" ||
-      (payload.role !== "ADMIN" && payload.role !== "USERSHOP")
+      (payload.role !== "ADMIN" && payload.role !== "USERSHOP" && payload.role !== "PROMOTOR")
     ) {
       return null;
     }
@@ -149,7 +149,7 @@ export async function requireShopper() {
     redirect("/acceso");
   }
 
-  if (session.role !== "USERSHOP") {
+  if (session.role !== "USERSHOP" && session.role !== "PROMOTOR") {
     redirect("/admin");
   }
 

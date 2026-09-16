@@ -1,6 +1,8 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
-import { BadgeCheck, Mail, Phone, ShieldCheck, UserMinus, UserPen } from "lucide-react";
+import { ArrowLeft, BadgeCheck, Mail, Phone, ShieldCheck, UserPen } from "lucide-react";
 import { deleteAdminUserAction, updateAdminUserAction } from "@/app/admin/actions";
+import { AdminUserDeleteForm } from "@/components/admin/admin-user-delete-form";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { prisma } from "@/lib/prisma";
 
@@ -42,10 +44,12 @@ export default async function AdminUserEditPage({ params, searchParams }: AdminU
 
   return (
     <section className="panel admin-users-panel">
-      <div className="panel-header">
+      <div className="admin-user-page-header">
         <div>
+          <Link className="admin-user-back-link" href="/admin/users"><ArrowLeft size={15} /> Volver a usuarios</Link>
           <p className="eyebrow">Usuarios</p>
-          <h1>Editar cuenta</h1>
+          <h1>{user.name}</h1>
+          <p className="panel-copy">Edita sus datos, nivel de acceso o contraseña.</p>
         </div>
       </div>
 
@@ -94,6 +98,7 @@ export default async function AdminUserEditPage({ params, searchParams }: AdminU
                 <span>Tipo de usuario</span>
                 <select defaultValue={user.role} name="role">
                   <option value="USERSHOP">Comprador</option>
+                  <option value="PROMOTOR">Promotor / Influencer</option>
                   <option value="ADMIN">Administrador</option>
                 </select>
               </label>
@@ -155,13 +160,10 @@ export default async function AdminUserEditPage({ params, searchParams }: AdminU
             <p className="muted">Actualizado: {new Intl.DateTimeFormat("es-PE", { timeZone: "America/Lima", dateStyle: "medium", timeStyle: "short" }).format(user.updatedAt)}</p>
           </article>
 
-          <form action={deleteAdminUserAction}>
-            <input name="userId" type="hidden" value={user.id} />
-            <button className="button button-ghost cart-clear-button" type="submit">
-              <UserMinus size={16} />
-              Eliminar cuenta
-            </button>
-          </form>
+          <div className="admin-user-danger-zone">
+            <div><strong>Eliminar cuenta</strong><p>La eliminación es permanente y no puede deshacerse.</p></div>
+            <AdminUserDeleteForm action={deleteAdminUserAction} userId={user.id} userName={user.name} />
+          </div>
         </article>
       </div>
     </section>

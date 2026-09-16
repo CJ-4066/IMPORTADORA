@@ -20,7 +20,7 @@ export async function shopperLoginAction(formData: FormData) {
 
   if (
     !user ||
-    user.role !== "USERSHOP" ||
+    (user.role !== "USERSHOP" && user.role !== "PROMOTOR") ||
     !(await bcrypt.compare(password, user.passwordHash))
   ) {
     redirect("/acceso?mode=login&error=Credenciales%20inv%C3%A1lidas");
@@ -30,7 +30,7 @@ export async function shopperLoginAction(formData: FormData) {
     userId: user.id,
     email: user.email,
     name: user.name,
-    role: "USERSHOP",
+    role: user.role,
   });
 
   redirect("/cuenta");

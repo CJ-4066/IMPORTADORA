@@ -731,7 +731,7 @@ export async function createAdminUserAction(formData: FormData) {
     });
   } catch (error) {
     const message = toRedirectError(error, "No se pudo crear el usuario.");
-    redirect(`/admin/users?error=${encodeURIComponent(message)}`);
+    redirect(`/admin/users/new?error=${encodeURIComponent(message)}`);
   }
 
   revalidatePath("/admin");
@@ -759,7 +759,7 @@ export async function updateAdminUserAction(formData: FormData) {
       redirect("/admin/users?status=error&error=No se encontró el usuario.");
     }
 
-    if (target.role === "ADMIN" && data.role === "USERSHOP") {
+    if (target.role === "ADMIN" && data.role !== "ADMIN") {
       const adminCount = await prisma.user.count({ where: { role: "ADMIN" } });
 
       if (adminCount <= 1) {

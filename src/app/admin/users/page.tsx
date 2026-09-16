@@ -1,248 +1,74 @@
 import Link from "next/link";
-import {
-  BadgeCheck,
-  CalendarDays,
-  Edit3,
-  Mail,
-  Phone,
-  ShieldCheck,
-  Trash2,
-  UserPlus,
-  UsersRound,
-} from "lucide-react";
-import type { UserRole } from "@prisma/client";
-import { createAdminUserAction, deleteAdminUserAction } from "@/app/admin/actions";
-import { SubmitButton } from "@/components/ui/submit-button";
+import type { Prisma, UserRole } from "@prisma/client";
+import { CalendarDays, Edit3, Mail, Plus, Search, ShieldCheck, ShoppingBag, Sparkles, UsersRound } from "lucide-react";
+import { deleteAdminUserAction } from "@/app/admin/actions";
+import { AdminUserDeleteForm } from "@/components/admin/admin-user-delete-form";
 import { prisma } from "@/lib/prisma";
 
-type AdminUsersPageProps = {
-  searchParams?: Promise<Record<string, string | string[] | undefined>>;
-};
-
+type AdminUsersPageProps = { searchParams?: Promise<Record<string, string | string[] | undefined>> };
 export const dynamic = "force-dynamic";
 
-const roleLabels: Record<UserRole, string> = {
-  ADMIN: "Administrador",
-  USERSHOP: "Comprador",
-  PROMOTOR: "Promotor",
-};
-
-const rolePills: Record<UserRole, string> = {
-  ADMIN: "is-admin",
-  USERSHOP: "is-shopper",
-  PROMOTOR: "is-promotor",
-};
+const roleLabels: Record<UserRole, string> = { ADMIN: "Administrador", USERSHOP: "Comprador", PROMOTOR: "Promotor" };
+const rolePills: Record<UserRole, string> = { ADMIN: "is-admin", USERSHOP: "is-shopper", PROMOTOR: "is-promotor" };
 
 function formatDate(value: Date) {
-  return new Intl.DateTimeFormat("es-PE", {
-    timeZone: "America/Lima",
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(value);
+  return new Intl.DateTimeFormat("es-PE", { timeZone: "America/Lima", dateStyle: "medium" }).format(value);
 }
 
 export default async function AdminUsersPage({ searchParams }: AdminUsersPageProps) {
   const params = searchParams ? await searchParams : undefined;
   const status = typeof params?.status === "string" ? params.status : "";
   const error = typeof params?.error === "string" ? params.error : "";
-
-  const [users, totalUsers, adminUsers, shopperUsers] = await Promise.all([
-    prisma.user.findMany({
-      orderBy: [{ createdAt: "desc" }],
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        phone: true,
-        role: true,
-        createdAt: true,
-      },
-    }),
+  const q = typeof params?.q === "string" ? params.q.trim() : "";
+  const role = typeof params?.role === "string" && ["ADMIN", "USERSHOP", "PROMOTOR"].includes(params.role) ? (params.role as UserRole) : "all";
+  const where: Prisma.UserWhereInput = {
+    ...(role !== "all" ? { role } : {}),
+    ...(q ? { OR: [{ name: { contains: q, mode: "insensitive" } }, { email: { contains: q, mode: "insensitive" } }, { phone: { contains: q, mode: "insensitive" } }] } : {}),
+  };
+  const [users, totalUsers, adminUsers, shopperUsers, promoterUsers] = await Promise.all([
+    prisma.user.findMany({ where, orderBy: [{ createdAt: "desc" }], select: { id: true, name: true, email: true, phone: true, role: true, createdAt: true } }),
     prisma.user.count(),
     prisma.user.count({ where: { role: "ADMIN" } }),
     prisma.user.count({ where: { role: "USERSHOP" } }),
+    prisma.user.count({ where: { role: "PROMOTOR" } }),
   ]);
+  const tabs = [
+    { label: "Todos", value: "all", count: totalUsers, icon: UsersRound },
+    { label: "Administradores", value: "ADMIN", count: adminUsers, icon: ShieldCheck },
+    { label: "Compradores", value: "USERSHOP", count: shopperUsers, icon: ShoppingBag },
+    { label: "Promotores", value: "PROMOTOR", count: promoterUsers, icon: Sparkles },
+  ] as const;
 
   return (
-    <section className="panel admin-users-panel">
-      <div className="panel-header">
-        <div>
-          <p className="eyebrow">Usuarios</p>
-          <h1>Alta y registro</h1>
-        </div>
-      </div>
-
-      <div className="admin-users-summary-grid">
-        <article className="admin-users-summary-card">
-          <span className="admin-users-summary-icon">
-            <UsersRound size={18} />
-          </span>
-          <strong>{totalUsers}</strong>
-          <span>Total usuarios</span>
-        </article>
-        <article className="admin-users-summary-card">
-          <span className="admin-users-summary-icon">
-            <ShieldCheck size={18} />
-          </span>
-          <strong>{adminUsers}</strong>
-          <span>Administradores</span>
-        </article>
-        <article className="admin-users-summary-card">
-          <span className="admin-users-summary-icon">
-            <BadgeCheck size={18} />
-          </span>
-          <strong>{shopperUsers}</strong>
-          <span>Compradores</span>
-        </article>
-      </div>
-
-      <div className="admin-users-layout">
-        <article className="admin-users-create-card">
-          <div className="product-section-head">
-            <div>
-              <p className="eyebrow">Nuevo usuario</p>
-              <h2>Crear cuenta desde admin</h2>
-            </div>
-            <span className="admin-users-create-chip">
-              <UserPlus size={16} />
-              Alta directa
-            </span>
-          </div>
-
-          <form action={createAdminUserAction} className="stack-lg">
-            <div className="form-grid">
-              <label className="field">
-                <span>Nombre</span>
-                <input name="name" placeholder="Nombre completo" required />
-              </label>
-
-              <label className="field">
-                <span>Correo</span>
-                <div className="auth-password-wrap">
-                  <Mail size={18} />
-                  <input name="email" placeholder="usuario@correo.com" required type="email" />
-                </div>
-              </label>
-
-              <label className="field">
-                <span>Teléfono</span>
-                <div className="auth-password-wrap">
-                  <Phone size={18} />
-                  <input name="phone" placeholder="Opcional" type="tel" />
-                </div>
-              </label>
-
-              <label className="field">
-                <span>Tipo de usuario</span>
-                <select defaultValue="USERSHOP" name="role">
-                  <option value="USERSHOP">Comprador</option>
-                  <option value="PROMOTOR">Promotor / Influencer</option>
-                  <option value="ADMIN">Administrador</option>
-                </select>
-              </label>
-
-              <label className="field">
-                <span>Contraseña</span>
-                <input name="password" placeholder="Mínimo 6 caracteres" required type="password" />
-              </label>
-
-              <label className="field">
-                <span>Confirmar contraseña</span>
-                <input
-                  name="confirmPassword"
-                  placeholder="Repite la contraseña"
-                  required
-                  type="password"
-                />
-              </label>
-            </div>
-
-            <div className="actions-row">
-              <SubmitButton pendingLabel="Creando usuario...">Crear usuario</SubmitButton>
-            </div>
-          </form>
-
-          {status ? (
-            <p className="success-text">
-              {status === "deleted"
-                ? "Usuario eliminado correctamente."
-                : status === "updated"
-                  ? "Usuario actualizado correctamente."
-                  : "Usuario creado correctamente."}
-            </p>
-          ) : null}
-          {error ? <p className="error-text auth-error">{error}</p> : null}
-        </article>
-
-        <article className="admin-users-list-card">
-          <div className="product-section-head">
-            <div>
-              <p className="eyebrow">Registro</p>
-              <h2>Usuarios creados</h2>
-            </div>
-          </div>
-
-          {users.length ? (
-            <div className="table-wrap">
-              <table className="data-table admin-users-table">
-                <thead>
-                  <tr>
-                    <th>Usuario</th>
-                    <th>Contacto</th>
-                    <th>Rol</th>
-                    <th>Fecha</th>
-                    <th />
-                  </tr>
-                </thead>
-                <tbody>
-                  {users.map((user) => (
-                    <tr key={user.id}>
-                      <td data-label="Usuario">
-                        <strong>{user.name}</strong>
-                        <p className="muted">{user.email}</p>
-                      </td>
-                      <td data-label="Contacto">
-                        <p className="muted">{user.phone || "Sin teléfono"}</p>
-                      </td>
-                      <td data-label="Rol">
-                        <span className={`admin-user-role-pill ${rolePills[user.role]}`}>
-                          {roleLabels[user.role]}
-                        </span>
-                      </td>
-                      <td data-label="Fecha">
-                        <div className="admin-user-date">
-                          <CalendarDays size={14} />
-                          <span>{formatDate(user.createdAt)}</span>
-                        </div>
-                      </td>
-                      <td data-label="Acciones">
-                        <div className="table-actions">
-                          <Link className="icon-button" href={`/admin/users/${user.id}`}>
-                            <Edit3 size={16} />
-                            <span>Editar</span>
-                          </Link>
-                          <form action={deleteAdminUserAction}>
-                            <input name="userId" type="hidden" value={user.id} />
-                            <button className="icon-button danger" type="submit">
-                              <Trash2 size={16} />
-                            </button>
-                          </form>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <article className="panel panel-slim empty-state">
-              <UsersRound size={18} />
-              <p className="eyebrow">Sin usuarios</p>
-              <h2>No hay registros todavía</h2>
-            </article>
-          )}
-        </article>
-      </div>
+    <section className="panel admin-users-panel admin-users-workspace">
+      <header className="admin-user-page-header">
+        <div><p className="eyebrow">Accesos</p><h1>Usuarios</h1><p className="panel-copy">Administra cuentas, roles y datos de contacto.</p></div>
+        <Link className="button button-primary" href="/admin/users/new"><Plus size={16} /> Nuevo usuario</Link>
+      </header>
+      {status ? <div className="admin-toast admin-toast-success" role="status"><strong>Listo</strong><span>{status === "deleted" ? "Usuario eliminado correctamente." : status === "updated" ? "Usuario actualizado correctamente." : "Usuario creado correctamente."}</span></div> : null}
+      {error ? <div className="admin-toast admin-toast-error" role="alert"><strong>Error</strong><span>{error}</span></div> : null}
+      <nav className="admin-user-tabs" aria-label="Filtrar usuarios por rol">
+        {tabs.map((tab) => { const Icon = tab.icon; const href = tab.value === "all" ? "/admin/users" : `/admin/users?role=${tab.value}`; return <Link className={role === tab.value ? "is-active" : ""} href={href} key={tab.value}><Icon size={15} /><span>{tab.label}</span><strong>{tab.count}</strong></Link>; })}
+      </nav>
+      <form className="admin-user-toolbar" method="GET">
+        <label className="admin-user-search"><Search size={17} /><input defaultValue={q} name="q" placeholder="Buscar por nombre, correo o teléfono..." /></label>
+        {role !== "all" ? <input name="role" type="hidden" value={role} /> : null}
+        <button className="button button-secondary" type="submit">Buscar</button>
+        {q ? <Link className="button button-ghost" href={role === "all" ? "/admin/users" : `/admin/users?role=${role}`}>Limpiar</Link> : null}
+      </form>
+      <div className="admin-user-results-head"><span>{users.length} {users.length === 1 ? "usuario" : "usuarios"}</span>{role !== "all" ? <span className="muted">Rol: {roleLabels[role]}</span> : null}</div>
+      {users.length ? (
+        <div className="admin-user-table-card"><table className="data-table admin-users-table">
+          <thead><tr><th>Usuario</th><th>Contacto</th><th>Rol</th><th>Registro</th><th><span className="sr-only">Acciones</span></th></tr></thead>
+          <tbody>{users.map((user) => <tr key={user.id}>
+            <td data-label="Usuario"><div className="admin-user-identity"><span>{user.name.slice(0, 1).toUpperCase()}</span><div><strong>{user.name}</strong><small>{user.email}</small></div></div></td>
+            <td data-label="Contacto"><div className="admin-user-contact"><Mail size={14} /><span>{user.phone || "Sin teléfono"}</span></div></td>
+            <td data-label="Rol"><span className={`admin-user-role-pill ${rolePills[user.role]}`}>{roleLabels[user.role]}</span></td>
+            <td data-label="Registro"><div className="admin-user-date"><CalendarDays size={14} /><span>{formatDate(user.createdAt)}</span></div></td>
+            <td data-label="Acciones"><div className="table-actions admin-user-row-actions"><Link aria-label={`Editar ${user.name}`} className="icon-button" href={`/admin/users/${user.id}`}><Edit3 size={16} /></Link><AdminUserDeleteForm action={deleteAdminUserAction} compact userId={user.id} userName={user.name} /></div></td>
+          </tr>)}</tbody>
+        </table></div>
+      ) : <article className="admin-user-empty"><UsersRound size={24} /><strong>No encontramos usuarios</strong><p>Prueba otro término o limpia los filtros aplicados.</p><Link className="button button-secondary" href="/admin/users">Ver todos</Link></article>}
     </section>
   );
 }
