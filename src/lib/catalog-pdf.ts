@@ -6,7 +6,6 @@ import PDFDocument from "pdfkit";
 import sharp from "sharp";
 
 import { prisma } from "@/lib/prisma";
-import { getPreferredProductImageUrl } from "@/lib/product-media";
 import { buildPublicUrl } from "@/lib/site-url";
 
 const CATALOG_DIRECTORY = path.join(process.cwd(), "public", "uploads", "catalogs");
@@ -16,7 +15,7 @@ const BRAND_PRIMARY = "#2320DA";
 
 type CatalogProductImage = {
   id: string;
-  imageUrl: string;
+  imageUrls: string[];
   updatedAt: Date;
 };
 
@@ -66,13 +65,18 @@ async function findProjectorImages(): Promise<CatalogProductImage[]> {
   });
 
   return products.flatMap((product) => {
-    const imageUrl = getPreferredProductImageUrl({
-      localImageUrl: product.localImageUrl,
-      imageUrl: product.sourceImageUrl ?? product.imageUrl,
-      media: product.media,
-    });
+    const imageUrls = Array.from(
+      new Set(
+        [
+          product.localImageUrl,
+          ...product.media.map((media) => media.url),
+          product.sourceImageUrl,
+          product.imageUrl,
+        ].filter((value): value is string => Boolean(value?.trim())),
+      ),
+    );
 
-    return imageUrl ? [{ id: product.id, imageUrl, updatedAt: product.updatedAt }] : [];
+    return imageUrls.length ? [{ id: product.id, imageUrls, updatedAt: product.updatedAt }] : [];
   });
 }
 
@@ -82,7 +86,7 @@ function getCatalogFingerprint(products: CatalogProductImage[]) {
       JSON.stringify(
         products.map((product) => [
           product.id,
-          product.imageUrl,
+          product.imageUrls,
           product.updatedAt.toISOString(),
         ]),
       ),
@@ -145,6 +149,18 @@ async function loadImage(imageUrl: string) {
     .flatten({ background: "#FFFFFF" })
     .jpeg({ quality: 86, mozjpeg: true })
     .toBuffer();
+}
+
+async function loadFirstAvailableImage(product: CatalogProductImage) {
+  for (const imageUrl of product.imageUrls) {
+    try {
+      return await loadImage(imageUrl);
+    } catch {
+      // Try the next stored source for this product.
+    }
+  }
+
+  throw new Error(`No available image for product ${product.id}`);
 }
 
 export function renderCatalogImagePdf(images: Buffer[]) {
@@ -243,7 +259,20 @@ async function createProjectorCatalogPdf(products: CatalogProductImage[], finger
     // Generate the immutable catalog below.
   }
 
-  const images = await Promise.all(products.map((product) => loadImage(product.imageUrl)));
+  const imageResults = await Promise.allSettled(products.map(loadFirstAvailableImage));
+  const images = imageResults.flatMap((result) =>
+    result.status === "fulfilled" ? [result.value] : [],
+  );
+
+  if (!images.length) {
+    throw new Error("No se pudo cargar ninguna imagen del catálogo.");
+  }
+
+  const unavailableCount = imageResults.length - images.length;
+  if (unavailableCount > 0) {
+    console.warn("[catalog-pdf] product_images_unavailable", { unavailableCount });
+  }
+
   const pdf = await renderCatalogImagePdf(images);
   const temporaryPath = `${outputPath}.${process.pid}.tmp`;
 
@@ -259,7 +288,7 @@ async function createProjectorCatalogPdf(products: CatalogProductImage[], finger
     absoluteUrl: buildPublicUrl(relativeUrl),
     filename,
     generated: true,
-    productCount: products.length,
+    productCount: images.length,
     relativeUrl,
   } satisfies GeneratedCatalogPdf;
 }
