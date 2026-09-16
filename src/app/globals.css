@@ -17228,6 +17228,24 @@ body[data-admin-theme="dark"] .admin-shell :where(input, textarea)::placeholder 
 .dashboard-widget-empty { padding: 44px 20px; text-align: center; color: var(--muted); border: 1px dashed var(--border); border-radius: 13px; }
 .dashboard-settings-mobile-actions { display: none; }
 
+.simulator-document-message {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 4px 0;
+  padding: 11px 12px;
+  color: inherit;
+  background: color-mix(in srgb, white 72%, transparent);
+  border: 1px solid color-mix(in srgb, currentColor 14%, transparent);
+  border-radius: 11px;
+  text-decoration: none;
+}
+.simulator-document-message:hover { border-color: color-mix(in srgb, currentColor 32%, transparent); }
+.simulator-document-message svg { flex: 0 0 auto; }
+.simulator-document-message span { display: grid; gap: 2px; }
+.simulator-document-message strong { font-size: .84rem; }
+.simulator-document-message small { opacity: .68; font-size: .7rem; }
+
 @media (max-width: 1050px) {
   .dashboard-widgets-grid.columns-three { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .dashboard-settings-header { grid-template-columns: auto 1fr; }

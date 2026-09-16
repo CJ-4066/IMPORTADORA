@@ -78,14 +78,7 @@ export async function POST(request: Request) {
       });
     }
 
-    if (conversation.contact.externalId?.startsWith("SIMULATOR:")) {
-      return NextResponse.json({
-        matched: true,
-        ok: true,
-        requestId,
-        skipped: "SIMULATOR_CONTACT",
-      });
-    }
+    const simulation = conversation.contact.externalId?.startsWith("SIMULATOR:") === true;
 
     const recipient = normalizeWhatsappPhone(
       conversation.contact.phone ??
@@ -94,7 +87,7 @@ export async function POST(request: Request) {
     );
     const manychatSubscriberId = conversation.contact.manychatSubscriberId?.trim();
 
-    if (!recipient || !manychatSubscriberId) {
+    if (!simulation && (!recipient || !manychatSubscriberId)) {
       return NextResponse.json(
         {
           error: !recipient ? "INVALID_RECIPIENT" : "MANYCHAT_SUBSCRIBER_ID_MISSING",
@@ -126,14 +119,15 @@ export async function POST(request: Request) {
       },
       content: "Aquí tienes el catálogo de proyectores en PDF:",
       conversationId: conversation.id,
-      manychatSubscriberId,
+      manychatSubscriberId: simulation ? null : manychatSubscriberId,
       matched: true,
       mediaUrl: catalog.absoluteUrl,
       ok: true,
-      recipient,
+      recipient: simulation ? null : recipient,
       requestId: input.requestId ?? `catalog:${input.triggerMessageId ?? requestId}`,
       timestamp: new Date().toISOString(),
       type: "document",
+      simulation,
     });
   } catch (error) {
     if (error instanceof z.ZodError) {

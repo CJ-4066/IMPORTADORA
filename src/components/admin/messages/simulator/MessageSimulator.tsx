@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
-import { Bot, Bug, RefreshCw, Send, UserRound } from "lucide-react";
+import { Bot, Bug, FileDown, RefreshCw, Send, UserRound } from "lucide-react";
 import type { ChatMessage } from "@/types/messages";
 
 type SimulatorResponse = {
@@ -259,6 +259,11 @@ export function MessageSimulator() {
                       <img alt={message.content || "Imagen enviada"} src={message.mediaUrl} />
                       {message.content ? <p>{message.content}</p> : null}
                     </div>
+                  ) : message.messageType === "DOCUMENT" && message.mediaUrl ? (
+                    <a className="simulator-document-message" href={message.mediaUrl} rel="noreferrer" target="_blank">
+                      <FileDown size={22} />
+                      <span><strong>{message.content || "Documento generado"}</strong><small>Abrir documento de prueba</small></span>
+                    </a>
                   ) : (
                     <p>{message.content}</p>
                   )}
