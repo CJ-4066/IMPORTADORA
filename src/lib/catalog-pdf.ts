@@ -1,0 +1,285 @@
+import { createHash } from "node:crypto";
+import { access, mkdir, readFile, rename, unlink, writeFile } from "node:fs/promises";
+import path from "node:path";
+
+import PDFDocument from "pdfkit";
+import sharp from "sharp";
+
+import { prisma } from "@/lib/prisma";
+import { getPreferredProductImageUrl } from "@/lib/product-media";
+import { buildPublicUrl } from "@/lib/site-url";
+
+const CATALOG_DIRECTORY = path.join(process.cwd(), "public", "uploads", "catalogs");
+const MAX_REMOTE_IMAGE_BYTES = 12 * 1024 * 1024;
+const IMAGE_TIMEOUT_MS = 12_000;
+const BRAND_PRIMARY = "#2320DA";
+
+type CatalogProductImage = {
+  id: string;
+  imageUrl: string;
+  updatedAt: Date;
+};
+
+export type GeneratedCatalogPdf = {
+  absoluteUrl: string;
+  filename: string;
+  generated: boolean;
+  productCount: number;
+  relativeUrl: string;
+};
+
+const inFlightCatalogs = new Map<string, Promise<GeneratedCatalogPdf>>();
+
+export function isProjectorCatalogRequest(content: string) {
+  const normalized = content
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
+
+  return /\bcatalogo\b/.test(normalized) && /\bproyector(?:es)?\b/.test(normalized);
+}
+
+async function findProjectorImages(): Promise<CatalogProductImage[]> {
+  const products = await prisma.product.findMany({
+    where: {
+      isVisible: true,
+      OR: [
+        { name: { contains: "proyector", mode: "insensitive" } },
+        { category: { contains: "proyector", mode: "insensitive" } },
+        { description: { contains: "proyector", mode: "insensitive" } },
+      ],
+    },
+    orderBy: [{ isFeatured: "desc" }, { name: "asc" }],
+    select: {
+      id: true,
+      imageUrl: true,
+      localImageUrl: true,
+      media: {
+        orderBy: { sortOrder: "asc" },
+        select: { url: true },
+      },
+      sourceImageUrl: true,
+      updatedAt: true,
+    },
+  });
+
+  return products.flatMap((product) => {
+    const imageUrl = getPreferredProductImageUrl({
+      localImageUrl: product.localImageUrl,
+      imageUrl: product.sourceImageUrl ?? product.imageUrl,
+      media: product.media,
+    });
+
+    return imageUrl ? [{ id: product.id, imageUrl, updatedAt: product.updatedAt }] : [];
+  });
+}
+
+function getCatalogFingerprint(products: CatalogProductImage[]) {
+  return createHash("sha256")
+    .update(
+      JSON.stringify(
+        products.map((product) => [
+          product.id,
+          product.imageUrl,
+          product.updatedAt.toISOString(),
+        ]),
+      ),
+    )
+    .digest("hex")
+    .slice(0, 16);
+}
+
+function resolveLocalImagePath(imageUrl: string) {
+  if (!imageUrl.startsWith("/uploads/")) {
+    return null;
+  }
+
+  const relativePath = imageUrl.slice("/uploads/".length);
+  const resolvedPath = path.resolve(process.cwd(), "public", "uploads", relativePath);
+  const uploadRoot = path.resolve(process.cwd(), "public", "uploads");
+
+  return resolvedPath.startsWith(`${uploadRoot}${path.sep}`) ? resolvedPath : null;
+}
+
+async function loadImage(imageUrl: string) {
+  const localPath = resolveLocalImagePath(imageUrl);
+  let source: Buffer;
+
+  if (localPath) {
+    source = await readFile(localPath);
+  } else {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), IMAGE_TIMEOUT_MS);
+
+    try {
+      const response = await fetch(imageUrl, { signal: controller.signal });
+      if (!response.ok) {
+        throw new Error(`Image request failed with HTTP ${response.status}`);
+      }
+
+      const contentLength = Number(response.headers.get("content-length") ?? 0);
+      if (contentLength > MAX_REMOTE_IMAGE_BYTES) {
+        throw new Error("Remote image is too large");
+      }
+
+      source = Buffer.from(await response.arrayBuffer());
+      if (source.byteLength > MAX_REMOTE_IMAGE_BYTES) {
+        throw new Error("Remote image is too large");
+      }
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+  return sharp(source)
+    .rotate()
+    .resize({
+      width: 1000,
+      height: 1000,
+      fit: "contain",
+      background: "#FFFFFF",
+      withoutEnlargement: true,
+    })
+    .flatten({ background: "#FFFFFF" })
+    .jpeg({ quality: 86, mozjpeg: true })
+    .toBuffer();
+}
+
+export function renderCatalogImagePdf(images: Buffer[]) {
+  return new Promise<Buffer>((resolve, reject) => {
+    const document = new PDFDocument({
+      autoFirstPage: false,
+      bufferPages: true,
+      compress: true,
+      info: {
+        Author: "Importaciones Super",
+        Creator: "Tienda Virtual Importaciones Super",
+        Subject: "Catálogo visual de proyectores",
+        Title: "Catálogo de Proyectores",
+      },
+      margin: 0,
+      size: "A4",
+    });
+    const chunks: Buffer[] = [];
+
+    document.on("data", (chunk: Buffer) => chunks.push(chunk));
+    document.on("error", reject);
+    document.on("end", () => resolve(Buffer.concat(chunks)));
+
+    const pageWidth = 595.28;
+    const pageHeight = 841.89;
+    const marginX = 36;
+    const bottomMargin = 34;
+    const columns = 2;
+    const rows = 3;
+    const gapX = 16;
+    const gapY = 16;
+    const headerHeight = 82;
+    const cardWidth = (pageWidth - marginX * 2 - gapX) / columns;
+    const cardHeight = (pageHeight - headerHeight - bottomMargin - gapY * (rows - 1)) / rows;
+
+    images.forEach((image, index) => {
+      const positionOnPage = index % (columns * rows);
+
+      if (positionOnPage === 0) {
+        document.addPage({ margin: 0, size: "A4" });
+        document
+          .fillColor(BRAND_PRIMARY)
+          .font("Helvetica-Bold")
+          .fontSize(23)
+          .text("CATÁLOGO DE PROYECTORES", marginX, 30, {
+            align: "center",
+            width: pageWidth - marginX * 2,
+          });
+        document
+          .moveTo(marginX, 66)
+          .lineTo(pageWidth - marginX, 66)
+          .lineWidth(2)
+          .strokeColor(BRAND_PRIMARY)
+          .stroke();
+      }
+
+      const column = positionOnPage % columns;
+      const row = Math.floor(positionOnPage / columns);
+      const x = marginX + column * (cardWidth + gapX);
+      const y = headerHeight + row * (cardHeight + gapY);
+
+      document
+        .roundedRect(x, y, cardWidth, cardHeight, 10)
+        .lineWidth(0.8)
+        .strokeColor("#D9DDFC")
+        .fillAndStroke("#FFFFFF", "#D9DDFC");
+
+      document.image(image, x + 12, y + 12, {
+        align: "center",
+        fit: [cardWidth - 24, cardHeight - 24],
+        valign: "center",
+      });
+    });
+
+    document.end();
+  });
+}
+
+async function createProjectorCatalogPdf(products: CatalogProductImage[], fingerprint: string) {
+  const filename = `catalogo-proyectores-${fingerprint}.pdf`;
+  const relativeUrl = `/uploads/catalogs/${filename}`;
+  const outputPath = path.join(CATALOG_DIRECTORY, filename);
+
+  await mkdir(CATALOG_DIRECTORY, { recursive: true });
+
+  try {
+    await access(outputPath);
+    return {
+      absoluteUrl: buildPublicUrl(relativeUrl),
+      filename,
+      generated: false,
+      productCount: products.length,
+      relativeUrl,
+    } satisfies GeneratedCatalogPdf;
+  } catch {
+    // Generate the immutable catalog below.
+  }
+
+  const images = await Promise.all(products.map((product) => loadImage(product.imageUrl)));
+  const pdf = await renderCatalogImagePdf(images);
+  const temporaryPath = `${outputPath}.${process.pid}.tmp`;
+
+  try {
+    await writeFile(temporaryPath, pdf, { flag: "wx" });
+    await rename(temporaryPath, outputPath);
+  } catch (error) {
+    await unlink(temporaryPath).catch(() => undefined);
+    throw error;
+  }
+
+  return {
+    absoluteUrl: buildPublicUrl(relativeUrl),
+    filename,
+    generated: true,
+    productCount: products.length,
+    relativeUrl,
+  } satisfies GeneratedCatalogPdf;
+}
+
+export async function generateProjectorCatalogPdf() {
+  const products = await findProjectorImages();
+
+  if (!products.length) {
+    throw new Error("No hay proyectores publicados con imagen disponible.");
+  }
+
+  const fingerprint = getCatalogFingerprint(products);
+  const existing = inFlightCatalogs.get(fingerprint);
+  if (existing) {
+    return existing;
+  }
+
+  const generation = createProjectorCatalogPdf(products, fingerprint).finally(() => {
+    inFlightCatalogs.delete(fingerprint);
+  });
+  inFlightCatalogs.set(fingerprint, generation);
+  return generation;
+}
