@@ -17591,6 +17591,53 @@ body[data-admin-theme="dark"] .admin-shell :where(input, textarea)::placeholder 
 .admin-user-danger-zone p { margin: 3px 0 0; color: var(--muted); font-size: .72rem; }
 .button-danger-soft { display: inline-flex; align-items: center; gap: 7px; border-color: rgba(220, 38, 38, .22); color: var(--danger); background: rgba(220, 38, 38, .06); }
 
+/* Stronger field affordance on light admin surfaces. */
+.admin-shell :where(.field input, .field select, .field textarea),
+.admin-shell :where(.search-field, .admin-user-search),
+.admin-shell :where(.filters-form select, .category-sort-field select) {
+  border-color: rgba(var(--brand-ink-rgb), .2);
+  background: color-mix(in srgb, var(--brand-bg-soft) 72%, #eef1f8);
+  box-shadow: inset 0 1px 2px rgba(var(--brand-ink-rgb), .035);
+  transition: border-color 150ms ease, background 150ms ease, box-shadow 150ms ease;
+}
+
+.admin-shell :where(.field input, .field select, .field textarea)::placeholder,
+.admin-shell :where(.search-field input, .admin-user-search input)::placeholder {
+  color: color-mix(in srgb, var(--muted) 80%, transparent);
+  opacity: 1;
+}
+
+.admin-shell :where(.field input, .field select, .field textarea):hover,
+.admin-shell :where(.search-field, .admin-user-search):hover,
+.admin-shell :where(.filters-form select, .category-sort-field select):hover {
+  border-color: rgba(var(--brand-rgb), .34);
+  background: color-mix(in srgb, var(--brand-bg-soft) 88%, #e9edf7);
+}
+
+.admin-shell :where(.field input, .field select, .field textarea):focus,
+.admin-shell :where(.filters-form select, .category-sort-field select):focus,
+.admin-shell :where(.search-field, .admin-user-search):focus-within {
+  border-color: rgba(var(--brand-rgb), .62);
+  background: #fff;
+  box-shadow: 0 0 0 4px rgba(var(--brand-rgb), .11), inset 0 1px 2px rgba(var(--brand-ink-rgb), .025);
+}
+
+body[data-admin-theme="dark"] .admin-shell :where(.field input, .field select, .field textarea),
+body[data-admin-theme="dark"] .admin-shell :where(.search-field, .admin-user-search),
+body[data-admin-theme="dark"] .admin-shell :where(.filters-form select, .category-sort-field select) {
+  border-color: rgba(148, 163, 184, .28);
+  background: rgba(7, 11, 20, .82);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, .28);
+}
+
+body[data-admin-theme="dark"] .admin-shell :where(.field input, .field select, .field textarea):focus,
+body[data-admin-theme="dark"] .admin-shell :where(.filters-form select, .category-sort-field select):focus,
+body[data-admin-theme="dark"] .admin-shell :where(.search-field, .admin-user-search):focus-within {
+  border-color: rgba(129, 140, 248, .68);
+  background: rgba(10, 15, 27, .96);
+  box-shadow: 0 0 0 4px rgba(var(--brand-rgb), .18);
+}
+
 @media (max-width: 960px) {
   .admin-user-form-layout { grid-template-columns: 1fr; }
   .admin-user-form-aside { position: static; }
