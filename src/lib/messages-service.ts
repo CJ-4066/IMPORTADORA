@@ -83,7 +83,9 @@ export type GetConversationMessagesInput = z.infer<typeof getConversationMessage
 export const incomingMessageSchema = z.object({
   channel: z.nativeEnum(Channel),
   externalContactId: z.string().min(1).max(120),
-  manychatSubscriberId: z.string().trim().min(1).max(120).optional(),
+  // n8n sends an empty value when ManyChat cannot resolve the phone. Treat it
+  // as absent so the inbound message is still recorded and can be retried later.
+  manychatSubscriberId: optionalTrimmedString.pipe(z.string().min(1).max(120).optional()),
   phone: z.string().max(32).optional(),
   name: z.string().max(180),
   externalMessageId: z.string().min(1).max(120),

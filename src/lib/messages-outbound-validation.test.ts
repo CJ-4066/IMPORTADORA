@@ -3,6 +3,7 @@ import { test } from "node:test";
 import { N8nOutboundError } from "./n8n-outbound";
 import {
   getManychatSubscriberIdFromMetadata,
+  incomingMessageSchema,
   requireRealManychatSubscriber,
 } from "./messages-service";
 
@@ -34,4 +35,18 @@ test("bloquea contactos de simulador aunque tengan subscriber ID", () => {
 test("acepta subscriber ID explícito desde metadata sin usar externalContactId", () => {
   assert.equal(getManychatSubscriberIdFromMetadata({ subscriber_id: 910854597 }), "910854597");
   assert.equal(getManychatSubscriberIdFromMetadata({ externalContactId: "910854597" }), null);
+});
+
+test("un lookup ManyChat sin resultado no rechaza el mensaje entrante", () => {
+  const parsed = incomingMessageSchema.parse({
+    channel: "WHATSAPP",
+    externalContactId: "51967426958",
+    manychatSubscriberId: "",
+    name: "Cliente WhatsApp",
+    externalMessageId: "wamid.test",
+    content: "hola",
+    timestamp: "2026-09-16T01:00:00.000Z",
+  });
+
+  assert.equal(parsed.manychatSubscriberId, undefined);
 });
