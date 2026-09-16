@@ -207,6 +207,189 @@
 .spin { animation: whatsapp-spin 1s linear infinite; }
 @keyframes whatsapp-spin { to { transform: rotate(360deg); } }
 
+/* Messaging settings: operational controls, intentionally free of provider diagnostics. */
+.messaging-settings-page {
+  width: min(100%, 880px);
+  margin: 0 auto;
+  padding: 30px 24px 48px;
+}
+
+.messaging-settings-page-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.messaging-settings-eyebrow {
+  margin: 0 0 6px;
+  color: var(--primary);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.messaging-settings-page-heading h1 {
+  margin: 0;
+  color: var(--text);
+  font-size: clamp(24px, 3vw, 30px);
+  letter-spacing: -.035em;
+}
+
+.messaging-settings-page-heading > div > p:last-child {
+  margin: 7px 0 0;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.messaging-settings-state {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 7px;
+  border-radius: 999px;
+  padding: 7px 11px;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.messaging-settings-state.is-active { color: #166534; background: #dcfce7; }
+.messaging-settings-state.is-paused { color: #9a3412; background: #ffedd5; }
+.messaging-settings-stack { display: grid; gap: 16px; }
+
+.messaging-settings-card,
+.whatsapp-connection-card.messaging-settings-card {
+  display: grid;
+  gap: 18px;
+  padding: 20px;
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  background: var(--surface-bg);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, .04);
+}
+
+.messaging-settings-card-heading,
+.messaging-settings-channel-row,
+.messaging-settings-toggle-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 13px;
+}
+
+.messaging-settings-card-icon {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 11px;
+  color: var(--primary);
+  background: var(--bg-alt);
+}
+
+.messaging-settings-card-icon.is-whatsapp { color: #15803d; background: #dcfce7; }
+.messaging-settings-card h2 { margin: 0; color: var(--text); font-size: 16px; letter-spacing: -.01em; }
+.messaging-settings-card-heading p,
+.messaging-settings-toggle-copy p { margin: 4px 0 0; color: var(--text-muted); font-size: 13px; line-height: 1.5; }
+.messaging-settings-toggle-copy,
+.messaging-settings-channel-copy { min-width: 0; flex: 1; }
+.messaging-settings-toggle-row { align-items: center; }
+
+.messaging-settings-switch {
+  position: relative;
+  display: block;
+  width: 46px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  cursor: pointer;
+  background: #cbd5e1;
+  transition: background .18s ease;
+}
+
+.messaging-settings-switch span {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, .25);
+  transition: transform .18s ease;
+}
+
+.messaging-settings-switch.is-on { background: #16a34a; }
+.messaging-settings-switch.is-on span { transform: translateX(20px); }
+.messaging-settings-switch:focus-visible { outline: 3px solid color-mix(in srgb, var(--primary) 28%, transparent); outline-offset: 3px; }
+
+.messaging-settings-field { display: grid; gap: 7px; }
+.messaging-settings-field label { color: var(--text); font-size: 13px; font-weight: 750; }
+.messaging-settings-field input {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid var(--border-color);
+  border-radius: 9px;
+  padding: 10px 12px;
+  color: var(--text);
+  background: var(--bg);
+  font: inherit;
+  font-size: 13px;
+}
+.messaging-settings-field input:focus { border-color: var(--primary); outline: 3px solid color-mix(in srgb, var(--primary) 15%, transparent); }
+.messaging-settings-field p { margin: 0; color: var(--text-muted); font-size: 12px; }
+
+.messaging-settings-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-color);
+}
+
+.messaging-settings-result { display: flex; align-items: center; gap: 6px; color: var(--text-muted); font-size: 12px; }
+.messaging-settings-result.is-success { color: #15803d; }
+.messaging-settings-result.is-error { color: #b91c1c; }
+.messaging-settings-save { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-width: 158px; }
+
+.messaging-settings-channel-row { align-items: center; }
+.messaging-settings-channel-copy h2 { margin-bottom: 7px; }
+.whatsapp-connection-status { gap: 7px; }
+.whatsapp-connection-status strong { font-size: 13px; }
+.whatsapp-connection-status span { font-size: 12px; }
+.whatsapp-connection-actions { margin-left: auto; }
+.whatsapp-connection-actions .btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; }
+
+.messaging-settings-channel-meta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: var(--border-color);
+}
+
+.messaging-settings-channel-meta span { min-width: 0; padding: 11px 13px; overflow-wrap: anywhere; color: var(--text); background: var(--bg-alt); font-size: 12px; }
+.messaging-settings-channel-meta small { display: block; margin-bottom: 3px; color: var(--text-muted); font-size: 10px; font-weight: 750; text-transform: uppercase; }
+.whatsapp-connection-alert { justify-content: flex-start; padding: 10px 12px; }
+.whatsapp-connection-alert span { margin: 0; }
+.whatsapp-connection-message { border-radius: 8px; padding: 10px 12px; background: var(--bg-alt); line-height: 1.45; }
+
+@media (max-width: 700px) {
+  .messaging-settings-page { padding: 22px 14px 36px; }
+  .messaging-settings-page-heading { align-items: flex-start; flex-direction: column; gap: 14px; }
+  .messaging-settings-channel-row { align-items: flex-start; flex-wrap: wrap; }
+  .whatsapp-connection-actions { display: grid; grid-template-columns: 1fr; width: 100%; margin-left: 53px; }
+  .messaging-settings-card-footer { align-items: stretch; flex-direction: column; }
+  .messaging-settings-save { width: 100%; }
+  .messaging-settings-channel-meta { grid-template-columns: 1fr; }
+}
+
 @media (max-width: 760px) {
   .whatsapp-connection-header,
   .whatsapp-connection-action-panel,

@@ -3,7 +3,7 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 
 import { useEffect, useRef, useState } from "react";
-import { AlertTriangle, CheckCircle2, Link2, Loader2, ShieldCheck, XCircle } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Link2, Loader2, MessageCircle, RefreshCw } from "lucide-react";
 import { readEmbeddedSignupBrowserEvent } from "@/lib/whatsapp-embedded-signup";
 import type { EmbeddedSignupSession } from "@/lib/whatsapp-meta-schema";
 
@@ -76,14 +76,6 @@ function formatAssetValue(value: string | null | undefined, fallback = "Pendient
   }
 
   return value;
-}
-
-function statusText(ready: boolean) {
-  return ready ? "Listo" : "Pendiente";
-}
-
-function requirementText(ready: boolean, label: string) {
-  return `${label}: ${statusText(ready)}`;
 }
 
 export function WhatsAppMetaConnect() {
@@ -239,118 +231,54 @@ export function WhatsAppMetaConnect() {
         status.oauthConfiguration.tokenEncryptionConfigured ? null : "Token encryption key",
       ].filter(Boolean)
     : [];
-  const grantedScopes = integration?.scopes?.length ? integration.scopes : verifiedAccount ? status?.integration?.scopes ?? [] : [];
   const oauthReady = Boolean(status && missingConfig.length === 0 && sdkReady);
-  const businessLabel = formatAssetValue(String(verifiedAccount?.business.id ?? integration?.businessId ?? ""), "Business pendiente");
-  const wabaLabel = verifiedAccount?.waba.name || formatAssetValue(integration?.wabaId, "WABA pendiente");
   const phoneLabel = verifiedAccount?.phone.displayPhoneNumber || formatAssetValue(integration?.displayPhoneNumber || integration?.phoneNumberId, "Número pendiente");
-  const connectionTitle = connected ? "Cuenta conectada localmente" : "WhatsApp aún no está conectado";
+  const connectionTitle = connected ? "WhatsApp conectado" : "Conecta tu cuenta de WhatsApp";
   const connectionSubtitle = connected
     ? `${integration?.verifiedName || "Importaciones Super"}${integration?.displayPhoneNumber ? ` · ${integration.displayPhoneNumber}` : ""}`
-    : "Autoriza Meta para enlazar la cuenta y el número de prueba.";
+    : "Autoriza la cuenta de Meta que recibirá y enviará mensajes.";
   const missingConfigText = missingConfig.join(", ");
-  const hasMessagingScope = grantedScopes.includes("whatsapp_business_messaging");
-  const hasManagementScope = grantedScopes.includes("whatsapp_business_management");
-  const oauthStatus = oauthReady ? "Configuración completa" : "Falta configuración";
 
   return (
-    <section className="whatsapp-connection-card" aria-labelledby="whatsapp-connection-title">
-      <div className="whatsapp-connection-header">
-        <div className="whatsapp-connection-copy">
-          <div className="whatsapp-connection-icon"><ShieldCheck size={20} /></div>
-          <div>
-            <p className="whatsapp-connection-eyebrow">Conexión oficial de Meta</p>
-            <h3 id="whatsapp-connection-title">WhatsApp Business</h3>
-            <p>Autoriza la cuenta, revisa el número conectado y valida los permisos para la demo.</p>
-          </div>
-        </div>
-        <span className={`whatsapp-connection-pill ${oauthReady && connected ? "is-ready" : "is-warning"}`}>
-          {oauthReady && connected ? <CheckCircle2 size={14} /> : <AlertTriangle size={14} />}
-          {oauthReady && connected ? "Listo para verificar" : "Requiere configuración"}
-        </span>
-      </div>
-
-      <div className="whatsapp-connection-summary-card">
-        <div className={`whatsapp-connection-status ${connected ? "is-connected" : "is-missing"}`}>
-          {connected ? <CheckCircle2 size={18} aria-hidden /> : <XCircle size={18} aria-hidden />}
+    <section className="messaging-settings-card whatsapp-connection-card" aria-labelledby="whatsapp-connection-title">
+      <div className="messaging-settings-channel-row">
+        <span className="messaging-settings-card-icon is-whatsapp" aria-hidden="true"><MessageCircle size={19} /></span>
+        <div className="messaging-settings-channel-copy">
+          <h2 id="whatsapp-connection-title">Canal de WhatsApp</h2>
+          <div className={`whatsapp-connection-status ${connected ? "is-connected" : "is-missing"}`}>
+            {connected ? <CheckCircle2 size={15} aria-hidden /> : <AlertTriangle size={15} aria-hidden />}
           <div>
             <strong>{connectionTitle}</strong>
             <span>{connectionSubtitle}</span>
           </div>
         </div>
-      </div>
-
-      {missingConfig.length ? (
-        <div className="whatsapp-connection-alert">
-          <AlertTriangle size={18} />
-          <div>
-            <strong>OAuth no está listo para grabar.</strong>
-            <span>Falta en el servidor: {missingConfigText}. Estos valores no se guardan desde esta pantalla; se configuran como variables de entorno y requieren rebuild.</span>
-          </div>
-        </div>
-      ) : null}
-
-      <div className="whatsapp-connection-action-panel">
-        <div>
-          <strong>Acciones</strong>
-          <span>Conecta o vuelve a verificar los activos autorizados por Meta.</span>
         </div>
         <div className="whatsapp-connection-actions">
           <button className="btn btn-primary" type="button" onClick={loadFacebookSdk} disabled={!oauthReady || busy}>
             {busy ? <Loader2 className="spin" size={16} /> : <Link2 size={16} />}
             {connected ? "Reconectar WhatsApp" : "Conectar WhatsApp"}
           </button>
-          <button className="btn btn-secondary" type="button" onClick={verifyConnection} disabled={!connected || busy}>Verificar activos</button>
+          {connected ? (
+            <button className="btn btn-secondary" type="button" onClick={verifyConnection} disabled={busy}>
+              <RefreshCw size={15} /> Verificar
+            </button>
+          ) : null}
         </div>
       </div>
 
-      <div className="whatsapp-connection-grid">
-        <div className="whatsapp-connection-section">
-          <h4>Preparación</h4>
-          <ul className="whatsapp-connection-checklist" aria-label="Estado de preparación">
-            <li className={oauthReady ? "is-ok" : "is-pending"}>{requirementText(oauthReady, "OAuth de Meta")}</li>
-            <li className={connected ? "is-ok" : "is-pending"}>{requirementText(connected, "Cuenta y número")}</li>
-            <li className={status?.webhookSignatureConfigured ? "is-ok" : "is-pending"}>
-              {requirementText(Boolean(status?.webhookSignatureConfigured), "Webhook seguro")}
-            </li>
-            <li className="is-pending">Envío real: No probado</li>
-          </ul>
-        </div>
-
-        <div className="whatsapp-connection-section">
-          <h4>Permisos de Meta</h4>
-          <ul className="whatsapp-connection-checklist" aria-label="Permisos de Meta">
-            <li className={hasMessagingScope ? "is-ok" : "is-pending"}>
-              whatsapp_business_messaging: {statusText(hasMessagingScope)}
-            </li>
-            <li className={hasManagementScope ? "is-ok" : "is-pending"}>
-              whatsapp_business_management: {statusText(hasManagementScope)}
-            </li>
-          </ul>
-        </div>
-      </div>
-
-      {integration ? (
-        <div className="whatsapp-connection-section">
-          <h4>Cuenta autorizada</h4>
-          <dl className="whatsapp-connection-assets">
-            <div><dt>Business ID</dt><dd>{businessLabel}</dd></div>
-            <div><dt>Cuenta WhatsApp</dt><dd>{wabaLabel}</dd></div>
-            <div><dt>Número conectado</dt><dd>{phoneLabel}</dd></div>
-            <div><dt>Última verificación</dt><dd>{integration.lastVerifiedAt ? new Date(integration.lastVerifiedAt).toLocaleString("es-PE") : "Pendiente"}</dd></div>
-          </dl>
+      {connected ? (
+        <div className="messaging-settings-channel-meta" aria-label="Datos de la conexión">
+          <span><small>Número conectado</small>{phoneLabel}</span>
+          <span><small>Última verificación</small>{integration?.lastVerifiedAt ? new Date(integration.lastVerifiedAt).toLocaleString("es-PE") : "Pendiente"}</span>
         </div>
       ) : null}
 
-      <details className="whatsapp-connection-details">
-        <summary>Ver detalles técnicos</summary>
-        <ul className="whatsapp-connection-checklist" aria-label="Estado de preparación">
-          <li>OAuth: {oauthStatus}</li>
-          <li>Origen de token: {status?.source || "sin configurar"}</li>
-          <li>{status?.realSendLabel || "Envío real: NO PROBADO"}</li>
-          <li>Graph API: {status?.oauthConfiguration?.graphVersion || "pendiente"}</li>
-        </ul>
-      </details>
+      {missingConfig.length ? (
+        <div className="whatsapp-connection-alert" role="alert">
+          <AlertTriangle size={17} />
+          <span>La conexión no puede iniciarse hasta configurar en el servidor: {missingConfigText}.</span>
+        </div>
+      ) : null}
 
       {message && <p className="whatsapp-connection-message" role="status">{message}</p>}
     </section>
