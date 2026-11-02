@@ -17,7 +17,7 @@ Los adaptadores utilizan las conexiones existentes a YCloud, Telegram y ChatbotX
 
 ## Respuestas y límites
 
-OpenAI clasifica la consulta mediante Responses y una herramienta de consulta de catálogo de solo lectura. El servidor compone precios, cantidades, importes y stock; el modelo no puede escribir en inventario ni confirmar pedidos/pagos. Se reutiliza la información comercial ya aprobada en Super Bot. Las políticas vacías requieren asesor.
+OpenAI clasifica la consulta mediante Responses y una herramienta de consulta de catálogo de solo lectura. El servidor compone precios, cantidades e importes con información verificada; el stock se valida internamente, pero su cantidad nunca se comunica al cliente. El modelo no puede escribir en inventario ni confirmar pedidos/pagos. Se reutiliza la información comercial ya aprobada en Super Bot. Las políticas vacías requieren asesor.
 
 ### Imágenes, capturas y catálogo
 
