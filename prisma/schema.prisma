@@ -307,6 +307,97 @@ model Category {
   @@index([name])
 }
 
+enum RockyAiMode {
+  OFF
+  COPILOT
+  HYBRID
+  AUTO
+}
+
+// References external conversations without copying ChatbotX history.
+model RockyAiSettings {
+  id             Int      @id @default(1)
+  enabled        Boolean  @default(false)
+  revision       Int      @default(0)
+  model          String   @default("gpt-4.1-mini")
+  dailyRequests  Int      @default(200)
+  dailyTokens    Int      @default(200000)
+  maxOutputTokens Int     @default(700)
+  channelDefaults Json   @default("{}")
+  defaultsSince  DateTime @default(now())
+  policies       Json     @default("{}")
+  workerSeenAt   DateTime?
+  workerError    String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model RockyAiConversation {
+  id             String      @id
+  channel        String      @db.VarChar(20)
+  externalId     String      @db.VarChar(180)
+  mode           RockyAiMode @default(OFF)
+  humanControl   Boolean     @default(true)
+  revision       Int         @default(0)
+  lastTrigger    String?
+  lastError      String?
+  activatedAt    DateTime    @default(now())
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  drafts         RockyAiDraft[]
+
+  @@unique([channel, externalId])
+  @@index([mode, humanControl])
+}
+
+model RockyAiDraft {
+  id             String   @id @default(uuid())
+  conversationId String
+  conversation   RockyAiConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  triggerId      String
+  contextHash    String
+  controlRevision Int
+  settingsRevision Int
+  state          String   @default("DRAFT") @db.VarChar(24)
+  text           String   @db.Text
+  decision       Json
+  evidence       Json
+  reason         String?
+  approvedBy     String?
+  approvedAt     DateTime?
+  providerMessageId String?
+  expiresAt      DateTime
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([conversationId, createdAt])
+  @@index([state, createdAt])
+}
+
+model RockyAiUsage {
+  id          String   @id @default(uuid())
+  conversationId String
+  model       String
+  state       String   @default("RESERVED")
+  inputTokens Int      @default(0)
+  outputTokens Int     @default(0)
+  reservedTokens Int
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+model RockyAiAudit {
+  id          String   @id @default(uuid())
+  conversationId String?
+  actor       String
+  action      String
+  detail      Json?
+  createdAt   DateTime @default(now())
+
+  @@index([conversationId, createdAt])
+}
+
 model StoreSettings {
   id                  Int      @id @default(1)
   businessName        String   @default("Importaciones Super")

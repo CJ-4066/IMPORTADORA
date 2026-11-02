@@ -4,6 +4,8 @@ import { requireAdmin } from "@/lib/auth";
 import { messengerControl } from "@/lib/messenger-control";
 import { SocialInboxError } from "@/lib/social-inbox";
 
+import { pauseForHuman } from "@/lib/rocky-ai/service";
+
 export const dynamic = "force-dynamic";
 function failure(error: unknown) {
   return NextResponse.json({ error: error instanceof SocialInboxError ? error.message : "No se pudo consultar el control de Messenger." },
@@ -25,6 +27,7 @@ export async function POST(request: NextRequest) {
     const data = schema.safeParse(await request.json());
     if (!data.success) return NextResponse.json({ error: "Selecciona una acción y un plazo de hasta 7 días." }, { status: 400 });
     const { conversationId, action, minutes, resumeTarget } = data.data;
+    await pauseForHuman("messenger", conversationId, session.userId);
     return NextResponse.json(await messengerControl(conversationId, { action, minutes, resumeTarget, actor: session.email }));
   } catch (error) { return failure(error); }
 }

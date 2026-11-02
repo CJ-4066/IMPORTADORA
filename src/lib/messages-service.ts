@@ -440,6 +440,11 @@ export async function sendInternalMessage(
     throw new Error("Conversation not found");
   }
 
+  if (conversation.channel === "WHATSAPP" || conversation.channel === "TELEGRAM") {
+    const { pauseForHuman } = await import("./rocky-ai/service");
+    await pauseForHuman(conversation.channel === "WHATSAPP" ? "whatsapp" : "telegram", conversationId, agentId);
+  }
+
   if (conversation.channel === "TELEGRAM") return sendTelegramMessage(conversation, parsed, agentId);
 
   const replyTarget = parsed.replyToMessageId ? await prisma.chatMessage.findFirst({
@@ -576,6 +581,11 @@ export async function updateConversation(id: string, input: UpdateConversationIn
   const parsed = updateConversationSchema.parse(input);
   const { markAsRead, ...conversationChanges } = parsed;
   const existing = await prisma.conversation.findUniqueOrThrow({ where: { id } });
+  if ((parsed.botEnabled !== undefined || parsed.assignedUserId !== undefined || parsed.status !== undefined) &&
+      (existing.channel === "WHATSAPP" || existing.channel === "TELEGRAM")) {
+    const { pauseForHuman } = await import("./rocky-ai/service");
+    await pauseForHuman(existing.channel === "WHATSAPP" ? "whatsapp" : "telegram", id, "conversation_control");
+  }
   let telegramRevision: number | undefined;
   if (existing.channel === "TELEGRAM" && (parsed.botEnabled !== undefined || parsed.assignedUserId || parsed.status)) {
     const enabled = parsed.botEnabled ?? (parsed.assignedUserId || parsed.status !== "AUTOMATICO" ? false : existing.botEnabled);

@@ -1,4 +1,4 @@
-export type SocialChannel = "messenger" | "tiktok";
+export type SocialChannel = "messenger" | "instagram" | "tiktok";
 export type SocialSystemEvent = "meta_ai_handover";
 export type SocialMessage = {
   id: string; text: string | null; createdAt: string; contactInboxId: string;
@@ -61,7 +61,7 @@ export function messengerMetaResumeMinutes(value = process.env.MESSENGER_META_AI
 }
 
 export function parseSocialChannel(value: string): SocialChannel {
-  if (value !== "messenger" && value !== "tiktok") throw new SocialInboxError("Canal no válido.", 404);
+  if (value !== "messenger" && value !== "instagram" && value !== "tiktok") throw new SocialInboxError("Canal no válido.", 404);
   return value;
 }
 
@@ -136,7 +136,7 @@ export function safeSocialMessage(message: SocialMessage): SocialMessage {
 export async function socialReplyInbox(channel: SocialChannel, conversationId: string) {
   const { inbox } = await socialConversation(conversationId, channel);
   const lastIncoming = inbox.lastIncomingMessageAt ? Date.parse(inbox.lastIncomingMessageAt) : NaN;
-  if (channel === "messenger" && (!Number.isFinite(lastIncoming) || Date.now() - lastIncoming >= 86400000)) {
+  if ((channel === "messenger" || channel === "instagram") && (!Number.isFinite(lastIncoming) || Date.now() - lastIncoming >= 86400000)) {
     throw new SocialInboxError("Messenger permite responder durante las 24 horas posteriores al último mensaje del cliente.", 409);
   }
   return inbox;

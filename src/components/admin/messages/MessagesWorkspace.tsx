@@ -1,4 +1,5 @@
 "use client";
+import { RockyAiPanel } from "./RockyAiPanel";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MessageCircle, TriangleAlert, X } from "lucide-react";
@@ -573,7 +574,7 @@ export function MessagesWorkspace({ initialChannel = "" }: { initialChannel?: Co
         headers: { "Content-Type": "application/json" },
         method: "PATCH",
       });
-      if (!response.ok) { setWorkspaceError((await response.json()).error || 'No se pudo cambiar el estado de Rocky.'); throw new Error('Control failed'); }
+      if (!response.ok) { setWorkspaceError((await response.json()).error || 'No se pudo cambiar el estado de Super Bot.'); throw new Error('Control failed'); }
     } catch {
       setConversations((previous) =>
         previous.map((conversation) =>
@@ -674,6 +675,7 @@ export function MessagesWorkspace({ initialChannel = "" }: { initialChannel?: Co
               onToggleBot={handleToggleBot}
             />
 
+            {(activeConversation.channel === "WHATSAPP" || activeConversation.channel === "TELEGRAM") && <RockyAiPanel key={`ai:${activeConversation.id}`} channel={activeConversation.channel === "WHATSAPP" ? "whatsapp" : "telegram"} externalId={activeConversation.id} />}
             <div className="chat-messages" onScroll={handleMessagesScroll} ref={messagesContainerRef}>
               {loadingOlderMessages ? <div className="messages-list-loader">Cargando mensajes antiguos...</div> : null}
               {!loadingOlderMessages && messageHasMore ? (
