@@ -82,7 +82,7 @@ export async function productsByIds(ids: string[]): Promise<ProductFact[]> {
     wholesalePrice: p.wholesalePrice == null ? null : Number(p.wholesalePrice), wholesaleMinQty: p.wholesaleMinQty,
   }] : []; });
 }
-async function reserve(config: RockyAiSettings, conversationId: string, tokens: number) {
+export async function reserveUsage(config: RockyAiSettings, conversationId: string, tokens: number) {
   return prisma.$transaction(async tx => {
     await tx.$queryRaw`SELECT id FROM "RockyAiSettings" WHERE id = 1 FOR UPDATE`;
     const fresh = await tx.rockyAiSettings.findUniqueOrThrow({ where: { id: 1 } });
@@ -93,6 +93,10 @@ async function reserve(config: RockyAiSettings, conversationId: string, tokens: 
     if (usage._count >= fresh.dailyRequests || (usage._sum.reservedTokens ?? 0) + tokens > fresh.dailyTokens) throw new Error("DAILY_LIMIT");
     return (await tx.rockyAiUsage.create({ data: { conversationId, model: config.model, reservedTokens: tokens } })).id;
   });
+}
+export async function recordUsage(id: string, input: number, output: number) {
+  if (!Number.isInteger(input) || !Number.isInteger(output) || input < 0 || output < 0) throw new Error("INVALID_USAGE");
+  await prisma.rockyAiUsage.update({ where: { id }, data: { inputTokens: input, outputTokens: output, reservedTokens: input + output, state: "COMPLETED" } });
 }
 async function withConversationLock<T>(id: string, work: () => Promise<T>): Promise<T | null> {
   return prisma.$transaction(async tx => {
@@ -124,9 +128,8 @@ export async function generateDraft(id: string, actor: string, explicit = false)
       const result = await generateDecision({
         model: config.model, maxOutputTokens: config.maxOutputTokens, history: state.history, policies,
         search: async query => productsByIds((await searchCatalogIdentity(query, 8)).ids),
-        reserve: tokens => reserve(config, id, tokens),
-        record: async (usageId, input, output) => { await prisma.rockyAiUsage.update({ where: { id: usageId },
-          data: { inputTokens: input, outputTokens: output, reservedTokens: input + output, state: "COMPLETED" } }); },
+        reserve: tokens => reserveUsage(config, id, tokens),
+        record: recordUsage,
       });
       decision = result.decision; products = result.products;
     }
@@ -222,8 +225,11 @@ export async function conversationStatus(channel: AiChannel, externalId: string)
     data: { state: "EXPIRED", reason: "La sugerencia ya no está vigente." } });
   const drafts = await prisma.rockyAiDraft.findMany({ where: { conversationId: id }, orderBy: { createdAt: "desc" }, take: 8,
     select: { id: true, state: true, text: true, reason: true, approvedBy: true, expiresAt: true, createdAt: true } });
+  const visualEvidence = await prisma.rockyAiVisualEvidence.findMany({ where: { conversationId: id }, orderBy: { updatedAt: "desc" }, take: 8,
+    select: { triggerId: true, status: true, verifiedProductId: true, candidateProductIds: true, analyzer: true, failureCode: true, expiresAt: true, updatedAt: true } });
   return { conversation, drafts, enabled: config.enabled, configured: Boolean(process.env.OPENAI_API_KEY), owned: state.owned,
-    canSend: state.canSend, reason: state.reason, workerOnline: Boolean(config.workerSeenAt && Date.now() - config.workerSeenAt.getTime() < 180000) };
+    canSend: state.canSend, reason: state.reason, visualEvidence,
+    workerOnline: Boolean(config.workerSeenAt && Date.now() - config.workerSeenAt.getTime() < 180000) };
 }
 
 async function discoverDefaults(config: RockyAiSettings) {
@@ -256,6 +262,9 @@ export async function workerTick() {
   return prisma.$transaction(async lock => {
     const [row] = await lock.$queryRaw<{ locked: boolean }[]>`SELECT pg_try_advisory_xact_lock(72602620) AS locked`;
     if (!row.locked) return;
+    // Visual evidence has no raw media, but its bounded audit metadata must not
+    // remain after the configured retention window either.
+    await lock.rockyAiVisualEvidence.deleteMany({ where: { expiresAt: { lte: new Date() } } });
     const config = await settings();
     const global = await lock.storeSettings.findUnique({ where: { id: 1 }, select: { botMasterSwitch: true } });
     if (global && !global.botMasterSwitch) {

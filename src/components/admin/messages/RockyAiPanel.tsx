@@ -7,9 +7,14 @@ import styles from "./RockyAi.module.css";
 export const modeLabels: Record<AiMode, string> = { OFF: "Apagado", COPILOT: "Copiloto", HYBRID: "Híbrido", AUTO: "Automático" };
 const stateLabels: Record<string, string> = { DRAFT: "Por revisar", QUEUED: "En cola", SENDING: "Enviando", SUBMITTED: "Enviado al canal", UNCERTAIN: "Entrega sin confirmar", EXPIRED: "Vencido", DISCARDED: "Descartado" };
 type Draft = { id: string; text: string; state: string; reason: string | null; expiresAt: string };
+type VisualEvidence = { triggerId: string; status: string; verifiedProductId: string | null; candidateProductIds: unknown; analyzer: string | null; failureCode: string | null; expiresAt: string | null; updatedAt: string };
 type Status = {
   configured: boolean; enabled: boolean; owned: boolean; canSend: boolean; reason?: string; workerOnline: boolean;
-  conversation: { mode: AiMode; humanControl: boolean; lastError: string | null } | null; drafts: Draft[];
+  conversation: { mode: AiMode; humanControl: boolean; lastError: string | null } | null; drafts: Draft[]; visualEvidence: VisualEvidence[];
+};
+const visualLabels: Record<string, string> = {
+  PENDING: "Análisis visual pendiente", ANALYZING: "Analizando imagen…", VERIFIED_EXACT: "Coincidencia exacta verificada", CANDIDATES: "Opciones encontradas: requieren confirmación",
+  UNVERIFIED: "No se pudo confirmar el producto", UNSUPPORTED: "Archivo no compatible para análisis", FAILED: "No se pudo analizar la imagen",
 };
 export async function aiRequest(body: unknown) {
   const response = await fetch("/api/admin/rocky-ai", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
@@ -30,7 +35,7 @@ function DraftEditor({ draft, disabled, perform }: { draft: Draft; disabled: boo
     {draft.state === "UNCERTAIN" && <p role="alert">Comprueba la entrega en la conversación. Este envío no se repetirá automáticamente.</p>}
   </article>;
 }
-export function RockyAiPanel({ channel, externalId }: { channel: AiChannel; externalId: string }) {
+export function RockyAiPanel({ channel, externalId, visualTriggerId }: { channel: AiChannel; externalId: string; visualTriggerId?: string }) {
   const [status, setStatus] = useState<Status | null>(null), [error, setError] = useState(""), [busy, setBusy] = useState(false);
   const [mode, setMode] = useState<AiMode>("COPILOT");
   const refresh = useCallback(async () => {
@@ -51,6 +56,7 @@ export function RockyAiPanel({ channel, externalId }: { channel: AiChannel; exte
     catch (e) { setError((e as Error).message); }
     finally { setBusy(false); }
   };
+  const visual = status?.visualEvidence?.find(item => item.triggerId === visualTriggerId);
   return <details className={styles.panel}>
     <summary>Super Bot · {status?.conversation ? modeLabels[status.conversation.mode] : "Sin configurar"}
       {status?.conversation?.humanControl && " · Control humano"}{status?.drafts.some(d => d.state === "DRAFT") && " · Sugerencia disponible"}</summary>
@@ -70,6 +76,13 @@ export function RockyAiPanel({ channel, externalId }: { channel: AiChannel; exte
         <button disabled={busy || !status?.configured || !status.enabled || !status.owned || !status.canSend || !status.conversation || status.conversation.mode === "OFF"} onClick={() => void perform({ action: "generate", channel, externalId })}>{busy ? "Procesando…" : "Generar sugerencia"}</button>
         <Link href="/admin/mensajes/ia">Configuración y actividad</Link>
       </div>
+      {visualTriggerId && <>
+        <div className={styles.row}>
+          <button className={styles.secondary} disabled={busy || !status?.conversation} onClick={() => void perform({ action: "analyze_visual", channel, externalId, triggerId: visualTriggerId })}>Analizar última imagen</button>
+          {visual && <small>{visualLabels[visual.status] || visual.status}</small>}
+        </div>
+        {visual?.failureCode === "VISION_NOT_ENABLED" ? <p className={styles.help}>La coincidencia exacta ya se comprobó; la lectura por visión está preparada pero permanece apagada hasta aprobar su política.</p> : <p className={styles.help}>El análisis compara evidencia con el catálogo propio. No envía respuestas ni confirma un producto por similitud visual.</p>}
+      </>}
       {status?.drafts.map(d => <DraftEditor key={d.id + d.state} draft={d} disabled={busy || !status.enabled || !status.owned || !status.canSend || !status.workerOnline} perform={perform} />)}
     </div>
   </details>;

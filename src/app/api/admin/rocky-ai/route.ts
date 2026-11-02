@@ -5,12 +5,14 @@ import { z } from "zod";
 import { approveDraft, audit, configureConversation, conversationStatus, discardDraft, emergencyStop, generateDraft, saveSettings, settings } from "@/lib/rocky-ai/service";
 import { targetSchema, targetKey, modes, renderDecision, decisionSchema } from "@/lib/rocky-ai/policy";
 import { emptyPolicies } from "@/lib/rocky-ai/service";
+import { analyzeVisualEvidence } from "@/lib/rocky-ai/visual-evidence";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 const actions = z.discriminatedUnion("action", [
   targetSchema.extend({ action: z.literal("configure"), mode: z.enum(modes), humanControl: z.boolean() }),
   targetSchema.extend({ action: z.literal("generate") }),
+  targetSchema.extend({ action: z.literal("analyze_visual"), triggerId: z.string().min(1).max(180) }),
   z.object({ action: z.literal("approve"), draftId: z.string().uuid(), text: z.string().trim().min(1).max(1000) }),
   z.object({ action: z.literal("discard"), draftId: z.string().uuid() }),
   z.object({ action: z.literal("settings"), settings: z.unknown() }),
@@ -72,6 +74,12 @@ export async function POST(request: NextRequest) {
         const draft = await generateDraft(targetKey(action.channel, action.externalId), actor, true);
         if (!draft) return NextResponse.json({ error: "Ya se está procesando esta conversación." }, { status: 409 });
         break;
+      }
+      case "analyze_visual": {
+        const conversationId = targetKey(action.channel, action.externalId);
+        const evidence = await analyzeVisualEvidence({ conversationId, channel: action.channel, externalId: action.externalId, triggerId: action.triggerId });
+        await audit(actor, "visual_analysis", conversationId, { triggerId: action.triggerId, status: evidence.status, failureCode: evidence.failureCode });
+        return NextResponse.json({ ok: true, evidence }, { headers: { "Cache-Control": "no-store" } });
       }
       case "approve": {
         if (!await approveDraft(action.draftId, action.text, actor)) return NextResponse.json({ error: "La conversación está ocupada. Actualiza su estado." }, { status: 409 });
