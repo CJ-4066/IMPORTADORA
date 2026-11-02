@@ -29,6 +29,10 @@ export async function saveSettings(input: unknown, actor: string) {
   await settings();
   return prisma.$transaction(async tx => {
     await tx.$queryRaw`SELECT id FROM "RockyAiSettings" WHERE id = 1 FOR UPDATE`;
+    const [global] = await tx.$queryRaw<{ botMasterSwitch: boolean }[]>`SELECT "botMasterSwitch" FROM "StoreSettings" WHERE id = 1 FOR SHARE`;
+    // The legacy master switch remains the single emergency control for every
+    // automated channel. Do not allow the new module to silently bypass it.
+    if (data.enabled && global && !global.botMasterSwitch) throw new Error("GLOBAL_AUTOMATION_DISABLED");
     const saved = await tx.rockyAiSettings.update({ where: { id: 1 }, data: { ...data, revision: { increment: 1 }, defaultsSince: new Date() } });
     await tx.rockyAiDraft.updateMany({ where: { state: { in: ["DRAFT", "QUEUED"] } }, data: { state: "EXPIRED", reason: "La configuración cambió." } });
     await tx.rockyAiAudit.create({ data: { actor, action: "settings_changed", detail: json(data) } });
@@ -253,6 +257,12 @@ export async function workerTick() {
     const [row] = await lock.$queryRaw<{ locked: boolean }[]>`SELECT pg_try_advisory_xact_lock(72602620) AS locked`;
     if (!row.locked) return;
     const config = await settings();
+    const global = await lock.storeSettings.findUnique({ where: { id: 1 }, select: { botMasterSwitch: true } });
+    if (global && !global.botMasterSwitch) {
+      await lock.rockyAiSettings.updateMany({ where: { id: 1, enabled: true }, data: { enabled: false, revision: { increment: 1 } } });
+      await lock.rockyAiDraft.updateMany({ where: { state: { in: ["DRAFT", "QUEUED"] } }, data: { state: "EXPIRED", reason: "Automatización global detenida." } });
+      return;
+    }
     await prisma.rockyAiSettings.update({ where: { id: 1 }, data: { workerSeenAt: new Date(), workerError: null } });
     const abandoned = await prisma.rockyAiDraft.findMany({ where: { state: "SENDING", updatedAt: { lt: new Date(Date.now() - 180000) } } });
     for (const d of abandoned) {

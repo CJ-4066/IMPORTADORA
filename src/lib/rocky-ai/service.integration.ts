@@ -130,6 +130,15 @@ test("legacy global stop also stops the new AI module", async () => {
   await prisma.storeSettings.update({ where: { id: 1 }, data: { botMasterSwitch: false } });
   assert.equal((await settings()).enabled, false);
 });
+test("the global stop cannot be bypassed by new AI settings or stale state", async () => {
+  await prisma.storeSettings.update({ where: { id: 1 }, data: { botMasterSwitch: false } });
+  const stopped = await settings();
+  await assert.rejects(saveSettings({ ...stopped, enabled: true }, "admin"), /GLOBAL_AUTOMATION_DISABLED/);
+  await prisma.rockyAiSettings.update({ where: { id: 1 }, data: { enabled: true } });
+  await workerTick();
+  assert.equal((await settings()).enabled, false);
+  assert.equal(calls, 0); assert.equal(sends, 0);
+});
 test("configuration changes invalidate existing drafts", async () => {
   const c = await fixture(); const d = (await generateDraft(c.id, "admin", true))!;
   const s = await settings();

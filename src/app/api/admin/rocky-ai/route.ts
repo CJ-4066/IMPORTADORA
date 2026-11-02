@@ -22,6 +22,7 @@ function failure(error: unknown) {
   const message = error instanceof Error ? error.message : "";
   const known: Record<string, string> = {
     OPENAI_NOT_CONFIGURED_OR_DISABLED: "Configura OPENAI_API_KEY en el servidor y activa Super Bot.",
+    GLOBAL_AUTOMATION_DISABLED: "Activa primero las respuestas automáticas globales en Configuración de mensajes.",
     MODE_OFF: "Selecciona un modo de IA antes de generar una sugerencia.",
     DRAFT_EXPIRED: "La sugerencia perdió vigencia. Genera otra antes de enviar.",
     DRAFT_ALREADY_PROCESSED: "Esta sugerencia ya fue procesada.",
