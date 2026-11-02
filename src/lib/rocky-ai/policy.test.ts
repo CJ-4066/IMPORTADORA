@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { automaticAllowed, currentDraft, decisionSchema, hash, maskPersonalData, needsHuman, renderDecision, settingsSchema, targetKey, type Decision, type Snapshot } from "./policy";
-const policies = { hours: "De 8 a 20 horas.", location: "", payment: "", shipping: "", returns: "" };
+const policies = { hours: "De 8 a 20 horas.", location: "", payment: "", shipping: "", returns: "", pricing: "Precios por unidad o mayorista; no hay descuentos." };
 const product = { id: "p1", code: "HY300", name: "Proyector", price: 100, stock: 20, wholesalePrice: 90, wholesaleMinQty: 3 };
 const decision: Decision = { intent: "product", productIds: ["p1"], quantity: 3, policyKey: "none", reason: "routine" };
 test("evidence fingerprints survive PostgreSQL JSONB property reordering", () => {
@@ -16,6 +16,16 @@ test("catalog quotes use stock internally without disclosing its quantity", () =
   assert.ok(!reply.includes("20 unidades"));
   assert.ok(!reply.includes("Disponibilidad consultada"));
   assert.match(reply, /La disponibilidad se confirma al realizar el pedido\./);
+});
+test("box pricing is used only when explicitly selected and validates whole-box availability", () => {
+  const boxed = { ...product, stock: 24, boxPrice: 250, unitsPerBox: 12 };
+  const quote = renderDecision({ ...decision, quantity: 2, priceMode: "BOX" }, [boxed], policies);
+  assert.equal(quote.safe, true);
+  assert.match(quote.text, /S\/ 250.00 por cajón \(12 unidades\)/);
+  assert.match(quote.text, /2 cajón\(es\): S\/ 500.00/);
+  assert.ok(!quote.text.includes("24 unidades"));
+  assert.equal(renderDecision({ ...decision, quantity: 3, priceMode: "BOX" }, [boxed], policies).safe, false);
+  assert.equal(renderDecision({ ...decision, priceMode: "BOX" }, [product], policies).safe, false);
 });
 test("unknown products, insufficient stock and invalid prices cannot be automated", () => {
   for (const products of [[], [{ ...product, stock: 2 }], [{ ...product, price: 0 }]]) {
@@ -34,8 +44,16 @@ test("modes distinguish bulk automation from hybrid and never auto-send copilot 
   assert.equal(automaticAllowed("AUTO", decision, false), false);
 });
 test("human requests, complaints and payment confirmation stop autonomous handling", () => {
-  for (const text of ["Quiero un asesor", "Quiero reembolso", "ya pagué", "descuento especial"]) assert.equal(needsHuman(text), true);
+  for (const text of ["Quiero un asesor", "Quiero reembolso", "ya pagué"]) assert.equal(needsHuman(text), true);
   assert.equal(needsHuman("tienes HY300 por mayor"), false);
+  assert.equal(needsHuman("¿Me haces descuento?"), false);
+});
+test("pricing policy confirms that discounts are unavailable", () => {
+  const reply = renderDecision({ ...decision, intent: "policy", productIds: [], policyKey: "pricing" }, [], policies);
+  assert.equal(reply.safe, true);
+  assert.match(reply.text, /no hay descuentos/i);
+  assert.equal(renderDecision({ ...decision, intent: "policy", productIds: [], policyKey: "pricing", reason: "negotiation" }, [], policies).safe, true);
+  assert.match(renderDecision({ ...decision, intent: "policy", productIds: [], policyKey: "pricing" }, [], { ...policies, pricing: "" }).text, /No aplicamos descuentos/i);
 });
 test("draft checks reject stale context, control, configuration, expiration and channel ownership", () => {
   const state: Snapshot = { triggerId: "m1", contextHash: "same", history: [], owned: true, canSend: true };
@@ -52,6 +70,7 @@ test("personal identifiers are redacted while product codes remain available", (
 });
 test("different channel identifiers never alias and unsafe settings fail validation", () => {
   assert.notEqual(targetKey("messenger", "123"), targetKey("tiktok", "123"));
+  assert.equal(decisionSchema.parse({ ...decision, priceMode: "BOX" }).priceMode, "BOX");
   assert.equal(decisionSchema.safeParse({ ...decision, quantity: -1 }).success, false);
   assert.equal(settingsSchema.safeParse({ enabled: true, model: "../../", dailyRequests: 0 }).success, false);
 });

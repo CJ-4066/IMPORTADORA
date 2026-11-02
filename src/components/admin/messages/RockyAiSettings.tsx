@@ -9,7 +9,7 @@ type Dashboard = { config: Config; configured: boolean; usage: { _count: number;
   drafts: { state: string; _count: number }[]; events: { id: string; action: string; actor: string; createdAt: string }[];
   conversations: { id: string; channel: string; externalId: string; mode: AiMode; humanControl: boolean; lastError: string | null }[] };
 const channels: AiChannel[] = ["whatsapp", "telegram", "messenger", "instagram", "tiktok"];
-const policyLabels: Record<keyof Policies, string> = { hours: "Horarios", shipping: "Envíos", location: "Ubicación", payment: "Medios de pago", returns: "Cambios y devoluciones" };
+const policyLabels: Record<keyof Policies, string> = { hours: "Horarios", shipping: "Envíos", location: "Ubicación", payment: "Medios de pago", returns: "Cambios y devoluciones", pricing: "Reglas de precios" };
 export function RockyAiSettings() {
   const [dashboard, setDashboard] = useState<Dashboard | null>(null), [form, setForm] = useState<Config | null>(null);
   const [error, setError] = useState(""), [notice, setNotice] = useState(""), [busy, setBusy] = useState(false), [simulation, setSimulation] = useState("");
