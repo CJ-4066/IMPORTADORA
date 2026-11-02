@@ -9,7 +9,7 @@ import { prepareCatalogRequest } from "./catalog-generation";
 type JsonRecord = Record<string, unknown>;
 function asRecord(value: unknown): JsonRecord | null { return value && typeof value === "object" && !Array.isArray(value) ? value as JsonRecord : null; }
 
-const WELCOME_MESSAGE = `👋 ¡Hola! Buen día. Bienvenido a *Importaciones Super*. Soy *Rocky*, tu asistente virtual.
+const WELCOME_MESSAGE = `👋 ¡Hola! Buen día. Bienvenido a *Importaciones Super*. Soy *Super Bot*, tu asistente virtual.
 📚 *TODOS NUESTROS PRODUCTOS Y CATÁLOGOS ACTUALIZADOS ESTÁN AQUÍ:*
 👉 https://mc.ht/s/rwQ7BMz
 Encontrarás *14 catálogos en PDF* con nuestros productos. 😉
@@ -106,7 +106,7 @@ async function catalogGreeting(conversationId: string) {
   // Catalog intent is handled before the legacy welcome. Preserve a useful
   // first-turn greeting here, without sending the long static-catalog welcome
   // or asking the customer to repeat their request.
-  return priorBotReply ? "" : "👋 ¡Hola! Soy Rocky, asistente virtual de *Importaciones Super*. ";
+  return priorBotReply ? "" : "👋 ¡Hola! Soy Super Bot, asistente virtual de *Importaciones Super*. ";
 }
 
 async function sendCatalog(conversationId: string, recipient: string, content: string) {

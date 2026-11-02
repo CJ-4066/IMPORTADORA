@@ -149,7 +149,7 @@ export function StoreAssistantPanel({ businessName, open, onClose, initialPrompt
       category.current = reply.contextCategorySlug || null;
       setMessages(current => [...current, { ...reply, id: newId(), role: "assistant" }]);
     } catch {
-      if (requestSession === session.current) setError(controller.signal.aborted ? "La consulta se detuvo. Puedes volver a intentarlo." : "No se pudo conectar con Rocky. Inténtalo de nuevo.");
+      if (requestSession === session.current) setError(controller.signal.aborted ? "La consulta se detuvo. Puedes volver a intentarlo." : "No se pudo conectar con Super Bot. Inténtalo de nuevo.");
     } finally {
       window.clearTimeout(timeout);
       if (active.current === controller) { active.current = null; setLoading(false); }
@@ -186,26 +186,26 @@ export function StoreAssistantPanel({ businessName, open, onClose, initialPrompt
     }}>
       <header className={styles.header}>
         <span className={styles.avatar} aria-hidden="true"><MessageCircle size={21} strokeWidth={1.7} /></span>
-        <div className={styles.identity}><h2 id="rocky-chat-title">Rocky<span>Asistente</span></h2><p>{businessName}</p></div>
+        <div className={styles.identity}><h2 id="rocky-chat-title">Super<span>Bot</span></h2><p>{businessName}</p></div>
         <button className={styles.iconButton} type="button" title="Nueva conversación" aria-label="Nueva conversación" onClick={reset} disabled={!ready}><RotateCcw size={17} /></button>
         <button className={styles.iconButton} type="button" title="Cerrar" aria-label="Cerrar asistente" onClick={onClose}><X size={20} /></button>
       </header>
-      <div ref={body} className={styles.body} role="log" aria-live="polite" aria-label="Conversación con Rocky">
+      <div ref={body} className={styles.body} role="log" aria-live="polite" aria-label="Conversación con Super Bot">
         {!messages.length && <div className={styles.empty}><span className={styles.emptyIcon}><MessageCircle size={30} strokeWidth={1.3} /></span><h3>¿En qué puedo ayudarte?</h3><p>Consulta productos, precios o detalles de tu compra.<br />Estoy aquí para ayudarte.</p></div>}
         {messages.map(message => <article key={message.id} className={message.role === "user" ? styles.userMessage : styles.assistantMessage}>
-          <span className={styles.speaker}>{message.role === "user" ? "Tú" : "Rocky"}</span>
+          <span className={styles.speaker}>{message.role === "user" ? "Tú" : "Super Bot"}</span>
           <MessageText text={message.text} />
           {message.role === "assistant" && <>
             {message.products?.map(product => <ProductActions key={product.id} product={product} />)}
             {message.quickActions?.filter(action => safeHref(action.href)).map(action => <a className={styles.actionLink} key={action.href} href={action.href} target={action.href.startsWith("https://wa.me/") ? "_blank" : undefined} rel="noreferrer">{action.label}<span aria-hidden="true">↗</span></a>)}
           </>}
         </article>)}
-        {loading && <div className={styles.loading} role="status"><span><i /><i /><i /></span>Rocky está consultando tu mensaje</div>}
+        {loading && <div className={styles.loading} role="status"><span><i /><i /><i /></span>Super Bot está consultando tu mensaje</div>}
         {error && <div className={styles.error} role="alert"><p>{error}</p><button type="button" onClick={() => void send(retryText.current, true)}><RotateCcw size={13} />Reintentar</button></div>}
       </div>
       <footer className={styles.footer}>
         <form className={styles.composer} onSubmit={event => { event.preventDefault(); void send(draft); }}>
-          <textarea ref={input} aria-label="Mensaje para Rocky" placeholder="Escribe tu mensaje…" rows={1} maxLength={1200} value={draft} disabled={!ready} onChange={event => setDraft(event.target.value)} onKeyDown={event => {
+          <textarea ref={input} aria-label="Mensaje para Super Bot" placeholder="Escribe tu mensaje…" rows={1} maxLength={1200} value={draft} disabled={!ready} onChange={event => setDraft(event.target.value)} onKeyDown={event => {
             if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); void send(draft); }
           }} />
           {loading ? <button className={styles.send} aria-label="Detener respuesta" title="Detener" type="button" onClick={() => active.current?.abort()}><Square size={14} fill="currentColor" /></button>

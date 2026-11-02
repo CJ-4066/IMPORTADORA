@@ -29,11 +29,11 @@ export async function POST(request: Request) {
         () => planRockyResponse(incoming.conversationId, incoming.messageId));
     } catch (error) {
       if (!(error instanceof AutomationCancelledError)) throw error;
-      automationError = "Rocky está pausado en esta conversación o globalmente. Inicia una sesión nueva para volver a probar.";
+      automationError = "Super Bot está pausado en esta conversación o globalmente. Inicia una sesión nueva para volver a probar.";
     }
     const messages = await prisma.chatMessage.findMany({ where: { conversationId: incoming.conversationId }, orderBy: [{ createdAt: "asc" }, { id: "asc" }], take: 100 });
     return NextResponse.json({ messages, conversationId: incoming.conversationId, customerMessageId: incoming.messageId,
-      automationError, automationTriggered: false, automationName: "Rocky — motor único, sin envíos reales", pendingSince: null });
+      automationError, automationTriggered: false, automationName: "Super Bot — motor único, sin envíos reales", pendingSince: null });
   } catch (error) {
     if (error instanceof z.ZodError) return NextResponse.json({ error: "Revisa el mensaje y la sesión de prueba." }, { status: 400 });
     return NextResponse.json({ error: "No se pudo simular la conversación." }, { status: 500 });
