@@ -21,7 +21,7 @@ function failure(error: unknown) {
   if (error instanceof z.ZodError) return NextResponse.json({ error: "Revisa los campos del formulario." }, { status: 400 });
   const message = error instanceof Error ? error.message : "";
   const known: Record<string, string> = {
-    OPENAI_NOT_CONFIGURED_OR_DISABLED: "Configura OPENAI_API_KEY en el servidor y activa Rocky IA.",
+    OPENAI_NOT_CONFIGURED_OR_DISABLED: "Configura OPENAI_API_KEY en el servidor y activa Super Bot.",
     MODE_OFF: "Selecciona un modo de IA antes de generar una sugerencia.",
     DRAFT_EXPIRED: "La sugerencia perdió vigencia. Genera otra antes de enviar.",
     DRAFT_ALREADY_PROCESSED: "Esta sugerencia ya fue procesada.",

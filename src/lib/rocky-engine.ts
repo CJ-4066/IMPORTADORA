@@ -106,7 +106,7 @@ async function catalogGreeting(conversationId: string) {
   // Catalog intent is handled before the legacy welcome. Preserve a useful
   // first-turn greeting here, without sending the long static-catalog welcome
   // or asking the customer to repeat their request.
-  return priorBotReply ? "" : "👋 ¡Hola! Soy Rocky, asistente virtual de *Importaciones Super*. ";
+  return priorBotReply ? "" : "👋 ¡Hola! Soy Super Bot, asistente virtual de *Importaciones Super*. ";
 }
 
 async function sendCatalog(conversationId: string, recipient: string, content: string) {
