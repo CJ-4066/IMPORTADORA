@@ -675,7 +675,7 @@ export function MessagesWorkspace({ initialChannel = "" }: { initialChannel?: Co
               onToggleBot={handleToggleBot}
             />
 
-            {(activeConversation.channel === "WHATSAPP" || activeConversation.channel === "TELEGRAM") && <RockyAiPanel key={`ai:${activeConversation.id}`} channel={activeConversation.channel === "WHATSAPP" ? "whatsapp" : "telegram"} externalId={activeConversation.id} />}
+            {(activeConversation.channel === "WHATSAPP" || activeConversation.channel === "TELEGRAM") && <RockyAiPanel key={`ai:${activeConversation.id}`} channel={activeConversation.channel === "WHATSAPP" ? "whatsapp" : "telegram"} externalId={activeConversation.id} visualTriggerId={[...activeMessages].reverse().find(message => message.direction === "INBOUND" && message.senderType === "CUSTOMER" && message.messageType === "IMAGE")?.id} />}
             <div className="chat-messages" onScroll={handleMessagesScroll} ref={messagesContainerRef}>
               {loadingOlderMessages ? <div className="messages-list-loader">Cargando mensajes antiguos...</div> : null}
               {!loadingOlderMessages && messageHasMore ? (

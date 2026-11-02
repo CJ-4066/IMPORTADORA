@@ -314,6 +314,19 @@ enum RockyAiMode {
   AUTO
 }
 
+// A visual result is evidence about an inbound attachment, never a generated
+// product record. Only a unique, server-verified source image may identify a
+// product without an adviser review.
+enum RockyAiVisualStatus {
+  PENDING
+  ANALYZING
+  VERIFIED_EXACT
+  CANDIDATES
+  UNVERIFIED
+  UNSUPPORTED
+  FAILED
+}
+
 // References external conversations without copying ChatbotX history.
 model RockyAiSettings {
   id             Int      @id @default(1)
@@ -345,6 +358,7 @@ model RockyAiConversation {
   createdAt      DateTime    @default(now())
   updatedAt      DateTime    @updatedAt
   drafts         RockyAiDraft[]
+  visualEvidence RockyAiVisualEvidence[]
 
   @@unique([channel, externalId])
   @@index([mode, humanControl])
@@ -396,6 +410,33 @@ model RockyAiAudit {
   createdAt   DateTime @default(now())
 
   @@index([conversationId, createdAt])
+}
+
+// The original attachment remains with its messaging provider. This table
+// intentionally stores only a bounded audit trail (hash, MIME, result and
+// catalog candidates), never a private URL or image/video bytes.
+model RockyAiVisualEvidence {
+  id                  String              @id @default(uuid())
+  conversationId      String
+  conversation        RockyAiConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  triggerId           String              @db.VarChar(180)
+  sourceHash          String?             @db.VarChar(64)
+  mimeType            String?             @db.VarChar(80)
+  byteLength          Int?
+  status              RockyAiVisualStatus @default(PENDING)
+  verifiedProductId   String?             @db.VarChar(191)
+  candidateProductIds Json                @default("[]")
+  evidence            Json?
+  analyzer            String?             @db.VarChar(120)
+  failureCode         String?             @db.VarChar(80)
+  analysisLeaseUntil  DateTime?
+  expiresAt           DateTime?
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+
+  @@unique([conversationId, triggerId])
+  @@index([status, updatedAt])
+  @@index([expiresAt])
 }
 
 model StoreSettings {

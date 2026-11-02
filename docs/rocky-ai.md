@@ -19,6 +19,16 @@ Los adaptadores utilizan las conexiones existentes a YCloud, Telegram y ChatbotX
 
 OpenAI clasifica la consulta mediante Responses y una herramienta de consulta de catálogo de solo lectura. El servidor compone precios, cantidades, importes y stock; el modelo no puede escribir en inventario ni confirmar pedidos/pagos. Se reutiliza la información comercial ya aprobada en Super Bot. Las políticas vacías requieren asesor.
 
+### Imágenes, capturas y catálogo
+
+La base visual inicial está separada de las respuestas automáticas. `RockyAiVisualEvidence` conserva sólo el hash, el MIME validado, el estado y los candidatos del catálogo; nunca conserva la URL privada del proveedor, los bytes de la imagen, ni el texto libre que devuelva el modelo. En una conversación local, un administrador puede usar **Analizar última imagen** (acción `analyze_visual` de la API administrativa). Mientras se define la política comercial de respuestas, una imagen sigue siendo una sugerencia o revisión humana, no una respuesta automática.
+
+El descargador acepta únicamente imágenes recibidas por WhatsApp/YCloud y Telegram mediante los endpoints privados ya autorizados. Comprueba host, ausencia de redirecciones, tamaño máximo de 5 MB, firma real JPEG/PNG/WebP y un límite de píxeles. Los adjuntos de Messenger, Instagram y TikTok se rechazan hasta que cada proveedor tenga su propio descargador autenticado; una URL HTTPS de un mensaje no se considera una fuente segura por sí sola.
+
+Primero se compara el SHA-256 con una foto fuente única de un producto publicado y vendible. Esa es la única coincidencia visual que puede llegar a ser una identificación afirmativa sin revisión. Si no hay coincidencia exacta, y `ROCKY_AI_VISION_ENABLED=true`, OpenAI recibe temporalmente la imagen como data URL con `store:false` y devuelve sólo evidencia observable (texto, marca, modelo, categoría, color y legibilidad). El servidor busca como máximo tres candidatos exclusivamente en el catálogo propio. Una captura, un recorte, una foto recomprimida, varios productos o una similitud visual nunca identifican por sí solos un SKU, precio o stock.
+
+El interruptor de visión se instala en `false`. Antes de encenderlo se debe aprobar la política de retención, los mensajes de aclaración y el flujo de revisión. La lectura por visión requiere que Super Bot esté activado globalmente, además de `ROCKY_AI_VISION_ENABLED=true`. Cada lectura usa la misma cuota diaria y se reclama con una reserva idempotente por mensaje; dos administradores no pagan dos análisis del mismo adjunto. La evidencia vence a los 30 días y el worker la elimina. El análisis no navega ni descarga vídeos públicos de TikTok. Para reconocer capturas de contenido propio será necesaria una fase posterior: registrar cada publicación autorizada, extraer fotogramas privados y etiquetar explícitamente el producto y la escena antes de usarla como referencia.
+
 El contexto se limita a 12 mensajes, se ocultan correos y números largos y se usa `store:false`. El contenido sigue saliendo al proveedor cuando se conecta la clave. El panel contabiliza solicitudes y tokens; no presenta una estimación monetaria como facturación real. Las cuotas se reservan antes de cada solicitud y se calculan por día de Lima.
 
 Cada borrador vence a los cinco minutos. Antes del envío se revisan de nuevo catálogo, conversación, control, configuración y ventana de atención. Los cambios invalidan borradores pendientes. Un envío ya iniciado puede completarse después de una parada; una entrega incierta no se reintenta automáticamente.
@@ -28,17 +38,18 @@ La cola persiste en PostgreSQL. El worker usa bloqueos para evitar envíos dupli
 ## Instalación y arranque
 
 1. Respaldar la base de datos y la versión actual.
-2. Aplicar `prisma/migrations/20261020000100_rocky_ai_modes/migration.sql` mediante `prisma migrate deploy`.
+2. Aplicar las migraciones mediante `prisma migrate deploy`, incluyendo `20261020000100_rocky_ai_modes` y `20261102090000_super_bot_visual_evidence`.
 3. Generar Prisma y compilar la aplicación.
 4. `npm start` inicia el sitio y `messages:ai` bajo el supervisor existente. No ejecutar otra copia sin necesidad; el bloqueo de PostgreSQL protege ejecuciones concurrentes.
 5. Verificar que el panel indica conexión pendiente y que el procesador registra señal.
 6. Cuando se decida conectar OpenAI, agregar `OPENAI_API_KEY` al entorno privado, reiniciar el servicio y seleccionar la activación/modos en el panel.
+7. Mantener `ROCKY_AI_VISION_ENABLED=false` hasta completar las pruebas de imágenes. Al activarlo, probar primero con una conversación de Copiloto y una foto de catálogo conocida; no habilita por sí solo respuestas automáticas a adjuntos.
 
 La migración es aditiva. Para volver al código anterior, detener el servicio, restaurar los archivos modificados, el cliente Prisma y la compilación respaldados y reiniciar. Conservar las tablas nuevas y los mensajes posteriores; no restaurar un respaldo completo de la base de datos sobre conversaciones más recientes.
 
 ## Verificación
 
-`npm run test:rocky-ai` verifica reglas y el contrato del proveedor con transporte simulado. Las pruebas no llaman a OpenAI ni a los canales.
+`npm run test:rocky-ai` verifica reglas, descarga segura de imágenes, coincidencia de evidencia y el contrato de los proveedores con transporte simulado. Las pruebas no llaman a OpenAI ni a los canales.
 
 Las pruebas de integración en `src/lib/rocky-ai/service.integration.ts` requieren una base **desechable** llamada `rocky_ai_test` en `127.0.0.1`, con migraciones y disparadores instalados. Establecer `DATABASE_URL` y `ROCKY_AI_TEST_DATABASE_URL` al mismo valor y ejecutar:
 
