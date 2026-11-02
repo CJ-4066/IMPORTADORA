@@ -25,7 +25,9 @@
     "catalogs:worker": "node --env-file=.env --import tsx scripts/catalog-generation-worker.ts",
     "sync:facturador-product": "tsx prisma/sync-facturador-product.ts",
     "sync:facturador-products": "tsx prisma/sync-facturador-products.ts",
-    "sync:facturador-scheduler": "tsx prisma/erp-sync-scheduler.ts"
+    "sync:facturador-scheduler": "tsx prisma/erp-sync-scheduler.ts",
+    "messages:ai": "node --env-file-if-exists=.env --import tsx scripts/rocky-ai-worker.ts",
+    "test:rocky-ai": "node --import tsx --test src/lib/rocky-ai/*.test.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.0",

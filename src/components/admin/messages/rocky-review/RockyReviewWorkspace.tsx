@@ -67,15 +67,15 @@ export function RockyReviewWorkspace({ conversations, since, hours }: { conversa
 
   return <main className={styles.workspace}>
     <header className={styles.hero}>
-      <div><p className={styles.eyebrow}><FlaskConical size={16} /> Laboratorio supervisado</p><h1>Evaluación de Rocky · últimas {hours} horas</h1>
+      <div><p className={styles.eyebrow}><FlaskConical size={16} /> Laboratorio supervisado</p><h1>Evaluación de Super Bot · últimas {hours} horas</h1>
         <p>Reproduce los mensajes recientes en conversaciones de prueba. No envía respuestas a clientes ni modifica las conversaciones originales.</p></div>
-      <button className="btn btn-primary" disabled={running || replayable.length === 0} onClick={() => void runReview()}>{running ? <><Pause size={16} /> Analizando {completed}/{replayable.length}</> : <><Play size={16} /> {completed ? "Continuar análisis" : "Analizar con Rocky"}</>}</button>
+      <button className="btn btn-primary" disabled={running || replayable.length === 0} onClick={() => void runReview()}>{running ? <><Pause size={16} /> Analizando {completed}/{replayable.length}</> : <><Play size={16} /> {completed ? "Continuar análisis" : "Analizar con Super Bot"}</>}</button>
       {running && <button className="btn btn-outline" onClick={() => { stop.current = true; }}>Pausar después de este turno</button>}
     </header>
     <section className={styles.metrics}>
       <article><strong>{conversations.length}</strong><span>conversaciones</span></article>
       <article><strong>{replayable.length}</strong><span>turnos evaluables</span></article>
-      <article><strong>{completed}</strong><span>respondidos por Rocky</span></article>
+      <article><strong>{completed}</strong><span>respondidos por Super Bot</span></article>
       <article><strong>{handoffs}</strong><span>derivaciones para revisar</span></article>
     </section>
     {notice && <div className={styles.notice} role="status">{notice}</div>}
@@ -87,13 +87,13 @@ export function RockyReviewWorkspace({ conversations, since, hours }: { conversa
           const state = states[turn.key] || { status: "pending" as const };
           const result = state.result;
           return <article className={styles.turn} key={turn.key}>
-            <div className={styles.turnHeading}><time>{formatTime(turn.createdAt)}</time><span className={`${styles.status} ${styles[state.status]}`}>{state.status === "complete" ? <CheckCircle2 size={14} /> : state.status === "failed" ? <TriangleAlert size={14} /> : <Bot size={14} />}{state.status === "pending" ? "Pendiente" : state.status === "running" ? "Rocky pensando" : state.status === "complete" ? "Respondido" : state.status === "skipped" ? "Revisión multimedia" : "Falló"}</span></div>
+            <div className={styles.turnHeading}><time>{formatTime(turn.createdAt)}</time><span className={`${styles.status} ${styles[state.status]}`}>{state.status === "complete" ? <CheckCircle2 size={14} /> : state.status === "failed" ? <TriangleAlert size={14} /> : <Bot size={14} />}{state.status === "pending" ? "Pendiente" : state.status === "running" ? "Super Bot pensando" : state.status === "complete" ? "Respondido" : state.status === "skipped" ? "Revisión multimedia" : "Falló"}</span></div>
             <div className={styles.comparison}>
               <section><h3>Cliente</h3><p>{turn.customerText}</p></section>
               <section><h3>Respuesta registrada</h3><p>{turn.actualReply || "No aparece una respuesta saliente en el Centro de Mensajes."}</p></section>
-              <section className={styles.rocky}><h3>Rocky en pruebas</h3>{result ? <><p>{result.reply}</p><div className={styles.evidence}><span>{result.intent}</span><span>Motor validado, sin puntuación estimada</span><span>{result.products.map(product => product.code).join(", ") || "sin producto confirmado"}</span>{result.requiresHuman && <span>requiere asesor</span>}</div></> : <p>{state.reason || (state.status === "running" ? "Consultando catálogo, reglas y contexto…" : "Ejecuta el análisis para generar esta respuesta.")}</p>}</section>
+              <section className={styles.rocky}><h3>Super Bot en pruebas</h3>{result ? <><p>{result.reply}</p><div className={styles.evidence}><span>{result.intent}</span><span>Motor validado, sin puntuación estimada</span><span>{result.products.map(product => product.code).join(", ") || "sin producto confirmado"}</span>{result.requiresHuman && <span>requiere asesor</span>}</div></> : <p>{state.reason || (state.status === "running" ? "Consultando catálogo, reglas y contexto…" : "Ejecuta el análisis para generar esta respuesta.")}</p>}</section>
             </div>
-            {result && <div className={styles.correction}><label>Respuesta que debería dar Rocky<textarea value={drafts[turn.key] ?? result.reply} maxLength={4000} onChange={event => setDrafts(current => ({ ...current, [turn.key]: event.target.value }))} /></label>
+            {result && <div className={styles.correction}><label>Respuesta que debería dar Super Bot<textarea value={drafts[turn.key] ?? result.reply} maxLength={4000} onChange={event => setDrafts(current => ({ ...current, [turn.key]: event.target.value }))} /></label>
               <button className="btn btn-outline" onClick={() => void saveCorrection(turn.key, result.rockyRequestId)} disabled={!drafts[turn.key]?.trim()}><Save size={15} /> Guardar corrección</button></div>}
           </article>;
         })}</div>

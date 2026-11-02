@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { dedupeSocialMessages, type SocialChannel, type SocialMessage } from "@/lib/social-inbox";
 import { ArrowLeft, RefreshCw, MessageCircle } from "lucide-react";
 import { MessageInput } from "./MessageInput";
+import { RockyAiPanel } from "./RockyAiPanel";
 import { MessengerControl } from "./MessengerControl";
 import { DynamicAvatar } from "./ConversationItem";
 import { DocumentAttachment } from "./DocumentAttachment";
@@ -19,7 +20,7 @@ async function get<T>(url: string): Promise<T> {
 }
 
 export function SocialInbox({ channel, authorizationUrl, configured }: { channel: SocialChannel; authorizationUrl: string; configured: boolean }) {
-  const title = channel === "messenger" ? "Messenger de Facebook" : "TikTok";
+  const title = channel === "messenger" ? "Messenger de Facebook" : channel === "instagram" ? "Instagram" : "TikTok";
   const base = `/api/admin/social/${channel}`;
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selected, setSelected] = useState<Conversation | null>(null);
@@ -183,13 +184,14 @@ export function SocialInbox({ channel, authorizationUrl, configured }: { channel
       <section className="messages-main" aria-label="Mensajes">
         {!selected ? <div className="empty-state"><MessageCircle size={64} /><h2>Centro de Mensajes</h2><p>Selecciona una conversación de {title} para responder.</p></div> : <>
           <div className="chat-header"><button className="icon-btn chat-header-back" aria-label="Volver a conversaciones" disabled={controlling || sending || uploading} onClick={() => { selectedId.current = null; setSelected(null); }}><ArrowLeft size={20} /></button><div className="chat-header-info"><div className="chat-header-avatar"><DynamicAvatar name={selected.name} /></div><div><h3 className="chat-header-name">{selected.name}</h3><div className="chat-header-meta">{title}{channel !== "messenger" && ` · ${selected.botEnabled ? "Bot activo" : "Atención por asesor"}`}</div></div></div>{channel === "messenger" && <div className="chat-header-actions chat-header-messenger-control"><MessengerControl key={`control:${selected.id}:${controlRevision}`} conversationId={selected.id} disabled={controlling || sending || uploading} onBusyChange={setControlling} /></div>}</div>
+          <RockyAiPanel key={`ai:${selected.id}`} channel={channel} externalId={selected.id} />
           <div className="chat-messages" aria-live="polite" onScroll={e => { const el = e.currentTarget; followBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 100; }}>
             {messageLoading && <p>Cargando mensajes…</p>}
             {messageCursor && <button className="messages-load-older" onClick={() => { followBottom.current = false; void loadMessages(selected.id, messageCursor).catch(e => setError(e.message)); }}>Ver mensajes anteriores</button>}
             {messages.map(m => <article key={m.id} className={`message-bubble ${m.messageType === "outgoing" ? "message-agent" : "message-customer"} ${m.sendError ? "message-failed" : ""}`}><div className="message-content"><p className={styles.messageText}>{m.deletedAt ? "Mensaje eliminado" : m.text}</p>{m.attachments?.map(a => <SocialAttachment key={a.id} file={a} />)}</div><span className="message-time">{new Date(m.createdAt).toLocaleString("es-PE")}</span>{m.sendError && <small className={styles.sendError}>{m.sendError}</small>}</article>)}
             <div ref={bottom} />
           </div>
-          <div className="chat-count">{messages.length} mensajes cargados · {channel === "messenger" ? "Responde dentro de las 24 horas del último mensaje del cliente." : "La disponibilidad depende de tu cuenta de TikTok."}</div>
+          <div className="chat-count">{messages.length} mensajes cargados · {channel !== "tiktok" ? "Responde dentro de las 24 horas del último mensaje del cliente." : "La disponibilidad depende de tu cuenta de TikTok."}</div>
           {uncertain && <p className={styles.notice}>Comprueba el envío antes de repetirlo. <button className="btn btn-outline" onClick={async () => { try { await loadMessages(selected.id); setUncertain(false); setError(""); } catch (e) { setError((e as Error).message); } }}>Revisar conversación</button></p>}
           <MessageInput key={`composer:${selected.id}`} disabled={controlling || uploading || messageLoading || uncertain} onSendMessage={send} onUploadFile={upload} maxFileSizeMB={5} maxLength={1000} attachmentsEnabled={channel === "messenger"} accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv" />
           <div className={styles.help}>{channel === "messenger" ? "Adjunta imágenes, PDF, documentos, videos o audio (hasta 5 MB). " : ""}Al responder se pausa la automatización de esta conversación.</div>

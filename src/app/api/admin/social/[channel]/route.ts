@@ -3,6 +3,8 @@ import { requireAdmin } from "@/lib/auth";
 import { dedupeSocialMessages, parseSocialChannel, socialRequest, socialConversation, socialConnectionStatus, safeSocialMessage, sendSocialReply, SocialInboxError, type SocialPage, type SocialConversation, type SocialMessage } from "@/lib/social-inbox";
 import { z } from "zod";
 
+import { pauseForHuman } from "@/lib/rocky-ai/service";
+
 export const dynamic = "force-dynamic";
 type Context = { params: Promise<{ channel: string }> };
 function failure(error: unknown) {
@@ -40,7 +42,7 @@ export async function GET(request: NextRequest, context: Context) {
 }
 const sendSchema = z.object({ conversationId: z.string().regex(/^\d+$/), text: z.string().trim().max(1000).default(""), requestId: z.string().uuid(), mediaFileId: z.string().regex(/^\d+$/).optional() }).refine(value => value.text || value.mediaFileId);
 export async function POST(request: NextRequest, context: Context) {
-  await requireAdmin();
+  const session = await requireAdmin();
   let sameOrigin = false;
   try {
     const origin = new URL(request.headers.get("origin") || "");
@@ -52,6 +54,7 @@ export async function POST(request: NextRequest, context: Context) {
     const parsed = sendSchema.safeParse(await request.json());
     if (!parsed.success) return NextResponse.json({ error: "Escribe hasta 1000 caracteres o adjunta un archivo." }, { status: 400 });
     const { conversationId, text, requestId, mediaFileId } = parsed.data;
+    await pauseForHuman(channel, conversationId, session.userId);
     const message = await sendSocialReply(channel, conversationId, text, requestId, mediaFileId);
     return NextResponse.json({ message });
   } catch (error) { return failure(error); }

@@ -48,7 +48,7 @@ export function MessageBubble({ message, onRetry, onReply }: Props) {
       <button type="button" className="message-options-toggle" aria-label="Opciones del mensaje" aria-expanded={menuOpen} onClick={() => setMenuOpen(!menuOpen)}><ChevronDown size={16} /></button>
       {menuOpen ? <button className="message-reply-option" type="button" onClick={() => { onReply?.(message); setMenuOpen(false); }}><Reply size={16} /> Responder</button> : null}
     </div> : null}
-    <div className="message-sender">{senderName} {isBot ? <span className="message-bot-badge">🤖 Rocky</span> : null}</div>
+    <div className="message-sender">{senderName} {isBot ? <span className="message-bot-badge">🤖 Super Bot</span> : null}</div>
     {reply ? <div className="message-quoted-reply"><strong>{reply.senderType === "CUSTOMER" ? "Cliente" : "Asesor"}</strong><span>{reply.content}</span></div> : null}
     <div className="message-content">
       {isTextLike ? <span>{message.content}</span> : null}
