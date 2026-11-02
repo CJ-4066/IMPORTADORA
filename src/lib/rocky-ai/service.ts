@@ -4,16 +4,20 @@ import { buildSellableProductWhere } from "../store-shared";
 import { searchCatalogIdentity } from "../rocky-product-query";
 import { claimChannel, deliver, snapshot, isLocal } from "./adapters";
 import { generateDecision } from "./provider";
-import { automaticAllowed, channels, currentDraft, decisionSchema, hash, needsHuman, renderDecision, settingsSchema,
+import { automaticAllowed, channels, currentDraft, decisionSchema, defaultPricingPolicy, hash, needsHuman, renderDecision, settingsSchema,
   targetKey, type AiChannel, type AiMode, type Policies, type ProductFact } from "./policy";
 import { socialRequest, type SocialPage, type SocialConversation } from "../social-inbox";
 
-export const emptyPolicies: Policies = { hours: "", shipping: "", location: "", payment: "", returns: "" };
+export const emptyPolicies: Policies = { hours: "", shipping: "", location: "", payment: "", returns: "", pricing: defaultPricingPolicy };
 export const defaultChannels = Object.fromEntries(channels.map(c => [c, "OFF"]));
 const json = (value: unknown) => JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
 export async function settings() {
   const existing = await prisma.rockyAiSettings.findUnique({ where: { id: 1 } });
-  if (existing) return existing;
+  if (existing) {
+    const stored = existing.policies && typeof existing.policies === "object" && !Array.isArray(existing.policies) ? existing.policies as Record<string, unknown> : {};
+    if (!("pricing" in stored)) return prisma.rockyAiSettings.update({ where: { id: 1 }, data: { policies: json({ ...emptyPolicies, ...stored }) } });
+    return existing;
+  }
   // Reuse the information already approved for Rocky; never invent store policies.
   const { rockyInformationReply } = await import("../rocky-engine");
   const policies = { ...emptyPolicies, hours: rockyInformationReply("horarios"),
@@ -76,10 +80,11 @@ export async function configureConversation(channel: AiChannel, externalId: stri
 }
 export async function productsByIds(ids: string[]): Promise<ProductFact[]> {
   const rows = await prisma.product.findMany({ where: { AND: [buildSellableProductWhere(), { id: { in: ids.slice(0, 8) } }] },
-    select: { id: true, name: true, code: true, unitPrice: true, stockUnits: true, wholesalePrice: true, wholesaleMinQty: true } });
+    select: { id: true, name: true, code: true, unitPrice: true, stockUnits: true, wholesalePrice: true, wholesaleMinQty: true, boxPrice: true, unitsPerBox: true } });
   return ids.flatMap(id => { const p = rows.find(r => r.id === id); return p ? [{
     id: p.id, name: p.name, code: p.code, price: Number(p.unitPrice), stock: p.stockUnits,
     wholesalePrice: p.wholesalePrice == null ? null : Number(p.wholesalePrice), wholesaleMinQty: p.wholesaleMinQty,
+    boxPrice: p.boxPrice == null ? null : Number(p.boxPrice), unitsPerBox: p.unitsPerBox,
   }] : []; });
 }
 export async function reserveUsage(config: RockyAiSettings, conversationId: string, tokens: number) {

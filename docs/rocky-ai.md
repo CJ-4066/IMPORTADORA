@@ -19,6 +19,8 @@ Los adaptadores utilizan las conexiones existentes a YCloud, Telegram y ChatbotX
 
 OpenAI clasifica la consulta mediante Responses y una herramienta de consulta de catálogo de solo lectura. El servidor compone precios, cantidades e importes con información verificada; el stock se valida internamente, pero su cantidad nunca se comunica al cliente. El modelo no puede escribir en inventario ni confirmar pedidos/pagos. Se reutiliza la información comercial ya aprobada en Super Bot. Las políticas vacías requieren asesor.
 
+La regla comercial predeterminada es precio publicado por unidad o por mayor según la cantidad configurada en el producto; no hay descuentos ni negociación de precios. El precio por cajón se considera únicamente si el cliente lo solicita de forma explícita y el catálogo confirma precio, unidades por cajón y disponibilidad suficientes. La cantidad de inventario no se revela en ninguno de estos casos.
+
 ### Imágenes, capturas y catálogo
 
 La base visual inicial está separada de las respuestas automáticas. `RockyAiVisualEvidence` conserva sólo el hash, el MIME validado, el estado y los candidatos del catálogo; nunca conserva la URL privada del proveedor, los bytes de la imagen, ni el texto libre que devuelva el modelo. En una conversación local, un administrador puede usar **Analizar última imagen** (acción `analyze_visual` de la API administrativa). Mientras se define la política comercial de respuestas, una imagen sigue siendo una sugerencia o revisión humana, no una respuesta automática.
