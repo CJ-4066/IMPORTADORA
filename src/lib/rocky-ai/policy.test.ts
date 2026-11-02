@@ -11,6 +11,12 @@ test("catalog quote uses exact published wholesale thresholds and totals", () =>
   assert.match(renderDecision(decision, [product], policies).text, /S\/ 270.00/);
   assert.match(renderDecision({ ...decision, quantity: 2 }, [product], policies).text, /S\/ 200.00/);
 });
+test("catalog quotes use stock internally without disclosing its quantity", () => {
+  const reply = renderDecision({ ...decision, quantity: 1 }, [product], policies).text;
+  assert.ok(!reply.includes("20 unidades"));
+  assert.ok(!reply.includes("Disponibilidad consultada"));
+  assert.match(reply, /La disponibilidad se confirma al realizar el pedido\./);
+});
 test("unknown products, insufficient stock and invalid prices cannot be automated", () => {
   for (const products of [[], [{ ...product, stock: 2 }], [{ ...product, price: 0 }]]) {
     assert.equal(renderDecision(decision, products, policies).safe, false);

@@ -59,9 +59,11 @@ export function renderDecision(decision: Decision, products: ProductFact[], poli
   if (decision.intent === "product" && selected.length && selected.every(p => p && p.stock >= decision.quantity && p.price > 0)) {
     const text = (selected as ProductFact[]).map(p => {
       const price = p.wholesalePrice && p.wholesalePrice > 0 && decision.quantity >= p.wholesaleMinQty ? p.wholesalePrice : p.price;
-      return `${p.name} (${p.code}): S/ ${price.toFixed(2)} por unidad. ${decision.quantity} unidad(es): S/ ${(Math.round(price * decision.quantity * 100) / 100).toFixed(2)}. Disponibilidad consultada: ${p.stock} unidades.`;
+      // Inventory is checked on the server to prevent overselling, but its
+      // quantity is internal operational data and must never reach a client.
+      return `${p.name} (${p.code}): S/ ${price.toFixed(2)} por unidad. ${decision.quantity} unidad(es): S/ ${(Math.round(price * decision.quantity * 100) / 100).toFixed(2)}.`;
     }).join("\n");
-    const reply = `${text}\nEl stock está sujeto a confirmación al realizar el pedido.`;
+    const reply = `${text}\nLa disponibilidad se confirma al realizar el pedido.`;
     if (reply.length > 1000) return { text: "Un asesor te ayudará a preparar la cotización detallada.", safe: false, reason: "response_limit" };
     return { text: reply, safe: true, reason: "verified_catalog" };
   }
