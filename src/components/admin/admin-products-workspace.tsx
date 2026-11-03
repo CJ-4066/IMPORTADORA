@@ -30,6 +30,7 @@ import type {
   CategoryOption,
 } from "@/lib/store";
 import { formatCurrency } from "@/lib/utils";
+import { getAdminViewportBounds } from "@/lib/admin-viewport";
 
 type AdminProductsWorkspaceProps = {
   products: AdminProductListItem[];
@@ -128,6 +129,7 @@ function formatDateTime(value: string | null) {
   }
 
   return new Intl.DateTimeFormat("es-PE", {
+    hour12: true,
     timeZone: "America/Lima",
     dateStyle: "medium",
     timeStyle: "short",
@@ -253,14 +255,14 @@ export function AdminProductsWorkspace({
       return;
     }
 
-    const rect = button.getBoundingClientRect();
+    const rect = getAdminViewportBounds(button);
     const estimatedWidth = 18 * 16;
     const estimatedHeight = 220;
-    const shouldOpenAbove = rect.bottom + estimatedHeight + 16 > window.innerHeight;
+    const shouldOpenAbove = rect.bottom + estimatedHeight + 16 > rect.viewportHeight;
     const top = shouldOpenAbove ? Math.max(12, rect.top - estimatedHeight - 12) : rect.bottom + 12;
     const left = Math.min(
       Math.max(12, rect.right - estimatedWidth),
-      window.innerWidth - estimatedWidth - 12,
+      rect.viewportWidth - estimatedWidth - 12,
     );
 
     setOpenMenuProductId(productId);

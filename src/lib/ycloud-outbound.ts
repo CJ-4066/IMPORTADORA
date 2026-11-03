@@ -1,3 +1,5 @@
+import { documentFilename } from "./document-filename";
+
 export class YCloudOutboundError extends Error {
   readonly code: string;
   readonly statusCode: number;
@@ -21,6 +23,7 @@ export class YCloudOutboundError extends Error {
 export type YCloudOutboundMessageType = "text" | "image" | "video" | "document" | "audio";
 
 export type YCloudOutboundMessageInput = {
+  replyToExternalMessageId?: string;
   externalId?: string;
   content: string;
   mediaUrl?: string | null;
@@ -68,7 +71,8 @@ function buildMessage(input: YCloudOutboundMessageInput) {
 
   const media = input.type === "audio"
     ? { link: input.mediaUrl }
-    : { link: input.mediaUrl, caption: input.content || undefined };
+    : { link: input.mediaUrl, caption: input.content || undefined,
+        ...(input.type === "document" ? { filename: documentFilename(input.mediaUrl) } : {}) };
 
   return { type: input.type, [input.type]: media };
 }
@@ -93,7 +97,9 @@ export async function sendYCloudOutboundMessage(
         "Content-Type": "application/json",
         "X-API-Key": apiKey,
       },
-      body: JSON.stringify({ from, to, externalId: input.externalId, ...buildMessage(input) }),
+      body: JSON.stringify({ from, to, externalId: input.externalId, ...buildMessage(input),
+        ...(input.replyToExternalMessageId ? { context: { message_id: input.replyToExternalMessageId } } : {}),
+      }),
       signal: AbortSignal.timeout(15_000),
     });
   } catch {

@@ -14,6 +14,7 @@ import {
 } from "@/lib/conversation-context";
 import { scheduleRockyTurn } from "./rocky-inbox-intake";
 import { buildPublicUrl } from "@/lib/site-url";
+import { sendTelegramMessage, controlTelegram } from "./telegram-messages";
 
 const DATE_ONLY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const LIMA_DATE_SUFFIX = "T00:00:00-05:00";
@@ -415,6 +416,7 @@ export async function getConversationMessages(input: GetConversationMessagesInpu
 }
 
 const sendMessageSchema = z.object({
+  replyToMessageId: z.string().trim().min(1).optional(),
   content: z.string().trim().min(1),
   type: z.nativeEnum(MessageType).default("TEXT"),
   mediaUrl: z.string().min(1).optional(),
@@ -437,6 +439,20 @@ export async function sendInternalMessage(
   if (!conversation) {
     throw new Error("Conversation not found");
   }
+
+  if (conversation.channel === "TELEGRAM") return sendTelegramMessage(conversation, parsed, agentId);
+
+  const replyTarget = parsed.replyToMessageId ? await prisma.chatMessage.findFirst({
+    where: { id: parsed.replyToMessageId, conversationId, senderType: "CUSTOMER" },
+  }) : null;
+  if (parsed.replyToMessageId && !replyTarget?.externalMessageId?.startsWith("wamid.")) {
+    throw new YCloudOutboundError("El mensaje seleccionado no está disponible para responder en WhatsApp.", {
+      code: "INVALID_REPLY_TARGET", statusCode: 400,
+    });
+  }
+  const replyMetadata = replyTarget ? {
+    replyTo: { id: replyTarget.id, content: replyTarget.content || replyTarget.messageType, senderType: replyTarget.senderType },
+  } : {};
 
   const recipient = normalizeMessagePhone(
     conversation.contact.phone ?? conversation.contact.phoneNormalized ?? conversation.contact.externalId,
@@ -471,7 +487,7 @@ export async function sendInternalMessage(
         messageType: parsed.type,
         content: parsed.content,
         mediaUrl,
-        metadata: { requestId: parsed.requestId },
+        metadata: { requestId: parsed.requestId, ...replyMetadata },
         status: "pending",
       },
     });
@@ -499,6 +515,7 @@ export async function sendInternalMessage(
     }
 
     const sent = await sendYCloudOutboundMessage({
+      replyToExternalMessageId: replyTarget?.externalMessageId ?? undefined,
       externalId: message.id,
       content: parsed.content,
       mediaUrl: mediaUrl ?? null,
@@ -511,7 +528,7 @@ export async function sendInternalMessage(
         where: { id: message.id, status: "pending" },
         data: {
           externalMessageId: sent.messageId,
-          metadata: { provider: sent.provider, requestId: parsed.requestId },
+          metadata: { provider: sent.provider, requestId: parsed.requestId, ...replyMetadata },
           status: "accepted",
         },
       });
@@ -531,7 +548,7 @@ export async function sendInternalMessage(
     const unconfirmed = error instanceof YCloudOutboundError && ["YCLOUD_UNAVAILABLE", "YCLOUD_INVALID_RESPONSE"].includes(error.code);
     await prisma.chatMessage.updateMany({
       where: { id: message.id, status: "pending" },
-      data: { status: unconfirmed ? "uncertain" : "failed", metadata: { requestId: parsed.requestId, error: safeReason } },
+      data: { status: unconfirmed ? "uncertain" : "failed", metadata: { requestId: parsed.requestId, ...replyMetadata, error: safeReason } },
     });
     const failed = await prisma.chatMessage.findUniqueOrThrow({ where: { id: message.id } });
     triggerPusherEvent(`chat-${conversationId}`, "new-message", failed);
@@ -558,6 +575,12 @@ export type UpdateConversationInput = z.infer<typeof updateConversationSchema>;
 export async function updateConversation(id: string, input: UpdateConversationInput) {
   const parsed = updateConversationSchema.parse(input);
   const { markAsRead, ...conversationChanges } = parsed;
+  const existing = await prisma.conversation.findUniqueOrThrow({ where: { id } });
+  let telegramRevision: number | undefined;
+  if (existing.channel === "TELEGRAM" && (parsed.botEnabled !== undefined || parsed.assignedUserId || parsed.status)) {
+    const enabled = parsed.botEnabled ?? (parsed.assignedUserId || parsed.status !== "AUTOMATICO" ? false : existing.botEnabled);
+    telegramRevision = (await controlTelegram(existing, enabled)).revision;
+  }
 
   // Activar Rocky devuelve la conversación a la cola automática. Esto evita
   // conservar una asignación anterior que impediría al bot retomarla.
@@ -569,6 +592,7 @@ export async function updateConversation(id: string, input: UpdateConversationIn
     where: { id },
     data: {
       ...data,
+      ...(telegramRevision !== undefined ? { telegramRevision } : {}),
       ...(markAsRead ? { unreadCount: 0, lastReadAt: new Date() } : {}),
     },
     include: {

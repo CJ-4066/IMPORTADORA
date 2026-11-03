@@ -1,5 +1,5 @@
 import type { Conversation } from "@/types/messages";
-import { Bot, Globe, MessageSquare, UserRound } from "lucide-react";
+import { Bot, Globe, MessageSquare, UserRound, Send } from "lucide-react";
 
 interface Props {
   conversation: Conversation;
@@ -27,7 +27,7 @@ function formatConversationTime(value: Conversation["lastMessageAt"]) {
   const isToday = date.toDateString() === today.toDateString();
 
   if (isToday) {
-    return date.toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" });
+    return date.toLocaleTimeString("es-PE", { hour12: true, hour: "2-digit", minute: "2-digit" });
   }
 
   return date.toLocaleDateString("es-PE", { day: "2-digit", month: "2-digit" });
@@ -98,7 +98,7 @@ export function DynamicAvatar({ name }: { name: string }) {
 
 export function ConversationItem({ conversation, isActive, onClick }: Props) {
   const { contact, channel, unreadCount, status, botEnabled, lastMessageAt } = conversation;
-  const ChannelIcon = channel === "WEB" ? Globe : MessageSquare;
+  const ChannelIcon = channel === "WEB" ? Globe : channel === "TELEGRAM" ? Send : MessageSquare;
   const OwnerIcon = botEnabled ? Bot : UserRound;
   const needsResponse = conversation.lastMessage?.direction === "INBOUND";
 

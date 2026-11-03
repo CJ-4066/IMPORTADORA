@@ -8,6 +8,7 @@ import { CustomerPanel } from "./CustomerPanel";
 import { MessageBubble } from "./MessageBubble";
 import { MessageInput } from "./MessageInput";
 import type { ChatMessage, Conversation, MessageType } from "@/types/messages";
+import { createMessageReply, readMessageReply, type MessageReply } from "@/lib/message-reply";
 
 const CONVERSATION_PAGE_SIZE = 30;
 const MESSAGE_PAGE_SIZE = 60;
@@ -15,6 +16,7 @@ const CONVERSATION_POLL_MS = 10000;
 const MESSAGE_POLL_MS = 5000;
 
 const DEFAULT_FILTERS: ConversationFilters = {
+  channel: "",
   dateFrom: "",
   dateTo: "",
   phone: "",
@@ -74,6 +76,7 @@ function buildConversationParams(filters: ConversationFilters, page: number) {
   });
 
   appendParam(params, "search", filters.search);
+  appendParam(params, "channel", filters.channel);
   appendParam(params, "phone", filters.phone);
   appendParam(params, "q", filters.q);
   appendParam(params, "dateFrom", filters.dateFrom);
@@ -192,8 +195,13 @@ function asMessageType(value: string): MessageType {
   return allowedTypes.includes(value as MessageType) ? (value as MessageType) : "TEXT";
 }
 
-export function MessagesWorkspace() {
-  const [filters, setFilters] = useState<ConversationFilters>(DEFAULT_FILTERS);
+export function MessagesWorkspace({ initialChannel = "" }: { initialChannel?: ConversationFilters["channel"] }) {
+  const [clockNow, setClockNow] = useState(() => Date.now());
+  useEffect(() => {
+    const timer = window.setInterval(() => setClockNow(Date.now()), CONVERSATION_POLL_MS);
+    return () => window.clearInterval(timer);
+  }, []);
+  const [filters, setFilters] = useState<ConversationFilters>({ ...DEFAULT_FILTERS, channel: initialChannel });
   const debouncedFilters = useDebouncedValue(filters, 350);
   const messageFilters = useMemo(
     () => ({
@@ -208,6 +216,7 @@ export function MessagesWorkspace() {
   const [conversationHasMore, setConversationHasMore] = useState(false);
   const [activeMessages, setActiveMessages] = useState<ChatMessage[]>([]);
   const [activeId, setActiveId] = useState<string | undefined>();
+  const [replyTo, setReplyTo] = useState<MessageReply | null>(null);
   const [messageTotal, setMessageTotal] = useState(0);
   const [messageHasMore, setMessageHasMore] = useState(false);
   const [loadingConversations, setLoadingConversations] = useState(true);
@@ -328,18 +337,14 @@ export function MessagesWorkspace() {
     const interval = window.setInterval(async () => {
       const latestMessage = activeMessagesRef.current.at(-1);
 
-      if (!latestMessage) {
-        return;
-      }
-
       try {
         // Existing messages change state when a queued reply is cancelled or
         // confirmed by YCloud. An after-only cursor cannot see these updates.
         const [data, recent] = await Promise.all([
-          fetchMessagesPage(activeId, filtersSnapshot, {
+          fetchMessagesPage(activeId, filtersSnapshot, latestMessage ? {
             afterId: latestMessage.id,
             after: new Date(latestMessage.createdAt).toISOString(),
-          }),
+          } : undefined),
           fetchMessagesPage(activeId, filtersSnapshot),
         ]);
         if (pollingCancelled) return;
@@ -443,6 +448,7 @@ export function MessagesWorkspace() {
 
   const handleSelectConversation = (id: string) => {
     setActiveId(id);
+    setReplyTo(null);
     setConversations((current) =>
       current.map((conversation) =>
         conversation.id === id ? { ...conversation, unreadCount: 0 } : conversation,
@@ -459,18 +465,21 @@ export function MessagesWorkspace() {
   };
 
   const handleBackToConversations = () => {
+    setReplyTo(null);
     setActiveId(undefined);
     setActiveMessages([]);
     setMessageTotal(0);
     setMessageHasMore(false);
   };
 
-  const handleSendMessage = async (content: string, mediaUrl?: string, type: string = "TEXT") => {
+  const handleSendMessage = async (content: string, mediaUrl?: string, type: string = "TEXT", reply: MessageReply | null = replyTo) => {
     if (!activeId) {
       return;
     }
 
     const now = new Date();
+    setReplyTo(null);
+    const replyMetadata = reply ? { replyTo: reply } : {};
     const requestId = crypto.randomUUID();
     const messageType = asMessageType(type);
     const tempMessage: ChatMessage = {
@@ -482,7 +491,7 @@ export function MessagesWorkspace() {
       id: `m-new-${now.getTime()}`,
       mediaUrl: mediaUrl || null,
       messageType,
-      metadata: { requestId },
+      metadata: { requestId, ...replyMetadata },
       senderType: "AGENT",
       status: "sending",
     };
@@ -512,7 +521,7 @@ export function MessagesWorkspace() {
 
     try {
       const response = await fetch(`/api/admin/conversations/${activeId}/messages`, {
-        body: JSON.stringify({ content, type, mediaUrl: mediaUrl || undefined, requestId }),
+        body: JSON.stringify({ content, type, mediaUrl: mediaUrl || undefined, requestId, replyToMessageId: reply?.id }),
         headers: { "Content-Type": "application/json" },
         method: "POST",
       });
@@ -534,7 +543,7 @@ export function MessagesWorkspace() {
       console.error("Send error", { requestId, reason });
       setActiveMessages((current) =>
         current.map((message) => (message.id === tempMessage.id
-          ? { ...message, status: "failed", metadata: { requestId, error: reason } }
+          ? { ...message, status: "failed", metadata: { requestId, ...replyMetadata, error: reason } }
           : message)),
       );
     }
@@ -555,7 +564,7 @@ export function MessagesWorkspace() {
     );
 
     try {
-      await fetch(`/api/admin/conversations/${activeId}`, {
+      const response = await fetch(`/api/admin/conversations/${activeId}`, {
         body: JSON.stringify(
           nextStatus
             ? { assignedUserId: null, botEnabled: true, status: "AUTOMATICO" }
@@ -564,6 +573,7 @@ export function MessagesWorkspace() {
         headers: { "Content-Type": "application/json" },
         method: "PATCH",
       });
+      if (!response.ok) { setWorkspaceError((await response.json()).error || 'No se pudo cambiar el estado de Rocky.'); throw new Error('Control failed'); }
     } catch {
       setConversations((previous) =>
         previous.map((conversation) =>
@@ -590,11 +600,12 @@ export function MessagesWorkspace() {
       ),
     );
 
-    await fetch(`/api/admin/conversations/${activeId}`, {
+    const response = await fetch(`/api/admin/conversations/${activeId}`, {
       body: JSON.stringify({ botEnabled: false, status: "ATENDIENDO" }),
       headers: { "Content-Type": "application/json" },
       method: "PATCH",
     });
+    if (!response.ok) { setWorkspaceError((await response.json()).error || 'No se pudo tomar la conversación.'); setRefreshNonce(value => value + 1); }
   };
 
   const handleCloseConversation = async () => {
@@ -614,11 +625,12 @@ export function MessagesWorkspace() {
     setMessageTotal(0);
     setMessageHasMore(false);
 
-    await fetch(`/api/admin/conversations/${conversationId}`, {
+    const response = await fetch(`/api/admin/conversations/${conversationId}`, {
       body: JSON.stringify({ status: "CERRADO" }),
       headers: { "Content-Type": "application/json" },
       method: "PATCH",
     });
+    if (!response.ok) { setWorkspaceError((await response.json()).error || 'No se pudo cerrar la conversación.'); setRefreshNonce(value => value + 1); }
   };
 
   return (
@@ -677,7 +689,8 @@ export function MessagesWorkspace() {
                   <MessageBubble
                     key={message.id}
                     message={message}
-                    onRetry={(failed) => void handleSendMessage(failed.content, failed.mediaUrl ?? undefined, failed.messageType)}
+                    onReply={(message) => setReplyTo(createMessageReply(message))}
+                    onRetry={(failed) => void handleSendMessage(failed.content, failed.mediaUrl ?? undefined, failed.messageType, readMessageReply(failed.metadata))}
                   />
                 ))
               )}
@@ -692,7 +705,14 @@ export function MessagesWorkspace() {
             </div>
 
             <div className="chat-count">{activeMessages.length} de {messageTotal} mensajes cargados</div>
-            <MessageInput onSendMessage={handleSendMessage} />
+            {activeConversation.channel === "TELEGRAM" ? (
+              <p role="status" style={{ margin: '4px 16px', fontSize: 12, color: 'var(--text-muted)' }}>
+                {activeConversation.telegramLastInboundAt && clockNow - new Date(activeConversation.telegramLastInboundAt).getTime() < 86400000
+                  ? 'Telegram conectado · Respondes desde la cuenta de Super Importaciones.'
+                  : 'Telegram: espera un nuevo mensaje del cliente para responder; la ventana de 24 horas terminó.'}
+              </p>
+            ) : null}
+            <MessageInput key={activeId} disabled={activeConversation.channel === "TELEGRAM" && (!activeConversation.telegramLastInboundAt || clockNow - new Date(activeConversation.telegramLastInboundAt).getTime() >= 86400000)} onSendMessage={handleSendMessage} replyTo={replyTo} onCancelReply={() => setReplyTo(null)} />
           </div>
 
           <CustomerPanel conversation={activeConversation} />
