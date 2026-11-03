@@ -71,17 +71,21 @@ export function maskPersonalData(text: string) {
 export function needsHuman(text: string) {
   return /\b(asesor[a]?|humano|persona|reclamo|estafa|devolucion|reembolso|denuncia|comprobante|ya pague)\b/i.test(text.normalize("NFD").replace(/[\u0300-\u036f]/g, ""));
 }
-function catalogAcknowledgement(title: string, productCount: number) {
-  // The PDF renderer can further split a visual-heavy part to comply with the
-  // byte cap, so never promise a count before rendering has completed.
-  const partHint = productCount > 32 ? ` Puede llegar en varias partes para incluir los ${productCount} productos.` : "";
-  return `Estoy preparando ${title.toLowerCase()} con información actualizada.${partHint}`;
+function catalogAcknowledgement(title: string) {
+  // The delivery worker sends the actual document after this acknowledgement.
+  // Keep the acknowledgement brief and do not promise a number of PDF parts.
+  return `Preparando tu ${title.toLowerCase()} en PDF.`;
+}
+
+function productReference(product: ProductFact) {
+  const code = product.code.trim();
+  return code && !product.name.toLowerCase().includes(code.toLowerCase()) ? `${product.name} (${code})` : product.name;
 }
 export function renderDecision(decision: Decision, products: ProductFact[], policies: Policies) {
   const selected = decision.productIds.map(id => products.find(p => p.id === id));
   if (decision.intent === "catalog" && decision.catalog) {
     if (decision.catalog.state === "ready" && decision.catalog.title) {
-      return { text: catalogAcknowledgement(decision.catalog.title, decision.catalog.productCount), safe: true, reason: "verified_catalog" };
+      return { text: catalogAcknowledgement(decision.catalog.title), safe: true, reason: "verified_catalog" };
     }
     return { text: decision.catalog.message || "Indícame la categoría del catálogo que necesitas para prepararlo.", safe: true, reason: "verified_catalog" };
   }
@@ -91,7 +95,7 @@ export function renderDecision(decision: Decision, products: ProductFact[], poli
   if (decision.reason !== "routine" || decision.intent === "handoff") {
     return { text: "Un asesor revisará tu consulta y te atenderá por este mismo chat.", safe: false, reason: decision.reason };
   }
-  if (decision.intent === "greeting") return { text: "¡Hola! Soy Super Bot, el asistente de Importaciones Super. ¿Qué producto buscas y cuántas unidades necesitas?", safe: true, reason: "greeting" };
+  if (decision.intent === "greeting") return { text: "¡Hola! Soy Super Bot. ¿Qué producto buscas?", safe: true, reason: "greeting" };
   if (decision.intent === "policy" && decision.policyKey !== "none") {
     const policy = policies[decision.policyKey]?.trim();
     if (policy) return { text: policy, safe: true, reason: "verified_policy" };
@@ -101,9 +105,9 @@ export function renderDecision(decision: Decision, products: ProductFact[], poli
       const wholesale = product.wholesalePrice && product.wholesalePrice > 0 && product.wholesaleMinQty > 1
         ? ` · por mayor desde ${product.wholesaleMinQty}: S/ ${product.wholesalePrice.toFixed(2)}`
         : "";
-      return `• ${product.name} (${product.code}): S/ ${product.price.toFixed(2)} por unidad${wholesale}.`;
+      return `• ${productReference(product)} — S/ ${product.price.toFixed(2)} c/u${wholesale}.`;
     });
-    const reply = `Sí, encontré estas opciones:\n${lines.join("\n")}\n¿Te interesa alguna en particular o deseas el catálogo?`;
+    const reply = `Opciones verificadas:\n${lines.join("\n")}\n¿Quieres una o el catálogo PDF?`;
     return reply.length > 1000 ? { text: "Encontré varias opciones verificadas. ¿Deseas que te prepare el catálogo?", safe: true, reason: "verified_catalog" } : { text: reply, safe: true, reason: "verified_catalog" };
   }
   if (decision.intent === "product" && selected.length && selected.every((product): product is ProductFact => product != null)) {
@@ -113,9 +117,9 @@ export function renderDecision(decision: Decision, products: ProductFact[], poli
       if (!validBoxQuote) return { text: "La presentación por cajón se confirma con un asesor antes de cotizarla.", safe: false, reason: "needs_clarification" };
       const text = selectedProducts.map(p => {
         const total = Math.round(p.boxPrice! * decision.quantity * 100) / 100;
-        return `${p.name} (${p.code}): S/ ${p.boxPrice!.toFixed(2)} por cajón (${p.unitsPerBox} unidades). ${decision.quantity} cajón(es): S/ ${total.toFixed(2)}.`;
+        return `${productReference(p)}: S/ ${p.boxPrice!.toFixed(2)} por cajón (${p.unitsPerBox} unidades). ${decision.quantity} cajón(es): S/ ${total.toFixed(2)}.`;
       }).join("\n");
-      const reply = `${text}\nLa disponibilidad se confirma al realizar el pedido.`;
+      const reply = `${text}\nSujeto a confirmación.`;
       return reply.length > 1000 ? { text: "Un asesor te ayudará a preparar la cotización detallada.", safe: false, reason: "response_limit" } : { text: reply, safe: true, reason: "verified_catalog" };
     }
     if (selectedProducts.every(p => p.stock >= decision.quantity && p.price > 0)) {
@@ -123,9 +127,12 @@ export function renderDecision(decision: Decision, products: ProductFact[], poli
         const price = p.wholesalePrice && p.wholesalePrice > 0 && decision.quantity >= p.wholesaleMinQty ? p.wholesalePrice : p.price;
         // Inventory is checked on the server to prevent overselling, but its
         // quantity is internal operational data and must never reach a client.
-        return `${p.name} (${p.code}): S/ ${price.toFixed(2)} por unidad. ${decision.quantity} unidad(es): S/ ${(Math.round(price * decision.quantity * 100) / 100).toFixed(2)}.`;
+        const total = Math.round(price * decision.quantity * 100) / 100;
+        return decision.quantity === 1
+          ? `${productReference(p)}: S/ ${price.toFixed(2)} c/u.`
+          : `${productReference(p)}: ${decision.quantity} unidades · S/ ${total.toFixed(2)}.`;
       }).join("\n");
-      const reply = `${text}\nLa disponibilidad se confirma al realizar el pedido.`;
+      const reply = `${text}\nSujeto a confirmación.`;
       if (reply.length > 1000) return { text: "Un asesor te ayudará a preparar la cotización detallada.", safe: false, reason: "response_limit" };
       return { text: reply, safe: true, reason: "verified_catalog" };
     }

@@ -8,6 +8,7 @@ import { generateDecision } from "./provider";
 import { automaticAllowed, channels, currentDraft, decisionSchema, defaultPricingPolicy, hash, needsHuman, renderDecision, settingsSchema,
   targetKey, type AiChannel, type AiMode, type Decision, type HistoryItem, type Policies, type ProductFact } from "./policy";
 import { socialRequest, type SocialPage, type SocialConversation } from "../social-inbox";
+import type { CatalogPdfPart, CatalogSnapshotProduct } from "../catalog-pdf";
 
 export const emptyPolicies: Policies = { hours: "", shipping: "", location: "", payment: "", returns: "", pricing: defaultPricingPolicy };
 export const defaultChannels = Object.fromEntries(channels.map(c => [c, "OFF"]));
@@ -125,12 +126,51 @@ function decisionForCatalog(plan: SuperBotCatalogPlan): Decision {
   };
 }
 
-function catalogPreview(plan: SuperBotCatalogPlan | null) {
+export type CatalogPreviewDocument = Pick<CatalogPdfPart, "relativeUrl" | "filename" | "partNumber" | "partCount" | "productCount">;
+export type CatalogPreview = {
+  state: "ready" | "clarify" | "empty";
+  title: string | null;
+  productCount: number;
+  fromConversationContext: boolean;
+  documents?: CatalogPreviewDocument[];
+};
+
+type RenderCatalogPreview = (input: {
+  scopeKey: string;
+  title: string;
+  snapshotHash: string;
+  products: CatalogSnapshotProduct[];
+}) => Promise<CatalogPdfPart[]>;
+
+/**
+ * Creates a PDF only from the authenticated admin simulator. It deliberately
+ * does not create a conversation, draft, delivery job, or outbound message.
+ * The same immutable snapshot is used later by the live delivery worker.
+ */
+export async function catalogPreview(plan: SuperBotCatalogPlan | null, renderCatalog?: RenderCatalogPreview): Promise<CatalogPreview | null> {
   if (!plan) return null;
   const { prepared } = plan;
-  return prepared.kind === "ready"
-    ? { state: "ready" as const, title: prepared.scope.title, productCount: prepared.snapshot.products.length, fromConversationContext: plan.fromConversationContext }
-    : { state: prepared.kind === "ambiguous" ? "clarify" as const : "empty" as const, title: null, productCount: 0, fromConversationContext: plan.fromConversationContext };
+  if (prepared.kind !== "ready") {
+    return { state: prepared.kind === "ambiguous" ? "clarify" : "empty", title: null, productCount: 0, fromConversationContext: plan.fromConversationContext };
+  }
+  const [{ snapshotProductsForPdf }, pdf] = await Promise.all([
+    import("../catalog-generation"),
+    renderCatalog ? Promise.resolve(null) : import("../catalog-pdf"),
+  ]);
+  const render = renderCatalog ?? pdf!.generateCatalogSnapshotPdfs;
+  const documents = await render({
+    scopeKey: prepared.scope.key,
+    title: prepared.scope.title,
+    snapshotHash: prepared.snapshotHash,
+    products: snapshotProductsForPdf(prepared.snapshot),
+  });
+  return {
+    state: "ready",
+    title: prepared.scope.title,
+    productCount: prepared.snapshot.products.length,
+    fromConversationContext: plan.fromConversationContext,
+    documents: documents.map(({ relativeUrl, filename, partNumber, partCount, productCount }) => ({ relativeUrl, filename, partNumber, partCount, productCount })),
+  };
 }
 export async function reserveUsage(config: RockyAiSettings, conversationId: string, tokens: number) {
   return prisma.$transaction(async tx => {
@@ -164,8 +204,9 @@ async function reserveSimulationUsage(config: RockyAiSettings, actor: string, to
   });
 }
 /**
- * Runs the same decision and catalog flow as Super Bot, but entirely in memory.
- * It never reads or writes an inbox, draft, channel control, or outbound job.
+ * Runs the same decision and catalog flow as Super Bot, but never reads or
+ * writes an inbox, draft, channel control, outbound job, or customer message.
+ * A verified catalog may be rendered as an admin-only PDF preview.
  */
 export async function simulateSuperBot(turns: Array<Pick<HistoryItem, "role" | "text">>, actor: string) {
   const config = await settings();
@@ -198,9 +239,9 @@ export async function simulateSuperBot(turns: Array<Pick<HistoryItem, "role" | "
     }
   }
   const rendered = renderDecision(decision, products, policies);
-  const catalog = catalogPreview(catalogPlan);
+  const catalog = await catalogPreview(catalogPlan);
   await audit(actor, "live_simulation", undefined, { turns: history.length, providerUsed, intent: decision.intent, policyKey: decision.policyKey, reason: rendered.reason,
-    ...(catalog ? { catalog } : {}) });
+    ...(catalog ? { catalog: { state: catalog.state, title: catalog.title, productCount: catalog.productCount, fromConversationContext: catalog.fromConversationContext, pdfParts: catalog.documents?.length ?? 0 } } : {}) });
   return { ...rendered, providerUsed, catalog, decision: { intent: decision.intent, policyKey: decision.policyKey, reason: decision.reason }, model: config.model };
 }
 async function withConversationLock<T>(id: string, work: () => Promise<T>): Promise<T | null> {

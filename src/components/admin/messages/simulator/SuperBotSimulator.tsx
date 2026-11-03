@@ -1,10 +1,11 @@
 "use client";
 
 import { FormEvent, useEffect, useRef, useState } from "react";
-import { Bot, CircleAlert, FlaskConical, RotateCcw, Send, ShieldCheck, Sparkles, UserRound } from "lucide-react";
+import { Bot, CircleAlert, FileDown, FlaskConical, RotateCcw, Send, ShieldCheck, Sparkles, UserRound } from "lucide-react";
 import styles from "./SuperBotSimulator.module.css";
 
-type CatalogPreview = { state: "ready" | "clarify" | "empty"; title: string | null; productCount: number; fromConversationContext: boolean };
+type CatalogPreviewDocument = { relativeUrl: string; filename: string; partNumber: number; partCount: number; productCount: number };
+type CatalogPreview = { state: "ready" | "clarify" | "empty"; title: string | null; productCount: number; fromConversationContext: boolean; documents?: CatalogPreviewDocument[] };
 type Turn = { role: "user" | "assistant"; text: string; catalog?: CatalogPreview | null };
 type Connection = "checking" | "missing" | "ready" | "verified" | "rejected";
 type SimulationReply = { text?: string; model?: string; providerUsed?: boolean; reason?: string; notice?: string; error?: string; catalog?: CatalogPreview | null };
@@ -106,7 +107,7 @@ export function SuperBotSimulator() {
       <aside className={styles.brief}>
         <div className={styles.briefMark}><ShieldCheck size={19} /></div>
         <h2>Entorno aislado</h2>
-        <p>Usa las reglas, precios publicados y catálogo real. No crea conversaciones, borradores ni envíos.</p>
+        <p>Usa las reglas, precios publicados y catálogo real. Puede generar un PDF de prueba, pero no crea conversaciones, borradores ni envíos.</p>
         <ul><li>Sin activar canales</li><li>Sin contacto real</li><li>Sin confirmar pagos</li><li>Sin revelar stock</li></ul>
         <div className={styles.examples}><span>Prueba una situación</span>{examples.map(example => <button key={example} disabled={busy} onClick={() => setMessage(example)} type="button">{example}</button>)}</div>
         <button className={styles.reset} disabled={busy || turns.length === 0} onClick={reset} type="button"><RotateCcw size={15} />Nueva prueba</button>
@@ -121,7 +122,10 @@ export function SuperBotSimulator() {
               <strong>{turn.catalog.state === "ready" ? "Catálogo verificado" : "Solicitud de catálogo"}</strong>
               {turn.catalog.title && <span>{turn.catalog.title} · {turn.catalog.productCount} productos</span>}
               {turn.catalog.fromConversationContext && <small>Alcance recuperado de la consulta anterior del cliente.</small>}
-              <em>En esta prueba no se genera ni se envía ningún PDF.</em>
+              {turn.catalog.documents?.length ? <div className={styles.catalogDocuments}>
+                {turn.catalog.documents.map(document => <a download={document.filename} href={document.relativeUrl} key={document.relativeUrl} rel="noreferrer" target="_blank"><FileDown size={14} />{document.partCount > 1 ? `Descargar PDF ${document.partNumber}/${document.partCount}` : "Descargar PDF"}</a>)}
+                <em>PDF de prueba generado. No se envió a ningún canal.</em>
+              </div> : turn.catalog.state === "ready" ? <em>El PDF se generará con esta solicitud.</em> : null}
             </div>}
           </article>)}
           {busy && <article className={styles.typing}><Bot size={15} /><span>Super Bot está verificando catálogo y reglas…</span></article>}

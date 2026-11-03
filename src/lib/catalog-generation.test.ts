@@ -90,7 +90,7 @@ test("un renderer que aún excede el límite con una sola ficha no encola un PDF
 });
 
 test("el adaptador conserva el número de parte y los reintentos tienen espera acotada", () => {
-  assert.match(catalogPartCaption("CATÁLOGO GENERAL", 2, 3, 32), /parte 2 de 3 \(32 productos\)/);
+  assert.equal(catalogPartCaption("CATÁLOGO GENERAL", 2, 3), "CATÁLOGO GENERAL · Parte 2/3");
   assert.equal(catalogRetryAt(now, 1).toISOString(), "2026-10-11T10:00:10.000Z");
   assert.equal(catalogRetryAt(now, 3).toISOString(), "2026-10-11T10:05:00.000Z");
 });

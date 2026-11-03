@@ -16,22 +16,28 @@ test("catalog quotes use stock internally without disclosing its quantity", () =
   const reply = renderDecision({ ...decision, quantity: 1 }, [product], policies).text;
   assert.ok(!reply.includes("20 unidades"));
   assert.ok(!reply.includes("Disponibilidad consultada"));
-  assert.match(reply, /La disponibilidad se confirma al realizar el pedido\./);
+  assert.match(reply, /Sujeto a confirmación\./);
+});
+test("a one-unit quote stays concise without a redundant total", () => {
+  const reply = renderDecision({ ...decision, quantity: 1 }, [product], policies).text;
+  assert.match(reply, /Proyector \(HY300\): S\/ 100.00 c\/u\./);
+  assert.ok(!reply.includes("1 unidad(es)"));
+  assert.ok(!reply.includes("20 unidades"));
 });
 test("browsing verified options remains natural and never reveals stock", () => {
   const reply = renderDecision({ ...decision, intent: "browse", quantity: 1 }, [product], policies);
   assert.equal(reply.safe, true);
-  assert.match(reply.text, /Proyector \(HY300\): S\/ 100.00 por unidad/);
+  assert.match(reply.text, /Proyector \(HY300\) — S\/ 100.00 c\/u/);
   assert.match(reply.text, /por mayor desde 3: S\/ 90.00/);
   assert.ok(!reply.text.includes("20 unidades"));
-  assert.match(reply.text, /deseas el catálogo/i);
+  assert.match(reply.text, /catálogo PDF/i);
 });
 test("catalog acknowledgement uses a server-verified scope, not model product facts", () => {
   const reply = renderDecision({ ...decision, intent: "catalog", productIds: [], catalog: {
     state: "ready", scopeKey: "parlantes:sony", title: "CATÁLOGO DE PARLANTES SONY", productCount: 5, message: null,
   } }, [], policies);
   assert.equal(reply.safe, true);
-  assert.match(reply.text, /preparando catálogo de parlantes sony/i);
+  assert.equal(reply.text, "Preparando tu catálogo de parlantes sony en PDF.");
 });
 test("box pricing is used only when explicitly selected and validates whole-box availability", () => {
   const boxed = { ...product, stock: 24, boxPrice: 250, unitsPerBox: 12 };

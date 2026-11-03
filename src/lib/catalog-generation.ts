@@ -207,8 +207,8 @@ export function catalogRetryAt(now: Date, attempts: number) {
   return new Date(now.getTime() + delay);
 }
 
-export function catalogPartCaption(title: string, partNumber: number, partCount: number, productCount: number) {
-  return `Aquí tienes ${title.toLowerCase()}, parte ${partNumber} de ${partCount} (${productCount} productos).`;
+export function catalogPartCaption(title: string, partNumber: number, partCount: number) {
+  return partCount > 1 ? `${title} · Parte ${partNumber}/${partCount}` : title;
 }
 
 type RenderCatalog = (input: { scopeKey: string; title: string; snapshotHash: string; products: CatalogSnapshotProduct[] }) => Promise<CatalogPdfPart[]>;
@@ -355,7 +355,7 @@ export class CatalogGenerationWorker {
     const deliveries = await this.db.catalogGenerationDelivery.findMany({ where: { jobId, messageId: null }, orderBy: { partNumber: "asc" } });
     const partCount = await this.db.catalogGenerationDelivery.count({ where: { jobId } });
     for (const delivery of deliveries) {
-      const caption = catalogPartCaption(job.title, delivery.partNumber, partCount, delivery.productCount);
+      const caption = catalogPartCaption(job.title, delivery.partNumber, partCount);
       const message = await this.outbox.runTurn(job.conversationId, job.triggerMessageId, () => this.outbox.enqueue({
         conversationId: job.conversationId,
         recipient,

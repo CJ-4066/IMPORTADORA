@@ -160,7 +160,7 @@ export class RockyAiCatalogWorker {
         }
         const providerMessageId = await deliverCatalogDocument(job.conversation.channel as AiChannel, job.conversation.externalId, {
           documentUrl: delivery.documentUrl, relativeUrl: delivery.relativeUrl, filename: delivery.filename,
-          byteLength: delivery.byteLength, caption: catalogPartCaption(job.title, delivery.partNumber, partCount, delivery.productCount), deliveryId: delivery.id,
+          byteLength: delivery.byteLength, caption: catalogPartCaption(job.title, delivery.partNumber, partCount), deliveryId: delivery.id,
         });
         const persisted = await this.db.rockyAiCatalogDelivery.updateMany({ where: { id: delivery.id, state: "SENDING" }, data: { state: "SUBMITTED", providerMessageId } });
         if (!persisted.count) {

@@ -95,7 +95,13 @@ export async function POST(request: NextRequest) {
         break;
       }
       case "discard": await discardDraft(action.draftId, actor); break;
-      case "simulate_live": return NextResponse.json({ ...(await simulateSuperBot(action.history, actor)), simulation: true, notice: "Prueba real de OpenAI y catálogo actual. No se envió ningún mensaje ni se activó un canal." }, { headers: { "Cache-Control": "no-store" } });
+      case "simulate_live": {
+        const simulation = await simulateSuperBot(action.history, actor);
+        const generatedPdf = Boolean(simulation.catalog?.documents?.length);
+        return NextResponse.json({ ...simulation, simulation: true,
+          notice: generatedPdf ? "PDF de prueba generado. No se envió ningún mensaje ni se activó un canal." : "Prueba real de OpenAI y catálogo actual. No se envió ningún mensaje ni se activó un canal.",
+        }, { headers: { "Cache-Control": "no-store" } });
+      }
     }
     return NextResponse.json({ ok: true });
   } catch (error) { return failure(error); }
