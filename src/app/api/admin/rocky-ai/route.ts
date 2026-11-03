@@ -30,6 +30,7 @@ function failure(error: unknown) {
     OPENAI_HTTP_429: "OpenAI rechazó la prueba por límite o saldo. Revisa la cuenta de OpenAI.",
     OPENAI_INCOMPLETE: "OpenAI no completó la respuesta de prueba. Inténtalo nuevamente.",
     OPENAI_UNAVAILABLE: "No se pudo conectar con OpenAI. Inténtalo nuevamente.",
+    UNVERIFIED_PRODUCT: "No se pudo confirmar ese producto en el catálogo. Indica el nombre o código exacto.",
     SIMULATION_LIMIT: "Se alcanzó el límite diario de pruebas para este administrador.",
     SIMULATION_USER_REQUIRED: "Escribe al menos un mensaje de cliente para probar Super Bot.",
     GLOBAL_AUTOMATION_DISABLED: "Activa primero las respuestas automáticas globales en Configuración de mensajes.",
