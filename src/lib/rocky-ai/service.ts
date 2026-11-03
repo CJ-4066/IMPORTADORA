@@ -39,7 +39,10 @@ export async function saveSettings(input: unknown, actor: string) {
     if (data.enabled && global && !global.botMasterSwitch) throw new Error("GLOBAL_AUTOMATION_DISABLED");
     const saved = await tx.rockyAiSettings.update({ where: { id: 1 }, data: { ...data, revision: { increment: 1 }, defaultsSince: new Date() } });
     await tx.rockyAiDraft.updateMany({ where: { state: { in: ["DRAFT", "QUEUED"] } }, data: { state: "EXPIRED", reason: "La configuración cambió." } });
-    await tx.rockyAiAudit.create({ data: { actor, action: "settings_changed", detail: json(data) } });
+    // The payment policy can contain bank accounts. Its existence is useful in
+    // an audit trail, but its full content belongs only in RockyAiSettings.
+    const auditData = { ...data, policies: { ...data.policies, payment: data.policies.payment.trim() ? "[configurada]" : "" } };
+    await tx.rockyAiAudit.create({ data: { actor, action: "settings_changed", detail: json(auditData) } });
     return saved;
   });
 }
