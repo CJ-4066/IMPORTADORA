@@ -46,7 +46,7 @@ export function maskPersonalData(text: string) {
   return text.replace(/\b[\w.+-]+@[\w.-]+\.[a-z]{2,}\b/gi, "[correo]")
     // Covers phone numbers, documents and Peruvian CCI/account formats, even
     // when they contain separators. Product codes remain outside this pattern.
-    .replace(/(?<!\w)(?:\+?\d[\s()-]*){9,30}(?!\w)/g, "[teléfono, documento o cuenta]");
+    .replace(/(?<!\w)(?:\+?\d[\s()-]*){9,30}(?!\w)/g, "[teléfono o documento]");
 }
 export function needsHuman(text: string) {
   return /\b(asesor[a]?|humano|persona|reclamo|estafa|devolucion|reembolso|denuncia|comprobante|ya pague)\b/i.test(text.normalize("NFD").replace(/[\u0300-\u036f]/g, ""));
