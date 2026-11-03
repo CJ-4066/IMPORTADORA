@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { PrismaClient } from "@prisma/client";
-import { catalogPartCaption, catalogRetryAt, generateCatalogSnapshotPdfs, parseCatalogSnapshot, snapshotProductsForPdf, type CatalogPdfPart, type CatalogSnapshotProduct } from "../catalog-generation";
+import { type CatalogPdfPart, type CatalogSnapshotProduct, generateCatalogSnapshotPdfs } from "../catalog-pdf";
+import { catalogPartCaption, catalogRetryAt, parseCatalogSnapshot, snapshotProductsForPdf } from "../catalog-generation";
 import { deliverCatalogDocument, snapshot } from "./adapters";
 import type { AiChannel } from "./policy";
 
