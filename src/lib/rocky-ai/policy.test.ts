@@ -75,7 +75,8 @@ test("different channel identifiers never alias and unsafe settings fail validat
   assert.notEqual(targetKey("messenger", "123"), targetKey("tiktok", "123"));
   assert.equal(decisionSchema.parse({ ...decision, priceMode: "BOX" }).priceMode, "BOX");
   assert.equal(decisionSchema.parse({ ...decision, priceMode: null }).priceMode, null);
-  const { priceMode: _priceMode, ...withoutPriceMode } = decision;
+  const withoutPriceMode: Partial<Decision> = { ...decision };
+  delete withoutPriceMode.priceMode;
   assert.equal(decisionSchema.safeParse(withoutPriceMode).success, false);
   const jsonSchema = z.toJSONSchema(decisionSchema, { target: "draft-7" }) as { required?: string[] };
   assert.ok(jsonSchema.required?.includes("priceMode"));
