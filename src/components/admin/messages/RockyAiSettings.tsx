@@ -12,7 +12,7 @@ const channels: AiChannel[] = ["whatsapp", "telegram", "messenger", "instagram",
 const policyLabels: Record<keyof Policies, string> = { hours: "Horarios", shipping: "Envíos", location: "Ubicación", payment: "Medios de pago", returns: "Cambios y devoluciones", pricing: "Reglas de precios" };
 export function RockyAiSettings() {
   const [dashboard, setDashboard] = useState<Dashboard | null>(null), [form, setForm] = useState<Config | null>(null);
-  const [error, setError] = useState(""), [notice, setNotice] = useState(""), [busy, setBusy] = useState(false), [simulation, setSimulation] = useState("");
+  const [error, setError] = useState(""), [notice, setNotice] = useState(""), [busy, setBusy] = useState(false);
   const refresh = useCallback(async (reset = false) => {
     const response = await fetch("/api/admin/rocky-ai", { cache: "no-store" });
     const data = await response.json();
@@ -56,7 +56,7 @@ export function RockyAiSettings() {
         <h3>Conversaciones</h3>{dashboard.conversations.length ? <div className={styles.table}><table><thead><tr><th>Canal</th><th>Conversación</th><th>Modo</th><th>Control</th><th>Estado</th></tr></thead><tbody>{dashboard.conversations.map(c => <tr key={c.id}><td>{channelNames[c.channel as AiChannel] || c.channel}</td><td>{c.externalId}</td><td>{modeLabels[c.mode]}</td><td>{c.humanControl ? "Humano" : "IA"}</td><td>{c.lastError || "Sin errores"}</td></tr>)}</tbody></table></div> : <p className={styles.help}>Todavía no hay conversaciones.</p>}
         <h3>Últimos cambios</h3>{dashboard.events.length ? <div className={styles.table}><table><thead><tr><th>Fecha</th><th>Acción</th><th>Responsable</th></tr></thead><tbody>{dashboard.events.map(e => <tr key={e.id}><td>{new Date(e.createdAt).toLocaleString("es-PE")}</td><td>{e.action}</td><td>{e.actor}</td></tr>)}</tbody></table></div> : <p className={styles.help}>Sin actividad todavía.</p>}
       </div></details>
-      <details className={styles.fold}><summary>Probar una respuesta</summary><div className={styles.foldBody}><p className={styles.help}>Ejemplo ficticio. No usa OpenAI ni envía mensajes.</p><button className={styles.secondary} disabled={busy} onClick={async () => { setBusy(true); setError(""); try { const result = await aiRequest({ action: "simulate", decision: { intent: "product", productIds: ["demo"], quantity: 3, policyKey: "none", reason: "routine" } }); setSimulation(result.text); } catch (e) { setError((e as Error).message); } finally { setBusy(false); } }}>Ver ejemplo</button>{simulation && <p className={styles.example}>{simulation}</p>}</div></details>
+      <details className={styles.fold}><summary>Probar Super Bot</summary><div className={styles.foldBody}><p className={styles.help}>Abre el laboratorio para conversar con OpenAI y el catálogo actual, sin activar canales ni enviar mensajes a clientes.</p><a className={styles.secondary} href="/admin/mensajes/simulador">Abrir simulador de Super Bot</a></div></details>
       <div className={styles.stopBar}><button className={styles.stopButton} disabled={busy || !dashboard.config.enabled} onClick={() => void perform({ action: "stop" }, "Super Bot detenido. Los envíos ya iniciados pueden completarse.")}>Detener Super Bot</button></div>
     </>}
   </main>;

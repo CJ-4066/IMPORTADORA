@@ -5,12 +5,14 @@ import { searchCatalogIdentity } from "../rocky-product-query";
 import { claimChannel, deliver, snapshot, isLocal } from "./adapters";
 import { generateDecision } from "./provider";
 import { automaticAllowed, channels, currentDraft, decisionSchema, defaultPricingPolicy, hash, needsHuman, renderDecision, settingsSchema,
-  targetKey, type AiChannel, type AiMode, type Policies, type ProductFact } from "./policy";
+  targetKey, type AiChannel, type AiMode, type HistoryItem, type Policies, type ProductFact } from "./policy";
 import { socialRequest, type SocialPage, type SocialConversation } from "../social-inbox";
 
 export const emptyPolicies: Policies = { hours: "", shipping: "", location: "", payment: "", returns: "", pricing: defaultPricingPolicy };
 export const defaultChannels = Object.fromEntries(channels.map(c => [c, "OFF"]));
 const json = (value: unknown) => JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
+const SIMULATION_DAILY_REQUESTS = 30;
+const SIMULATION_DAILY_TOKENS = 50000;
 export async function settings() {
   const existing = await prisma.rockyAiSettings.findUnique({ where: { id: 1 } });
   if (existing) {
@@ -105,6 +107,51 @@ export async function reserveUsage(config: RockyAiSettings, conversationId: stri
 export async function recordUsage(id: string, input: number, output: number) {
   if (!Number.isInteger(input) || !Number.isInteger(output) || input < 0 || output < 0) throw new Error("INVALID_USAGE");
   await prisma.rockyAiUsage.update({ where: { id }, data: { inputTokens: input, outputTokens: output, reservedTokens: input + output, state: "COMPLETED" } });
+}
+async function reserveSimulationUsage(config: RockyAiSettings, actor: string, tokens: number) {
+  const conversationId = `simulation:${actor}`;
+  return prisma.$transaction(async tx => {
+    await tx.$queryRaw`SELECT id FROM "RockyAiSettings" WHERE id = 1 FOR UPDATE`;
+    // Simulations are intentionally separate from live-channel activation, but
+    // still have a small per-administrator budget so a test panel cannot spend
+    // the production allowance without bound.
+    const day = new Date(new Date(Date.now() - 5 * 3600000).toISOString().slice(0, 10) + "T05:00:00Z");
+    const usage = await tx.rockyAiUsage.aggregate({ where: { conversationId, createdAt: { gte: day } }, _count: true, _sum: { reservedTokens: true } });
+    const requestLimit = Math.min(config.dailyRequests, SIMULATION_DAILY_REQUESTS);
+    const tokenLimit = Math.min(config.dailyTokens, SIMULATION_DAILY_TOKENS);
+    if (usage._count >= requestLimit || (usage._sum.reservedTokens ?? 0) + tokens > tokenLimit) throw new Error("SIMULATION_LIMIT");
+    return (await tx.rockyAiUsage.create({ data: { conversationId, model: config.model, reservedTokens: tokens } })).id;
+  });
+}
+/**
+ * Runs the same decision and catalog flow as Super Bot, but entirely in memory.
+ * It never reads or writes an inbox, draft, channel control, or outbound job.
+ */
+export async function simulateSuperBot(turns: Array<Pick<HistoryItem, "role" | "text">>, actor: string) {
+  const config = await settings();
+  if (!process.env.OPENAI_API_KEY) throw new Error("OPENAI_NOT_CONFIGURED");
+  const latest = turns.filter(turn => turn.role === "user").at(-1);
+  if (!latest) throw new Error("SIMULATION_USER_REQUIRED");
+  const history: HistoryItem[] = turns.map((turn, index) => ({ ...turn, id: `simulation-${index}`, at: new Date(Date.now() + index).toISOString() }));
+  const policies = { ...emptyPolicies, ...(config.policies as object) };
+  let decision: ReturnType<typeof decisionSchema.parse>;
+  let products: ProductFact[] = [];
+  let providerUsed = false;
+  if (needsHuman(latest.text)) {
+    decision = { intent: "handoff", reason: "human_requested", productIds: [], quantity: 1, policyKey: "none" };
+  } else {
+    const result = await generateDecision({
+      model: config.model, maxOutputTokens: config.maxOutputTokens, history, policies,
+      search: async query => productsByIds((await searchCatalogIdentity(query, 8)).ids),
+      reserve: tokens => reserveSimulationUsage(config, actor, tokens), record: recordUsage,
+    });
+    providerUsed = true;
+    decision = result.decision;
+    products = result.products;
+  }
+  const rendered = renderDecision(decision, products, policies);
+  await audit(actor, "live_simulation", undefined, { turns: history.length, providerUsed, intent: decision.intent, policyKey: decision.policyKey, reason: rendered.reason });
+  return { ...rendered, providerUsed, decision: { intent: decision.intent, policyKey: decision.policyKey, reason: decision.reason }, model: config.model };
 }
 async function withConversationLock<T>(id: string, work: () => Promise<T>): Promise<T | null> {
   return prisma.$transaction(async tx => {

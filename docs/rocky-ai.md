@@ -11,6 +11,8 @@ Panel: `/admin/mensajes/ia`. El proveedor de OpenAI está implementado, pero la 
 
 El módulo se instala desactivado y los canales comienzan en Apagado. Activar y seleccionar los modos es una decisión operativa desde el panel. Las conversaciones existentes se configuran individualmente desde su bandeja; los valores predeterminados solo incorporan conversaciones creadas después de guardar la configuración.
 
+El simulador de `/admin/mensajes/simulador` permite a un administrador probar Super Bot con OpenAI y el catálogo actual sin activar el módulo, tomar control de una conversación ni enviar a ningún canal. Conserva como máximo 12 turnos de texto en el navegador y no crea mensajes, borradores ni trabajos de entrega. Cada administrador tiene una cuota de prueba independiente de hasta 30 solicitudes o 50 000 tokens diarios (o el menor límite configurado). Una respuesta que consulta el proveedor verifica en ese momento la clave, el modelo, la conexión y la respuesta estructurada de OpenAI; una derivación directa a asesor aplica la regla de seguridad pero no confirma la clave. Que el panel diga “clave detectada” sólo confirma que la variable existe.
+
 Al aplicar un modo se pausa el bot anterior y se comprueba el control del canal. En Messenger también se requiere que el servicio de control entregue la conversación a la tienda, sin retorno automático pendiente a Meta. Los permisos y aprobaciones de WhatsApp, Telegram, Meta y TikTok siguen siendo requisitos de sus respectivas cuentas; este módulo no los concede ni confirma el estado de revisión de una aplicación.
 
 Los adaptadores utilizan las conexiones existentes a YCloud, Telegram y ChatbotX. Instagram tiene su propia bandeja y selección de inbox. No se habilitan los antiguos workers de Super Bot.

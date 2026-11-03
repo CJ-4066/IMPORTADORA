@@ -34,6 +34,10 @@ export const decisionSchema = z.object({
 });
 export type Decision = z.infer<typeof decisionSchema>;
 export type HistoryItem = { id: string; role: "user" | "assistant"; text: string; at: string; attachment?: boolean };
+export const simulationHistorySchema = z.array(z.object({
+  role: z.enum(["user", "assistant"]),
+  text: z.string().trim().min(1).max(600),
+})).min(1).max(12);
 export type Snapshot = { triggerId: string; contextHash: string; history: HistoryItem[]; owned: boolean; canSend: boolean; reason?: string };
 export function targetKey(channel: AiChannel, externalId: string) { return `${channel}:${externalId}`; }
 function canonical(value: unknown): unknown {

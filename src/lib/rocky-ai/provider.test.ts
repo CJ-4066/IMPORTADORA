@@ -44,6 +44,7 @@ test("refusal, incomplete output and provider failure never produce sendable tex
     Response.json({ status: "completed", output: [{ type: "message", content: [{ type: "refusal" }] }] }),
     Response.json({ secret: "do not leak" }, { status: 429 }),
   ]) await assert.rejects(generateDecision(options(async () => response)), error => error instanceof Error && !error.message.includes("do not leak"));
+  await assert.rejects(generateDecision(options(async () => { throw new Error("provider-secret"); })), /OPENAI_UNAVAILABLE/);
 });
 test("missing API key causes no request or budget reservation", async () => {
   const config = { ...options(async () => { throw new Error("should not fetch"); }), apiKey: "" };
