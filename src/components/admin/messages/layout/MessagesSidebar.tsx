@@ -17,7 +17,7 @@ export function MessagesSidebar() {
     { name: "Plantillas", href: "/admin/mensajes/plantillas", icon: FileCode2, exact: false },
     { name: "Contactos", href: "/admin/mensajes/contactos", icon: Users, exact: false },
     { name: "Actividad", href: "/admin/mensajes/actividad", icon: Activity, exact: false },
-    { name: "Simulador", href: "/admin/mensajes/simulador", icon: Bug, exact: false },
+    { name: "Pruebas Super Bot", href: "/admin/mensajes/simulador", icon: Bug, exact: false },
     { name: "Super Bot", href: "/admin/mensajes/ia", icon: Zap, exact: true },
     { name: "Configuración", href: "/admin/mensajes/configuracion", icon: Settings, exact: false },
   ];

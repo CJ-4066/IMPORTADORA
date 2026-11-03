@@ -2,9 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
-import { approveDraft, audit, configureConversation, conversationStatus, discardDraft, emergencyStop, generateDraft, saveSettings, settings } from "@/lib/rocky-ai/service";
-import { targetSchema, targetKey, modes, renderDecision, decisionSchema } from "@/lib/rocky-ai/policy";
-import { emptyPolicies } from "@/lib/rocky-ai/service";
+import { approveDraft, audit, configureConversation, conversationStatus, discardDraft, emergencyStop, generateDraft, saveSettings, settings, simulateSuperBot } from "@/lib/rocky-ai/service";
+import { targetSchema, targetKey, modes, simulationHistorySchema } from "@/lib/rocky-ai/policy";
 import { analyzeVisualEvidence } from "@/lib/rocky-ai/visual-evidence";
 
 export const dynamic = "force-dynamic";
@@ -17,13 +16,21 @@ const actions = z.discriminatedUnion("action", [
   z.object({ action: z.literal("discard"), draftId: z.string().uuid() }),
   z.object({ action: z.literal("settings"), settings: z.unknown() }),
   z.object({ action: z.literal("stop") }),
-  z.object({ action: z.literal("simulate"), decision: decisionSchema }),
+  z.object({ action: z.literal("simulate_live"), history: simulationHistorySchema }),
 ]);
 function failure(error: unknown) {
   if (error instanceof z.ZodError) return NextResponse.json({ error: "Revisa los campos del formulario." }, { status: 400 });
   const message = error instanceof Error ? error.message : "";
   const known: Record<string, string> = {
     OPENAI_NOT_CONFIGURED_OR_DISABLED: "Configura OPENAI_API_KEY en el servidor y activa Super Bot.",
+    OPENAI_NOT_CONFIGURED: "No se detectó una clave de OpenAI en el servidor.",
+    OPENAI_HTTP_401: "OpenAI rechazó la clave configurada en el servidor. Reemplázala por una clave activa.",
+    OPENAI_HTTP_403: "La clave de OpenAI no tiene permiso para usar el modelo configurado.",
+    OPENAI_HTTP_429: "OpenAI rechazó la prueba por límite o saldo. Revisa la cuenta de OpenAI.",
+    OPENAI_INCOMPLETE: "OpenAI no completó la respuesta de prueba. Inténtalo nuevamente.",
+    OPENAI_UNAVAILABLE: "No se pudo conectar con OpenAI. Inténtalo nuevamente.",
+    SIMULATION_LIMIT: "Se alcanzó el límite diario de pruebas para este administrador.",
+    SIMULATION_USER_REQUIRED: "Escribe al menos un mensaje de cliente para probar Super Bot.",
     GLOBAL_AUTOMATION_DISABLED: "Activa primero las respuestas automáticas globales en Configuración de mensajes.",
     MODE_OFF: "Selecciona un modo de IA antes de generar una sugerencia.",
     DRAFT_EXPIRED: "La sugerencia perdió vigencia. Genera otra antes de enviar.",
@@ -86,12 +93,7 @@ export async function POST(request: NextRequest) {
         break;
       }
       case "discard": await discardDraft(action.draftId, actor); break;
-      case "simulate": {
-        const config = await settings();
-        const result = renderDecision(action.decision, [{ id: "demo", name: "Producto de prueba", code: "DEMO", price: 20, stock: 10, wholesalePrice: 18, wholesaleMinQty: 3 }], { ...emptyPolicies, ...(config.policies as object) });
-        await audit(actor, "simulation");
-        return NextResponse.json({ ...result, simulation: true, notice: "Simulación de reglas con datos ficticios. No usa OpenAI ni envía mensajes." });
-      }
+      case "simulate_live": return NextResponse.json({ ...(await simulateSuperBot(action.history, actor)), simulation: true, notice: "Prueba real de OpenAI y catálogo actual. No se envió ningún mensaje ni se activó un canal." }, { headers: { "Cache-Control": "no-store" } });
     }
     return NextResponse.json({ ok: true });
   } catch (error) { return failure(error); }

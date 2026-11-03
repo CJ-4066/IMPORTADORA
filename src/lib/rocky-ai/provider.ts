@@ -59,10 +59,15 @@ export async function generateDecision(options: Options): Promise<{ decision: De
     if (Buffer.byteLength(body) > 24000) throw new Error("CONTEXT_LIMIT");
     // UTF-8 bytes conservatively bound tokens; reserve each request atomically.
     const reservation = await options.reserve(Buffer.byteLength(body) + options.maxOutputTokens + 1024);
-    const response = await (options.transport ?? fetch)("https://api.openai.com/v1/responses", {
-      method: "POST", headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-      body, signal: AbortSignal.timeout(30000), redirect: "error",
-    });
+    let response: Response;
+    try {
+      response = await (options.transport ?? fetch)("https://api.openai.com/v1/responses", {
+        method: "POST", headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+        body, signal: AbortSignal.timeout(30000), redirect: "error",
+      });
+    } catch {
+      throw new Error("OPENAI_UNAVAILABLE");
+    }
     if (!response.ok) throw new Error(`OPENAI_HTTP_${response.status}`);
     const result = await response.json() as ApiResponse;
     if (result.usage) await options.record(reservation, result.usage.input_tokens, result.usage.output_tokens);
