@@ -9,7 +9,7 @@ type JsonRecord = Record<string, unknown>;
 function text(value: unknown) { return typeof value === "string" && value.trim() ? value.trim() : null; }
 function asRecord(value: unknown): JsonRecord | null { return value && typeof value === "object" && !Array.isArray(value) ? value as JsonRecord : null; }
 
-const WELCOME_MESSAGE = `👋 ¡Hola! Buen día. Bienvenido a *Importaciones Super*. Soy *Rocky*, tu asistente virtual.
+const WELCOME_MESSAGE = `👋 ¡Hola! Buen día. Bienvenido a *Importaciones Super*. Soy *Super Bot*, tu asistente virtual.
 📚 *TODOS NUESTROS PRODUCTOS Y CATÁLOGOS ACTUALIZADOS ESTÁN AQUÍ:*
 👉 https://mc.ht/s/rwQ7BMz
 Encontrarás *14 catálogos en PDF* con nuestros productos. 😉

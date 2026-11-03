@@ -33,7 +33,7 @@ export async function POST(request: Request) {
     await prisma.chatMessage.create({ data: { id, conversationId: incoming.conversationId, direction: "OUTBOUND", senderType: "SYSTEM", content: "Evaluación guardada", status: "review_result", metadata: { source: "rocky-review-result", sourceConversationId: source.id, sourceMessageIds: turn.sourceMessageIds, result } } });
     return Response.json({ result, actualReply: turn.actualReply });
   } catch (error) {
-    if (error instanceof AutomationCancelledError) return Response.json({ skipped: true, reason: "Rocky está pausado; no se ha reactivado automáticamente." });
+    if (error instanceof AutomationCancelledError) return Response.json({ skipped: true, reason: "Super Bot está pausado; no se ha reactivado automáticamente." });
     return Response.json({ error: "No se pudo evaluar este turno." }, { status: error instanceof z.ZodError ? 400 : 500 });
   }
 }

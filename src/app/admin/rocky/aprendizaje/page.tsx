@@ -10,7 +10,7 @@ export default async function LearningPage() {
     prisma.$queryRaw<Array<{ id: string; humanResponse: string | null; status: string; createdAt: Date }>>`SELECT id, "humanResponse", status, "createdAt" FROM "RockyFeedback" ORDER BY "createdAt" DESC LIMIT 100`,
   ]);
   return <section className="panel stack-md">
-    <p className="eyebrow">Evaluación supervisada</p><h1>Correcciones de Rocky</h1>
+    <p className="eyebrow">Evaluación supervisada</p><h1>Correcciones de Super Bot</h1>
     <p>Conservamos las correcciones actuales y el historial anterior. Son material de revisión: no activan modelos antiguos ni modifican automáticamente precios, stock o reglas.</p>
     <Link className="button button-primary" href="/admin/mensajes/evaluacion-rocky">Evaluar con el motor actual</Link>
     <h2>Correcciones actuales</h2>

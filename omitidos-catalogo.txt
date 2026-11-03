@@ -1,0 +1,4 @@
+BT454 | (BT454) BLUETOOTH ULTRAPODS PRO PANTALLA LED AIR 31 12132 AMIR-A39 (150202) (Duplicado) | S/ 7.90 | Omitido porque el catálogo fuente lo marca como duplicado
+101-32 | (101-32) MEMORIAS PCBA X 32GB GANCHO GIRATORIO | S/ 30.00 | Omitido/eliminado porque ya existía un producto vigente con el mismo SKU
+CB39 - SQ | (CB39) CABLE M. SUPER LORD TIPO C 6.8A 45W (B39) | Duplicado de CB39: mismo nombre y precio; omitido para evitar duplicar el producto en Meta
+CA618 | (CA618) CABLE 4EN1 CARGA RAPIDA 120W 6A 1.2M | Ya existía en Productos de Meta con unitario S/ 10.00 y mayorista S/ 7.00; se canceló el formulario sin guardar.

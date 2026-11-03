@@ -3,6 +3,7 @@ import { stat } from "node:fs/promises";
 import path from "node:path";
 import { Readable } from "node:stream";
 import { parseHttpByteRange } from "@/lib/http-byte-range";
+import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
 
@@ -33,6 +34,16 @@ const CONTENT_TYPES: Record<string, string> = {
   ".webp": "image/webp",
 };
 
+// Product pictures are mirrored locally during the ERP sync. The runtime
+// filesystem is not durable on every deployment, though, so an older local
+// URL can outlive its mirrored file. Only proxy the trusted original image
+// hosts configured for the storefront; this must never become an open proxy
+// based on a database value.
+const PRODUCT_IMAGE_SOURCE_HOSTS = new Set([
+  "images.unsplash.com",
+  "original.negocioserp.com",
+]);
+
 function safeJoinUploadPath(parts: string[]) {
   if (parts.some(part => part === "." || part === ".." || part.includes("\\"))) return null;
   const normalizedParts = parts
@@ -54,6 +65,125 @@ function safeJoinUploadPath(parts: string[]) {
 
 function getContentType(filePath: string) {
   return CONTENT_TYPES[path.extname(filePath).toLowerCase()] ?? "application/octet-stream";
+}
+
+function getDecodedRequestPath(request: Request) {
+  const pathname = new URL(request.url).pathname;
+
+  try {
+    return decodeURIComponent(pathname);
+  } catch {
+    return pathname;
+  }
+}
+
+function getTrustedProductImageSource(value: string | null | undefined) {
+  const source = value?.trim();
+
+  if (!source) {
+    return null;
+  }
+
+  try {
+    const url = new URL(source);
+
+    if (
+      url.protocol !== "https:" ||
+      url.username ||
+      url.password ||
+      !PRODUCT_IMAGE_SOURCE_HOSTS.has(url.hostname)
+    ) {
+      return null;
+    }
+
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
+function isImageContentType(value: string | null) {
+  return value?.split(";", 1)[0]?.trim().toLowerCase().startsWith("image/") ?? false;
+}
+
+function copySourceImageHeaders(response: Response) {
+  const headers = new Headers({
+    "Cache-Control": "public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800",
+    "Content-Type": response.headers.get("content-type") ?? "image/jpeg",
+    "X-Content-Type-Options": "nosniff",
+  });
+  const etag = response.headers.get("etag");
+  const lastModified = response.headers.get("last-modified");
+
+  if (etag) {
+    headers.set("ETag", etag);
+  }
+
+  if (lastModified) {
+    headers.set("Last-Modified", lastModified);
+  }
+
+  return headers;
+}
+
+async function getMissingProductImageResponse(request: Request, uploadPath: string[]) {
+  if (uploadPath[0] !== "products") {
+    return null;
+  }
+
+  const requestedPath = getDecodedRequestPath(request);
+  let product: { sourceImageUrl: string | null } | null = null;
+
+  try {
+    product = await prisma.product.findFirst({
+      where: {
+        isVisible: true,
+        OR: [
+          { localImageUrl: requestedPath },
+          { imageUrl: requestedPath },
+          { media: { some: { type: "IMAGE", url: requestedPath } } },
+        ],
+      },
+      select: { sourceImageUrl: true },
+    });
+  } catch {
+    // A database outage must retain the normal 404 behavior for missing files.
+    return null;
+  }
+
+  const sourceUrl = getTrustedProductImageSource(product?.sourceImageUrl);
+
+  if (!sourceUrl) {
+    return null;
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15_000);
+
+  try {
+    const sourceResponse = await fetch(sourceUrl, {
+      cache: "no-store",
+      headers: {
+        Accept: "image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
+        "User-Agent": "ImportadoraStorefrontImageFallback/1.0",
+      },
+      method: request.method === "HEAD" ? "HEAD" : "GET",
+      signal: controller.signal,
+    });
+
+    if (!sourceResponse.ok || !isImageContentType(sourceResponse.headers.get("content-type"))) {
+      return null;
+    }
+
+    return new Response(request.method === "HEAD" ? null : sourceResponse.body, {
+      headers: copySourceImageHeaders(sourceResponse),
+      status: 200,
+    });
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 async function readUploadFile(filePath: string, requestHeaders?: Headers) {
@@ -121,14 +251,16 @@ export async function GET(
   try {
     const response = await readUploadFile(filePath, request.headers);
 
-    if (!response) {
-      return new Response("Not found", { status: 404 });
+    if (response) {
+      return response;
     }
-
-    return response;
   } catch {
-    return new Response("Not found", { status: 404 });
+    // Fall through to the ERP source for a product image whose local mirror
+    // was lost during a deployment.
   }
+
+  const fallback = await getMissingProductImageResponse(request, uploadPath);
+  return fallback ?? new Response("Not found", { status: 404 });
 }
 
 export async function HEAD(
@@ -145,21 +277,23 @@ export async function HEAD(
   try {
     const fileStats = await stat(/* turbopackIgnore: true */ filePath);
 
-    if (!fileStats.isFile()) {
-      return new Response(null, { status: 404 });
+    if (fileStats.isFile()) {
+      const headers = new Headers();
+      headers.set("Content-Type", getContentType(filePath));
+      headers.set("Content-Length", String(fileStats.size));
+      headers.set("Cache-Control", "public, max-age=15552000, immutable");
+      headers.set("Accept-Ranges", "bytes");
+
+      return new Response(null, {
+        status: 200,
+        headers,
+      });
     }
-
-    const headers = new Headers();
-    headers.set("Content-Type", getContentType(filePath));
-    headers.set("Content-Length", String(fileStats.size));
-    headers.set("Cache-Control", "public, max-age=15552000, immutable");
-    headers.set("Accept-Ranges", "bytes");
-
-    return new Response(null, {
-      status: 200,
-      headers,
-    });
   } catch {
-    return new Response(null, { status: 404 });
+    // Fall through to the ERP source for a product image whose local mirror
+    // was lost during a deployment.
   }
+
+  const fallback = await getMissingProductImageResponse(_request, uploadPath);
+  return fallback ?? new Response(null, { status: 404 });
 }

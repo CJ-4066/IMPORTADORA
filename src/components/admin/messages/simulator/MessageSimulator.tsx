@@ -173,7 +173,7 @@ export function MessageSimulator() {
         );
       } else {
         setWaitingForN8n(false);
-        setNotice("Respuesta del motor único de Rocky. No se enviaron mensajes a WhatsApp.");
+        setNotice("Respuesta del motor único de Super Bot. No se enviaron mensajes a WhatsApp.");
       }
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "No se pudo simular el mensaje.");
@@ -222,7 +222,7 @@ export function MessageSimulator() {
         </button>
 
         <p className="message-simulator-help">
-          Esta conversación usa el motor de Rocky y queda aislada de los envíos reales.
+          Esta conversación usa el motor de Super Bot y queda aislada de los envíos reales.
         </p>
       </aside>
 
@@ -295,7 +295,7 @@ export function MessageSimulator() {
           />
           <button className="btn btn-primary" disabled={!canSend} type="submit">
             <Send size={15} />
-            {busy ? "Procesando" : "Probar Rocky"}
+            {busy ? "Procesando" : "Probar Super Bot"}
           </button>
         </form>
       </section>

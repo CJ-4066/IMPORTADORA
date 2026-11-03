@@ -231,7 +231,7 @@ export function StoreFooter() {
             className="store-footer-btn store-footer-btn-messenger"
             aria-label="Comprar por Messenger"
           >
-            <svg aria-hidden="true" focusable="false" height="12" viewBox="0 0 24 24" width="12" fill="currentColor">
+            <svg aria-hidden="true" focusable="false" height="14" viewBox="0 0 24 24" width="14" fill="currentColor">
               <path d="M12 1.5C5.93 1.5 1 5.86 1 11.24c0 3.05 1.58 5.8 4.06 7.57V23l4.1-2.26c.9.25 1.85.38 2.84.38 6.07 0 11-4.36 11-9.88S18.07 1.5 12 1.5Zm1.08 13.27-2.8-2.98-5.46 2.98 6.01-6.39 2.86 2.98 5.38-2.98-5.99 6.39Z" />
             </svg>
             Comprar por Messenger

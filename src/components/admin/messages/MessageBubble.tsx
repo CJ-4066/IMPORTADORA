@@ -36,10 +36,10 @@ export function MessageBubble({ message, onRetry }: Props) {
   const isTextLike = message.messageType === "TEXT" || message.messageType === "UNKNOWN";
 
   return <div className={`message-bubble ${bubbleClass} ${isFailed ? "message-failed" : ""}`}>
-    <div className="message-sender">{senderName} {isBot ? <span className="message-bot-badge">🤖 Rocky</span> : null}</div>
+    <div className="message-sender">{senderName} {isBot ? <span className="message-bot-badge">🤖 Super Bot</span> : null}</div>
     <div className="message-content">
       {isTextLike ? <span>{message.content}</span> : null}
-      {message.messageType === "IMAGE" && mediaSource ? <div className="message-media-attachment"><button className="message-image-preview" onClick={() => setIsMediaOpen(true)} type="button"><img alt={message.content || "Imagen enviada"} src={mediaSource} /><span><Expand size={16} /> Ampliar imagen</span></button>{message.content ? <span>{message.content}</span> : null}</div> : null}
+      {message.messageType === "IMAGE" && mediaSource ? <div className="message-media-attachment"><button aria-label="Ampliar imagen" className="message-image-preview" onClick={() => setIsMediaOpen(true)} type="button"><img alt={message.content || "Imagen enviada"} src={mediaSource} /><span aria-hidden="true"><Expand size={16} /></span></button>{message.content ? <span>{message.content}</span> : null}</div> : null}
       {message.messageType === "IMAGE" && !mediaSource ? <span className="message-media-unavailable">Imagen sin URL disponible</span> : null}
       {["VIDEO", "AUDIO", "DOCUMENT"].includes(message.messageType) ? <MediaAttachment message={message} onOpen={() => setIsMediaOpen(true)} /> : null}
     </div>

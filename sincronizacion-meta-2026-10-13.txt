@@ -1,0 +1,13 @@
+Sincronización del catálogo Meta - 2026-10-13
+
+Fuente: https://tiendavirtualsuper.com/catalogo-meta-feed.csv
+Catálogo Meta: Catálogo_Productos (ID 39144608288520612)
+Productos publicados en la tienda: 1,925
+Registros del feed: 1,925
+Identificadores únicos del feed: 1,925
+Registros sin imagen: 0
+Registros sin precio: 0
+Estado verificado en Commerce Manager: 1,925 productos en total
+Actualización: subida programada cada hora; reemplaza la lista con la fuente actualizada
+Regla aplicada: se usa el identificador estable del producto para evitar duplicados; no se agregan registros sin imagen oficial.
+Descripción: se eliminaron fragmentos de productos relacionados y navegación; se conservaron únicamente las especificaciones técnicas disponibles.

@@ -1,0 +1,44 @@
+Revisión del catálogo Meta: 410 elementos (verificado en la interfaz el 2026-10-13).
+Método: búsqueda por código en la vista Productos; no se eliminó ni modificó nada durante esta revisión.
+
+Revalidación no destructiva: siguen visibles al menos estos grupos con dos registros
+para el mismo código (el registro con descripción técnica/precio mayorista es el
+candidato a conservar, sujeto a confirmación específica antes de eliminar):
+CP580, CP588, CP592, CP594, CP601, CP604, CP606, CP89 y CR08.
+N88 también aparece repetido y tiene dos registros visibles en la búsqueda.
+T45 no debe tratarse como duplicado automático: sus filas corresponden a colores/
+variantes TF-Y03-YELLOW, TF-Y03-GREY, TF-Y03-BLUE y TF-Y03-BLACK.
+
+Grupos con código repetido que parecen duplicados exactos (20 grupos, 20 registros extra):
+CA228
+BT487-GRIS
+N88
+CP580
+CP581
+CP588
+CP591
+CP592
+CP593
+CP594
+CP595
+CP601
+CP603
+CP604
+CP605
+CP606
+CP65
+CP89
+CR06
+CR08
+
+Código repetido que corresponde a variantes distintas y no debe eliminarse automáticamente:
+T45 (modelos TF-Y03-BLACK y TF-Y03-YELLOW).
+
+Nota: la repetición de código identifica candidatos; antes de borrar cada grupo hay que conservar el registro correcto y confirmar el borrado inmediatamente antes de hacerlo.
+BT125-SQ | Duplicado detectado tras guardado: Meta muestra dos registros idénticos; conservar el que tenga imagen oficial verificada y datos completos. No eliminar sin confirmación específica.
+07337 | DUPLICADO CONFIRMADO EN META: aparece un registro nuevo sin URL de tienda y otro registro existente con URL bt33...7337; conservar el existente con imagen/datos completos. Eliminación pendiente de confirmación inmediata.
+05703 | DUPLICADO CONFIRMADO EN META: aparece un registro nuevo y otro registro existente con URL n1123...5703; conservar el existente con imagen/datos completos. Eliminación pendiente de confirmación inmediata.
+04616 | DUPLICADO CONFIRMADO EN META: aparece un registro nuevo y otro registro existente con URL p725...4616; conservar el existente con imagen/datos completos. Eliminación pendiente de confirmación inmediata.
+02923 | DUPLICADO CONFIRMADO EN META: aparece un registro nuevo y otro registro existente con URL n124...2923; conservar el existente con imagen/datos completos. Eliminación pendiente de confirmación inmediata.
+COMBO-4EN1 | DUPLICADO CONFIRMADO EN META: aparecen dos registros con el mismo código y nombre; conservar el registro original con los datos más completos y su imagen. Eliminación pendiente de confirmación inmediata.
+CB190 | DUPLICADO CONFIRMADO EN META: aparecen dos registros del mismo código/oferta; conservar el registro original con la imagen y datos completos. Eliminación pendiente de confirmación inmediata.

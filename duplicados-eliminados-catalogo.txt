@@ -1,0 +1,176 @@
+Limpieza realizada en Meta Business Agent (perfil Chrome luis).
+Se conservaron los registros con precio mayorista explícito y descripción más completa.
+
+CP560 | Se conservó 1 registro completo con imagen oficial, precio unitario S/ 59.00 y mayorista S/ 49.00; se eliminó 1 duplicado.
+CP550 | Se conservó 1 registro completo con imagen oficial, precio unitario S/ 49.00 y mayorista S/ 37.90; se eliminó 1 duplicado.
+CP55 | Se conservó 1 registro completo con imagen oficial, precio unitario S/ 55.00 y mayorista S/ 49.90; se eliminó 1 duplicado sin foto.
+CP450 | Se conservó 1 registro completo con imagen oficial, precio unitario S/ 159.00 y mayorista S/ 145.00; se eliminó 1 duplicado sin foto.
+
+A16 | Correa de smartwatch modelo pulsera | eliminado registro con mayorista "consultar"; conservado S/ 20.00 desde 3 unidades.
+A13 | Correa de smartwatch con piedras | eliminado registro con mayorista "consultar"; conservado S/ 20.00 desde 3 unidades.
+101-64 | Memoria PCBA 64 GB | eliminado registro con mayorista "consultar"; conservado S/ 29.00 desde 3 unidades.
+101-8 | Memoria PCBA 8 GB | eliminado registro con mayorista "consultar"; conservado S/ 15.00 desde 3 unidades.
+A6 | Correa smartwatch metalizada imantada | eliminado registro con mayorista "consultar"; conservado S/ 8.00 desde 3 unidades.
+AD-GK160 | Memoria USB Aldeepo 128 GB | eliminado registro con mayorista "consultar"; conservado S/ 45.00 desde 3 unidades.
+AU134 | Audífono Romax Bass TCA0284 | eliminado registro con mayorista "consultar"; conservado S/ 6.90 desde 3 unidades.
+AU184 | Audífono con cable USB-C AKG | eliminado registro con mayorista "consultar"; conservado S/ 7.90 desde 3 unidades.
+AU206 | Audífono Super SU-AU10 | eliminado registro con mayorista "consultar"; conservado S/ 2.50 desde 3 unidades.
+AU212 | Audífono Super SU-AU50 | eliminado registro con mayorista "consultar"; conservado S/ 2.50 desde 3 unidades.
+AU235 | Audífono Smartel S20 USB-C | eliminado registro con mayorista "consultar"; conservado S/ 14.00 desde 3 unidades.
+AU238 | Audífono Smartel Pro 3 USB-C | eliminado registro con mayorista "consultar"; conservado S/ 12.00 desde 3 unidades.
+AU239 | Audífono VDENMENV DR02 | eliminado registro con mayorista "consultar"; conservado S/ 4.00 desde 3 unidades.
+AU240 | Audífono HQ USB-C | eliminado registro con mayorista "consultar"; conservado S/ 8.90 desde 3 unidades.
+AU243 | Audífono KZ M2 USB-C | eliminado registro con mayorista "consultar"; conservado S/ 50.00 desde 3 unidades.
+AU244 | Audífono KZ-EDCX gris | eliminado registro con mayorista "consultar"; conservado S/ 25.00 desde 3 unidades.
+AU247-BLACK | Audífono KZ-ZSN Pro 2 negro | eliminado registro con mayorista "consultar".
+AU247-GOLD | Audífono KZ-ZSN Pro 2 dorado | eliminado registro con mayorista "consultar".
+AU248-GRAY | Audífono KZ-ZSN dorado | eliminado registro con mayorista "consultar".
+AU250 | Audífono KZ-CASTOR negro | eliminado registro con mayorista "consultar".
+AU253-BLANCO | Audífono VQ-H53 blanco | eliminado registro con mayorista "consultar".
+AU254-BLACK | Audífono VQ-H63 negro | eliminado registro con mayorista "consultar".
+AU256 | Audífono MY-8012 USB-C | eliminado registro con mayorista "consultar".
+AU257 | Audífono VQ-H53 USB-C | eliminado registro con mayorista "consultar".
+AU258 | Audífono MY-8007 USB-C | eliminado registro con mayorista "consultar".
+AU259 | Audífono MY-8009 USB-C | eliminado registro con mayorista "consultar".
+AU260 | Audífono ROMAX TCA0396 | eliminado registro con mayorista "consultar".
+AU261 | Audífono MMTN2 USB-C/Lightning | eliminado registro con mayorista "consultar".
+AU262 | Audífono HDD BASS USB-C blanco | eliminado registro con mayorista "consultar".
+AU30 | Audífono ARES AK6 | eliminado registro con mayorista "consultar".
+AU65 | Audífono SUPER X2 PRO AUX | eliminado registro con mayorista "consultar".
+AU84 | Audífono SUPER X2 PLUS USB-C | eliminado registro con mayorista "consultar".
+B7 | Cable SUPER Cobra gamer V8 | eliminado registro con mayorista "consultar".
+BT03 | Audífonos traductores SUPERBUDS 1/3 | eliminado registro con mayorista "consultar".
+BT05 | Audífonos SUPERBUDS 5 Sport | eliminado registro con mayorista "consultar".
+BT07 | Audífonos Bluetooth de diadema SUPER BT07 | eliminado registro con mayorista "consultar".
+BT08 | Audífonos Bluetooth de diadema SUPER BT08 | eliminado registro con mayorista "consultar".
+BT10 | Audífono SUPER G1 BT10 | eliminado registro con mayorista "consultar".
+BT11 | Audífono Bluetooth SUPER BT11 | eliminado registro con mayorista "consultar".
+BT119 | Audífonos Bluetooth A85 | eliminado registro con mayorista "consultar".
+BT125 | Audífonos vincha P9 PRO MAX | eliminado registro con mayorista "consultar".
+BT132 | Audífonos vincha PG580 | eliminado registro con mayorista "consultar".
+BT14 | Audífonos SUPERBUDS 14 | eliminado registro con mayorista "consultar".
+BT144 | Audífonos gamer M28 | eliminado registro con mayorista "consultar".
+BT33 | Audífonos SUPER FreeClips Pro BT23 | eliminado registro con mayorista "consultar" detectado al buscar BT23.
+BT24 | Audífonos SUPER BASS2 | eliminado registro con mayorista "consultar".
+BT257 | Audífonos vincha P9/J-15 | eliminado registro con mayorista "consultar"; se conservó la variante disponible.
+BT26 | Audífonos vincha TURBO-1001 | eliminado registro con mayorista "consultar".
+BT27 | Audífonos SUPER ACTIVA BT27 | eliminado registro con mayorista "consultar".
+BT38 / BT28 | Audífonos SUPER AIR 1 SPORT | eliminado registro con mayorista "consultar" detectado al buscar BT28.
+BT30 | Audífonos SUPER SILENS PRO | eliminado registro con mayorista "consultar".
+BT309 | Audífonos vincha BL TUNE 1100BT | eliminado registro con mayorista "consultar".
+BT34 | Audífonos conducción ósea Earcuff Plus | eliminado registro con mayorista "consultar".
+BT383 | Audífonos BASS AUT119 | eliminado registro con mayorista "consultar".
+BT391 | Audífonos vincha TURBO-1000 | eliminado registro con mayorista "consultar".
+BT393 | Audífonos TUNE 700BT T700 | eliminado registro con mayorista "consultar".
+BT405 | Audífonos vincha TUNE A8 | eliminado registro con mayorista "consultar".
+BT449 | Audífonos A9 PRO | eliminado registro con mayorista "consultar".
+BT454 | Audífonos ULTRAPODS MAX | eliminado registro con mayorista "consultar".
+BT456 | Audífonos vincha TUNE 760 BT | eliminado registro con mayorista "consultar".
+BT462 | Audífonos SUPER FLIP10 | eliminado registro con mayorista "consultar".
+BT463 | Audífonos KZ-AZ09 | eliminado registro con mayorista "consultar".
+BT465 | Audífonos POWERBEATS PRO 2 | eliminado registro con mayorista "consultar".
+BT484 | Audífonos Wireless B4PRO | eliminado registro con mayorista "consultar".
+BT487-GRIS | Audífonos Bluetooth VQ-B12 gris | eliminado registro con mayorista "consultar" detectado al buscar BT487.
+BT208 | Audífonos SUPERBUDS 20 | eliminado registro con mayorista "consultar" detectado al buscar BT20.
+BT207 | Audífonos Bluetooth F9 clásico | eliminado registro con mayorista "consultar".
+CB190 | Cable M. SUPER tipo C 6 A CB-S1C | eliminado registro exacto con mayorista "consultar"; conservado S/ 2.00 desde 3 unidades.
+BT76 | Audífono Bluetooth i13 | eliminado registro con mayorista "consultar" detectado al buscar A3; conservado S/ 13.00 desde 3 unidades.
+
+Nota: la oferta de 100 cables CB190 se conservó porque es una presentación distinta del producto individual.
+
+BT125-SQ | eliminado duplicado exacto: mismo título y enlace; se conservó la fila con descripción completa y precio mayorista S/ 10.50.
+BT144 | eliminado duplicado exacto: mismo título y enlace; se conservó la fila con precio mayorista y descripción completa.
+BT159 | eliminado duplicado exacto: mismo título y enlace; se conservó la fila con especificaciones completas y precio mayorista S/ 11.00.
+BT207-SQ | cubierto por BT207: misma ficha/enlace de tienda; no existe una fila independiente en Meta.
+BT257 / BT257-SQ | cubiertos por una única ficha Meta con el mismo producto y enlace; se adjuntó la imagen oficial una sola vez.
+BT487 | eliminado duplicado exacto: mismo título y enlace; se conservó la fila con precio mayorista S/ 15.00.
+BT38 / 07434 | eliminado duplicado exacto: mismo título y enlace; se conservó la fila con precio mayorista S/ 38.00.
+101-16 | eliminadas dos filas duplicadas exactas; se conservó la fila con precio mayorista S/ 17.00.
+CP587 | Se conservaron 1 registro completo con precio mayorista e imagen oficial; se eliminaron 2 duplicados (uno básico y uno idéntico).
+CP570 | Se dejó 1 registro con imagen oficial, precio unitario S/ 79.00 y mayorista S/ 69.00; se eliminó 1 duplicado.
+BT208 | creado en Meta con imagen oficial catalogo-BT208.jpg; verificado con toast y conteo 510
+BT24 | imagen ya presente en el producto existente (BT34); no se duplicó ni se reemplazó
+BT27 | imagen ya presente en el producto existente (BT271); no se duplicó ni se reemplazó
+101-4 | imagen ya presente en el producto existente; no se duplicó ni se reemplazó
+BT09 | al menos una ficha existente ya tiene imagen oficial; se conserva la ficha completa y no se duplicó
+BT144-SQ | imagen ya presente en el producto existente; no se duplicó ni se reemplazó
+BT487-GRIS | Producto restaurado tras eliminación accidental; imagen oficial adjuntada y verificada en Meta.
+BT488 | Imagen verificada en fila principal; se mantiene como producto con foto. Existe una fila duplicada antigua pendiente de depuración.
+BT489 | Imagen verificada en fila con precio mayorista; existe una fila antigua duplicada pendiente de depuración.
+BT57 | Imagen verificada en la fila con precio mayorista; existe una fila antigua duplicada pendiente de depuración.
+BT62 | Imagen verificada en fila con precio mayorista; fila antigua duplicada pendiente de depuración.
+BT65 | Imagen verificada en fila con precio mayorista; fila antigua duplicada pendiente de depuración.
+BT487-BLACK | Imagen oficial verificada en el producto de Meta; se retiró de pendientes.
+BT76 | Imagen oficial verificada en el producto de Meta; se retiró de pendientes.
+BT78 | Imagen oficial verificada en el producto de Meta; se retiró de pendientes.
+CA100 | Imagen oficial verificada en el producto de Meta; se retiró de pendientes.
+CA114 | Imagen oficial verificada en el producto de Meta; se retiró de pendientes.
+CA173 | Imagen oficial verificada en el producto de Meta; se retiró de pendientes.
+CA18 | Imagen oficial verificada en el producto de Meta; se retiró de pendientes.
+CA181 | Imagen oficial verificada en el producto enriquecido de Meta; se retiró de pendientes.
+CA185 | Imagen oficial verificada en el producto enriquecido de Meta; se retiró de pendientes.
+CA189 | Imagen oficial descargada desde la tienda y guardada en el producto de Meta; se retiró de pendientes.
+CA190 | Imagen oficial verificada en el producto de Meta; se retiró de pendientes.
+CA195 | Imagen oficial verificada en el producto enriquecido de Meta; duplicado antiguo sin foto eliminado en Meta.
+CA227 | Imagen oficial ya presente y verificada en Meta; descripción y precio mayorista desde 3 unidades visibles.
+CA228 | Producto creado con imagen oficial y especificaciones técnicas; precio unitario S/ 5.00 y mayorista S/ 3.50 desde 3 unidades.
+CA229 | Imagen oficial verificada en el registro enriquecido; duplicado antiguo sin foto eliminado en Meta.
+CA230 | Imagen oficial verificada en el registro enriquecido; duplicado antiguo sin foto eliminado en Meta.
+CA237 | Imagen del registro válido verificada; duplicado antiguo sin foto eliminado en Meta.
+CA240 | Imagen del registro válido verificada; duplicado antiguo sin foto eliminado en Meta.
+CA241 | Imagen del registro válido verificada; duplicado antiguo sin foto eliminado en Meta.
+CA255 | Imagen del registro válido verificada; duplicado antiguo sin foto eliminado en Meta.
+CA260 | Imagen del registro válido verificada; duplicado antiguo sin foto eliminado en Meta.
+CA264 | Imagen del registro válido verificada; duplicado antiguo sin foto eliminado en Meta.
+CA269 | Imagen del registro válido verificada; duplicado antiguo sin foto eliminado en Meta.
+CA279 | Imagen del registro válido verificada; duplicado antiguo sin foto eliminado en Meta.
+CA34 | Imagen del registro válido verificada; duplicado antiguo sin foto eliminado en Meta.
+CA36 | Imagen del registro válido verificada; duplicado antiguo sin foto eliminado en Meta.
+CA43 | Imagen del registro válido verificada; duplicado antiguo sin foto eliminado en Meta.
+CA53 | Imagen del registro válido verificada; duplicado antiguo sin foto eliminado en Meta.
+CA60 | Imagen del registro válido verificada; duplicado antiguo sin foto eliminado en Meta.
+CA604 | Imagen del registro válido verificada; duplicado antiguo sin foto eliminado en Meta.
+CA609 | Imagen del registro válido verificada; duplicado antiguo sin foto eliminado en Meta.
+CA611 | Imagen del registro válido verificada; duplicado antiguo sin foto eliminado en Meta.
+CA616 | Imagen del registro válido verificada; duplicado antiguo sin foto eliminado en Meta.
+CA618 | Imagen del registro válido verificada; duplicado antiguo sin foto eliminado en Meta.
+CA619 | Imagen del registro válido verificada; 2 duplicados antiguos sin foto eliminados en Meta.
+CA620 | Imagen del registro válido verificada; 1 duplicado antiguo sin foto eliminado en Meta.
+CA621 | Imagen del registro válido verificada; 1 duplicado antiguo sin foto eliminado en Meta.
+CA622 | Imagen del registro válido verificada; 1 duplicado antiguo sin foto eliminado en Meta.
+CA623 | Imagen del registro válido verificada; 1 duplicado antiguo sin foto eliminado en Meta.
+CA628 | Imagen del registro válido verificada; 1 duplicado antiguo sin foto eliminado en Meta.
+CA629 | Imagen del registro válido verificada; 1 duplicado antiguo sin foto eliminado en Meta.
+CA630 | Imagen del registro válido verificada; 1 duplicado antiguo sin foto eliminado en Meta.
+CB09-BLANCO | Imagen del registro válido verificada; 1 duplicado antiguo sin foto eliminado en Meta.
+CB09-NEGRO | Imagen del registro válido verificada; 1 duplicado antiguo sin foto eliminado en Meta.
+CB10-BLANCO | Imagen del registro válido verificada; 1 duplicado antiguo sin foto eliminado en Meta.
+CB10-NARANJA | Imagen del registro válido verificada; 1 duplicado antiguo sin foto eliminado en Meta.
+CB28 | Imagen del registro válido verificada; 1 duplicado antiguo sin foto eliminado en Meta.
+CB31 | Imagen del registro válido verificada; 1 duplicado antiguo sin foto eliminado en Meta.
+CB39 | Imagen del registro válido verificada; 1 duplicado antiguo sin foto eliminado en Meta.
+CC03 | Imagen del registro válido verificada; 1 duplicado antiguo sin foto eliminado en Meta.
+CC3 | Imagen del registro válido verificada; 1 duplicado antiguo sin foto eliminado en Meta.
+CC10 | Imagen del registro válido verificada; 1 duplicado antiguo sin foto eliminado en Meta.
+CC11 | Imagen del registro válido verificada; 1 duplicado antiguo sin foto eliminado en Meta.
+CC13 | Imagen del registro válido verificada; 1 duplicado antiguo sin foto eliminado en Meta.
+CC14 | Imagen del registro válido verificada; 1 duplicado antiguo sin foto eliminado en Meta.
+CC15 | Imagen del registro válido verificada; 1 duplicado antiguo sin foto eliminado en Meta.
+CC47 | Imagen del registro válido verificada; 1 duplicado antiguo sin foto eliminado en Meta.
+CC6 | Imagen del registro válido verificada; 1 duplicado antiguo sin foto eliminado en Meta.
+CC65 | Imagen del registro válido verificada; 1 duplicado antiguo sin foto eliminado en Meta.
+CC151 | Imagen del registro válido verificada; 1 duplicado antiguo sin foto eliminado en Meta.
+CC153 | Imagen del registro válido verificada; 1 duplicado antiguo sin foto eliminado en Meta.
+CC157 | Imagen del registro válido verificada; 1 duplicado antiguo sin foto eliminado en Meta.
+CC22 | Imagen del registro válido verificada; 1 duplicado antiguo sin foto eliminado en Meta.
+CC23 | Imagen del registro válido verificada; 1 duplicado antiguo sin foto eliminado en Meta.
+CC17 | Imagen del registro válido verificada; 1 duplicado antiguo sin foto eliminado en Meta.
+CC16 | Imagen del registro válido verificada; 1 duplicado antiguo sin foto eliminado en Meta.
+CC24 | Imagen del registro válido verificada; 1 duplicado antiguo sin foto eliminado en Meta.
+CC18 | Imagen del registro válido verificada; 1 duplicado antiguo sin foto eliminado en Meta.
+CC2 | Imagen del registro válido verificada; 1 duplicado antiguo sin foto eliminado en Meta.
+CC7 | Imagen del registro válido verificada; 1 duplicado antiguo sin foto eliminado en Meta.
+CC8 | Registro con imagen y datos completos conservado; 1 duplicado sin imagen eliminado en Meta.
+CP15 | Registro con imagen y datos completos conservado; 1 duplicado sin imagen eliminado en Meta.
+CP08 | Registro con imagen y datos completos conservado; 2 duplicados eliminados en Meta.
+101-16 | 2026-10-14 | Eliminada copia con descripción que comienza por el nombre completo y precio rotulado Mayorista; conservado registro con descripción «Memoria PCBA 2.0 de 16 GB con gancho giratorio» y enlace de tienda. Ambos tenían la misma URL de imagen. Meta mostró «Se eliminó correctamente» y la búsqueda quedó con un registro. Conteo visible: 753.
