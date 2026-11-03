@@ -128,7 +128,7 @@ export function catalogSnapshotHash(snapshot: CatalogSnapshot) {
   return createHash("sha256").update(JSON.stringify({ version: snapshot.version, scopeKey: snapshot.scopeKey, title: snapshot.title, products: snapshot.products })).digest("hex").slice(0, 32);
 }
 
-function asSnapshot(value: unknown): CatalogSnapshot {
+export function parseCatalogSnapshot(value: unknown): CatalogSnapshot {
   if (!value || typeof value !== "object") throw new Error("Invalid catalog snapshot");
   const snapshot = value as CatalogSnapshot;
   if (snapshot.version !== 1 || !snapshot.scopeKey || !snapshot.title || !Array.isArray(snapshot.products) || !snapshot.products.length) {
@@ -242,7 +242,7 @@ export class CatalogGenerationWorker {
     if (!claim) return false;
     if (claim.stage === "delivery") return this.deliverOrRetry(claim.job.id, claim.token, now);
     try {
-      const snapshot = asSnapshot(claim.job.snapshot);
+      const snapshot = parseCatalogSnapshot(claim.job.snapshot);
       const parts = await this.renderCatalog({
         scopeKey: snapshot.scopeKey,
         title: snapshot.title,

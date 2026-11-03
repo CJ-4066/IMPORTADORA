@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { after, beforeEach, test } from "node:test";
 import { randomUUID } from "node:crypto";
 import { prisma } from "../prisma";
+import { RockyAiCatalogWorker } from "./catalog-worker";
 import { approveDraft, configureConversation, dispatchDraft, emergencyStop, generateDraft, pauseForHuman, saveSettings, settings, workerTick } from "./service";
 import { targetKey } from "./policy";
 
@@ -12,7 +13,16 @@ if (url.hostname !== "127.0.0.1" || url.pathname !== "/rocky_ai_test" || process
 const originalFetch = global.fetch;
 let sends = 0, calls = 0, failDelivery = false;
 let duringGeneration: (() => Promise<void>) | null = null;
-const greeting = { intent: "greeting", productIds: [], quantity: 1, priceMode: null, policyKey: "none", reason: "routine" };
+const greeting = { intent: "greeting", productIds: [], quantity: 1, priceMode: null, policyKey: "none", reason: "routine", catalog: null };
+const catalogDecision = { intent: "catalog", productIds: [], quantity: 1, priceMode: null, policyKey: "none", reason: "routine", catalog: {
+  state: "ready", scopeKey: "parlantes:jbl", title: "CATÁLOGO DE PARLANTES JBL", productCount: 1, message: null,
+} };
+const catalogSnapshot = {
+  version: 1, scopeKey: "parlantes:jbl", title: "CATÁLOGO DE PARLANTES JBL", capturedAt: new Date().toISOString(), products: [{
+    id: "p1", name: "Parlante JBL", code: "JBL-1", brand: "JBL", category: "parlantes", imageUrls: ["/uploads/products/jbl.jpg"],
+    updatedAt: new Date().toISOString(), unitPrice: "100", wholesalePrice: null, wholesaleMinQty: 3,
+  }],
+};
 beforeEach(async () => {
   await prisma.rockyAiDraft.deleteMany();
   await prisma.rockyAiConversation.deleteMany();
@@ -60,6 +70,49 @@ test("Copilot persists a draft without sending; concurrent approvals and dispatc
   await Promise.allSettled([approveDraft(d.id, d.text, "admin"), approveDraft(d.id, d.text, "admin")]);
   await Promise.all([dispatchDraft(d.id), dispatchDraft(d.id)]);
   assert.equal(sends, 1); assert.equal((await prisma.rockyAiDraft.findUniqueOrThrow({ where: { id: d.id } })).state, "SUBMITTED");
+});
+test("catalog PDF waits for the acknowledged draft before rendering and delivering", async () => {
+  const c = await fixture();
+  const d = (await generateDraft(c.id, "test-admin", true))!;
+  await prisma.rockyAiDraft.update({ where: { id: d.id }, data: { decision: catalogDecision, evidence: [], text: "Estoy preparando el catálogo." } });
+  await prisma.rockyAiCatalogJob.create({ data: {
+    draftId: d.id, conversationId: c.id, triggerId: d.triggerId, controlRevision: d.controlRevision, settingsRevision: d.settingsRevision,
+    scopeKey: "parlantes:jbl", title: "CATÁLOGO DE PARLANTES JBL", snapshot: catalogSnapshot, snapshotHash: "a".repeat(32), state: "WAITING_ACK",
+  } });
+  const worker = new RockyAiCatalogWorker(prisma, async () => [{
+    absoluteUrl: "https://tiendavirtualsuper.com/uploads/catalogs/catalogo-jbl.pdf", relativeUrl: "/uploads/catalogs/catalogo-jbl.pdf",
+    filename: "catalogo-jbl.pdf", partNumber: 1, partCount: 1, productCount: 1, missingImageCount: 0, byteLength: 100,
+  }]);
+  await worker.tick();
+  assert.equal((await prisma.rockyAiCatalogJob.findUniqueOrThrow({ where: { draftId: d.id } })).state, "WAITING_ACK");
+  await approveDraft(d.id, "Estoy preparando el catálogo.", "admin");
+  await dispatchDraft(d.id);
+  assert.equal((await prisma.rockyAiCatalogJob.findUniqueOrThrow({ where: { draftId: d.id } })).state, "QUEUED");
+  await worker.tick();
+  assert.equal((await prisma.rockyAiCatalogJob.findUniqueOrThrow({ where: { draftId: d.id } })).state, "READY");
+  await worker.tick();
+  const submittedJob = await prisma.rockyAiCatalogJob.findUniqueOrThrow({ where: { draftId: d.id } });
+  assert.equal(submittedJob.state, "SUBMITTED");
+  const submittedDelivery = await prisma.rockyAiCatalogDelivery.findUniqueOrThrow({ where: { jobId_partNumber: { jobId: submittedJob.id, partNumber: 1 } } });
+  assert.equal(submittedDelivery.state, "SUBMITTED");
+  assert.equal(sends, 2);
+});
+test("an interrupted catalog document is marked uncertain and never retried", async () => {
+  const c = await fixture();
+  const d = (await generateDraft(c.id, "test-admin", true))!;
+  await prisma.rockyAiDraft.update({ where: { id: d.id }, data: { state: "SUBMITTED", approvedBy: "admin", decision: catalogDecision, evidence: [] } });
+  const job = await prisma.rockyAiCatalogJob.create({ data: {
+    draftId: d.id, conversationId: c.id, triggerId: d.triggerId, controlRevision: d.controlRevision, settingsRevision: d.settingsRevision,
+    scopeKey: "parlantes:jbl", title: "CATÁLOGO DE PARLANTES JBL", snapshot: catalogSnapshot, snapshotHash: "b".repeat(32),
+    state: "DELIVERING", result: { version: 1 }, processingToken: "stale", leaseExpiresAt: new Date(Date.now() - 1_000),
+  } });
+  await prisma.rockyAiCatalogDelivery.create({ data: {
+    jobId: job.id, partNumber: 1, documentUrl: "https://tiendavirtualsuper.com/uploads/catalogs/catalogo-jbl.pdf",
+    relativeUrl: "/uploads/catalogs/catalogo-jbl.pdf", filename: "catalogo-jbl.pdf", byteLength: 100, productCount: 1, state: "SENDING",
+  } });
+  await new RockyAiCatalogWorker(prisma).tick();
+  assert.equal((await prisma.rockyAiCatalogJob.findUniqueOrThrow({ where: { id: job.id } })).state, "UNCERTAIN");
+  assert.equal(sends, 0);
 });
 test("a new inbound message atomically expires pending approvals", async () => {
   const c = await fixture(); const d = (await generateDraft(c.id, "test-admin", true))!;
@@ -157,7 +210,7 @@ test("interrupted deliveries are recovered as uncertain without resending", asyn
 test("a price change after approval prevents an outdated quotation from being sent", async () => {
   const c = await fixture(); const d = (await generateDraft(c.id, "admin", true))!;
   const product = await prisma.product.create({ data: { code: randomUUID(), slug: randomUUID(), name: "Prueba", unitPrice: 20, stockUnits: 10 } });
-  const decision = { intent: "product", productIds: [product.id], quantity: 1, priceMode: null, policyKey: "none", reason: "routine" };
+  const decision = { intent: "product", productIds: [product.id], quantity: 1, priceMode: null, policyKey: "none", reason: "routine", catalog: null };
   await prisma.rockyAiDraft.update({ where: { id: d.id }, data: { decision, evidence: [{ id: product.id, name: product.name, code: product.code, price: 20, stock: 10, wholesalePrice: null, wholesaleMinQty: 3 }] } });
   await approveDraft(d.id, "Prueba: S/ 20.00", "admin");
   await prisma.product.update({ where: { id: product.id }, data: { unitPrice: 25 } });

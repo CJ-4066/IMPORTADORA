@@ -358,6 +358,7 @@ model RockyAiConversation {
   createdAt      DateTime    @default(now())
   updatedAt      DateTime    @updatedAt
   drafts         RockyAiDraft[]
+  catalogJobs    RockyAiCatalogJob[]
   visualEvidence RockyAiVisualEvidence[]
 
   @@unique([channel, externalId])
@@ -383,9 +384,65 @@ model RockyAiDraft {
   expiresAt      DateTime
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+  catalogJob     RockyAiCatalogJob?
 
   @@index([conversationId, createdAt])
   @@index([state, createdAt])
+}
+
+// Super Bot's catalog is separate from the legacy WhatsApp-only catalog
+// queue. The snapshot is captured before acknowledgement, but cannot render or
+// send until its parent draft is confirmed as submitted.
+model RockyAiCatalogJob {
+  id               String   @id @default(uuid())
+  sequence         Int      @unique @default(autoincrement())
+  conversationId   String
+  conversation     RockyAiConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  draftId          String   @unique
+  draft            RockyAiDraft @relation(fields: [draftId], references: [id], onDelete: Cascade)
+  triggerId        String   @db.VarChar(180)
+  controlRevision  Int
+  settingsRevision Int
+  scopeKey         String   @db.VarChar(180)
+  title            String   @db.VarChar(180)
+  snapshot         Json
+  snapshotHash     String   @db.VarChar(64)
+  state            String   @default("WAITING_ACK") @db.VarChar(32)
+  attempts         Int      @default(0)
+  processingToken  String?  @db.VarChar(64)
+  leaseExpiresAt   DateTime?
+  dueAt            DateTime @default(now())
+  result           Json?
+  reason           String?  @db.Text
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  startedAt        DateTime?
+  finishedAt       DateTime?
+  deliveries       RockyAiCatalogDelivery[]
+
+  @@index([state, dueAt, sequence])
+  @@index([conversationId, state])
+}
+
+// A durable row per PDF part avoids duplicate send attempts when a process
+// stops between provider submission and database persistence.
+model RockyAiCatalogDelivery {
+  id                String   @id @default(uuid())
+  jobId             String
+  job               RockyAiCatalogJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  partNumber        Int
+  documentUrl       String   @db.Text
+  relativeUrl       String   @db.Text
+  filename          String   @db.VarChar(255)
+  byteLength        Int
+  productCount      Int
+  state             String   @default("PENDING") @db.VarChar(32)
+  providerMessageId String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([jobId, partNumber])
+  @@index([state, jobId])
 }
 
 model RockyAiUsage {

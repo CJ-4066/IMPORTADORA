@@ -24,8 +24,19 @@ export const settingsSchema = z.object({
 });
 export type Policies = z.infer<typeof settingsSchema>["policies"];
 export type ProductFact = { id: string; name: string; code: string; price: number; stock: number; wholesalePrice: number | null; wholesaleMinQty: number; boxPrice?: number | null; unitsPerBox?: number | null };
+export const catalogDecisionSchema = z.object({
+  // Catalog requests are resolved by the server from an immutable storefront
+  // snapshot. These fields record that server decision; they are not facts the
+  // language model is allowed to invent.
+  state: z.enum(["ready", "clarify", "empty"]),
+  scopeKey: z.string().max(180).nullable(),
+  title: z.string().max(180).nullable(),
+  productCount: z.number().int().min(0).max(10000),
+  message: z.string().max(1000).nullable(),
+});
+export type CatalogDecision = z.infer<typeof catalogDecisionSchema>;
 export const decisionSchema = z.object({
-  intent: z.enum(["greeting", "product", "policy", "clarify", "handoff"]),
+  intent: z.enum(["greeting", "product", "browse", "catalog", "policy", "clarify", "handoff"]),
   productIds: z.array(z.string()).max(3),
   quantity: z.number().int().min(1).max(10000),
   // Strict Structured Outputs requires every property to be present. `null`
@@ -33,6 +44,9 @@ export const decisionSchema = z.object({
   priceMode: z.enum(["UNIT", "BOX"]).nullable(),
   policyKey: z.enum(["hours", "shipping", "location", "payment", "returns", "pricing", "none"]),
   reason: z.enum(["routine", "ambiguous", "human_requested", "complaint", "negotiation", "unsupported"]),
+  // Strict Structured Outputs requires every property to be present. Only the
+  // server creates a non-null catalog payload after validating the request.
+  catalog: catalogDecisionSchema.nullable(),
 });
 export type Decision = z.infer<typeof decisionSchema>;
 export type HistoryItem = { id: string; role: "user" | "assistant"; text: string; at: string; attachment?: boolean };
@@ -57,8 +71,20 @@ export function maskPersonalData(text: string) {
 export function needsHuman(text: string) {
   return /\b(asesor[a]?|humano|persona|reclamo|estafa|devolucion|reembolso|denuncia|comprobante|ya pague)\b/i.test(text.normalize("NFD").replace(/[\u0300-\u036f]/g, ""));
 }
+function catalogAcknowledgement(title: string, productCount: number) {
+  // The PDF renderer can further split a visual-heavy part to comply with the
+  // byte cap, so never promise a count before rendering has completed.
+  const partHint = productCount > 32 ? ` Puede llegar en varias partes para incluir los ${productCount} productos.` : "";
+  return `Estoy preparando ${title.toLowerCase()} con información actualizada.${partHint}`;
+}
 export function renderDecision(decision: Decision, products: ProductFact[], policies: Policies) {
   const selected = decision.productIds.map(id => products.find(p => p.id === id));
+  if (decision.intent === "catalog" && decision.catalog) {
+    if (decision.catalog.state === "ready" && decision.catalog.title) {
+      return { text: catalogAcknowledgement(decision.catalog.title, decision.catalog.productCount), safe: true, reason: "verified_catalog" };
+    }
+    return { text: decision.catalog.message || "Indícame la categoría del catálogo que necesitas para prepararlo.", safe: true, reason: "verified_catalog" };
+  }
   if (decision.intent === "policy" && decision.policyKey === "pricing") {
     return { text: policies.pricing.trim() || defaultPricingPolicy, safe: true, reason: "verified_policy" };
   }
@@ -69,6 +95,16 @@ export function renderDecision(decision: Decision, products: ProductFact[], poli
   if (decision.intent === "policy" && decision.policyKey !== "none") {
     const policy = policies[decision.policyKey]?.trim();
     if (policy) return { text: policy, safe: true, reason: "verified_policy" };
+  }
+  if (decision.intent === "browse" && selected.length && selected.every((product): product is ProductFact => product != null)) {
+    const lines = selected.map(product => {
+      const wholesale = product.wholesalePrice && product.wholesalePrice > 0 && product.wholesaleMinQty > 1
+        ? ` · por mayor desde ${product.wholesaleMinQty}: S/ ${product.wholesalePrice.toFixed(2)}`
+        : "";
+      return `• ${product.name} (${product.code}): S/ ${product.price.toFixed(2)} por unidad${wholesale}.`;
+    });
+    const reply = `Sí, encontré estas opciones:\n${lines.join("\n")}\n¿Te interesa alguna en particular o deseas el catálogo?`;
+    return reply.length > 1000 ? { text: "Encontré varias opciones verificadas. ¿Deseas que te prepare el catálogo?", safe: true, reason: "verified_catalog" } : { text: reply, safe: true, reason: "verified_catalog" };
   }
   if (decision.intent === "product" && selected.length && selected.every((product): product is ProductFact => product != null)) {
     const selectedProducts = selected;

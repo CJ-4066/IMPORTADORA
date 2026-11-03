@@ -4,15 +4,17 @@ import { FormEvent, useEffect, useRef, useState } from "react";
 import { Bot, CircleAlert, FlaskConical, RotateCcw, Send, ShieldCheck, Sparkles, UserRound } from "lucide-react";
 import styles from "./SuperBotSimulator.module.css";
 
-type Turn = { role: "user" | "assistant"; text: string };
+type CatalogPreview = { state: "ready" | "clarify" | "empty"; title: string | null; productCount: number; fromConversationContext: boolean };
+type Turn = { role: "user" | "assistant"; text: string; catalog?: CatalogPreview | null };
 type Connection = "checking" | "missing" | "ready" | "verified" | "rejected";
-type SimulationReply = { text?: string; model?: string; providerUsed?: boolean; reason?: string; notice?: string; error?: string };
+type SimulationReply = { text?: string; model?: string; providerUsed?: boolean; reason?: string; notice?: string; error?: string; catalog?: CatalogPreview | null };
 
 const examples = [
   "Hola, busco una licuadora.",
   "¿Cuánto cuesta el producto HY300?",
   "¿Cómo puedo pagar?",
   "¿Me hacen descuento?",
+  "Quiero catálogo de parlantes JBL",
 ];
 
 function connectionLabel(connection: Connection) {
@@ -65,7 +67,7 @@ export function SuperBotSimulator() {
         if (response.status === 409 && /clave|OpenAI/i.test(payload.error || "")) setConnection("rejected");
         throw new Error(payload.error || "No se pudo obtener una respuesta de prueba.");
       }
-      setTurns(current => [...current, { role: "assistant" as const, text: payload.text! }].slice(-12));
+      setTurns(current => [...current, { role: "assistant" as const, text: payload.text!, catalog: payload.catalog }].slice(-12));
       if (payload.providerUsed) setConnection("verified");
       else setConnection(current => current === "rejected" ? current : "ready");
       setModel(payload.model || model);
@@ -115,6 +117,12 @@ export function SuperBotSimulator() {
         <div className={styles.messages}>
           {!turns.length ? <div className={styles.empty}><Bot size={42} /><h3>Empieza como un cliente</h3><p>Por ejemplo: “Busco un producto” o “¿Cómo puedo pagar?”.</p></div> : turns.map((turn, index) => <article className={turn.role === "user" ? styles.userTurn : styles.botTurn} key={`${turn.role}-${index}-${turn.text.slice(0, 24)}`}>
             <div className={styles.turnLabel}>{turn.role === "user" ? <><UserRound size={14} />Cliente de prueba</> : <><Bot size={14} />Super Bot</>}</div><p>{turn.text}</p>
+            {turn.role === "assistant" && turn.catalog && <div className={styles.catalogPreview} data-state={turn.catalog.state}>
+              <strong>{turn.catalog.state === "ready" ? "Catálogo verificado" : "Solicitud de catálogo"}</strong>
+              {turn.catalog.title && <span>{turn.catalog.title} · {turn.catalog.productCount} productos</span>}
+              {turn.catalog.fromConversationContext && <small>Alcance recuperado de la consulta anterior del cliente.</small>}
+              <em>En esta prueba no se genera ni se envía ningún PDF.</em>
+            </div>}
           </article>)}
           {busy && <article className={styles.typing}><Bot size={15} /><span>Super Bot está verificando catálogo y reglas…</span></article>}
           <div ref={endRef} />

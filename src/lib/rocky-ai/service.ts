@@ -1,11 +1,12 @@
 import { Prisma, type RockyAiSettings } from "@prisma/client";
 import { prisma } from "../prisma";
 import { buildSellableProductWhere } from "../store-shared";
-import { searchCatalogIdentity } from "../rocky-product-query";
+import { productQueryTerms, searchCatalogIdentity } from "../rocky-product-query";
 import { claimChannel, deliver, snapshot, isLocal } from "./adapters";
+import { prepareSuperBotCatalog, type SuperBotCatalogPlan } from "./catalog";
 import { generateDecision } from "./provider";
 import { automaticAllowed, channels, currentDraft, decisionSchema, defaultPricingPolicy, hash, needsHuman, renderDecision, settingsSchema,
-  targetKey, type AiChannel, type AiMode, type HistoryItem, type Policies, type ProductFact } from "./policy";
+  targetKey, type AiChannel, type AiMode, type Decision, type HistoryItem, type Policies, type ProductFact } from "./policy";
 import { socialRequest, type SocialPage, type SocialConversation } from "../social-inbox";
 
 export const emptyPolicies: Policies = { hours: "", shipping: "", location: "", payment: "", returns: "", pricing: defaultPricingPolicy };
@@ -41,6 +42,9 @@ export async function saveSettings(input: unknown, actor: string) {
     if (data.enabled && global && !global.botMasterSwitch) throw new Error("GLOBAL_AUTOMATION_DISABLED");
     const saved = await tx.rockyAiSettings.update({ where: { id: 1 }, data: { ...data, revision: { increment: 1 }, defaultsSince: new Date() } });
     await tx.rockyAiDraft.updateMany({ where: { state: { in: ["DRAFT", "QUEUED"] } }, data: { state: "EXPIRED", reason: "La configuración cambió." } });
+    await tx.rockyAiCatalogJob.updateMany({ where: { state: { in: ["WAITING_ACK", "QUEUED", "RENDERING", "READY", "DELIVERING"] } }, data: {
+      state: "CANCELLED", processingToken: null, leaseExpiresAt: null, reason: "settings_changed", finishedAt: new Date(),
+    } });
     // The payment policy can contain bank accounts. Its existence is useful in
     // an audit trail, but its full content belongs only in RockyAiSettings.
     const auditData = { ...data, policies: { ...data.policies, payment: data.policies.payment.trim() ? "[configurada]" : "" } };
@@ -54,6 +58,9 @@ export async function emergencyStop(actor: string) {
     await tx.$queryRaw`SELECT id FROM "RockyAiSettings" WHERE id = 1 FOR UPDATE`;
     await tx.rockyAiSettings.update({ where: { id: 1 }, data: { enabled: false, revision: { increment: 1 } } });
     await tx.rockyAiDraft.updateMany({ where: { state: { in: ["DRAFT", "QUEUED"] } }, data: { state: "EXPIRED", reason: "Parada de emergencia." } });
+    await tx.rockyAiCatalogJob.updateMany({ where: { state: { in: ["WAITING_ACK", "QUEUED", "RENDERING", "READY", "DELIVERING"] } }, data: {
+      state: "CANCELLED", processingToken: null, leaseExpiresAt: null, reason: "emergency_stop", finishedAt: new Date(),
+    } });
     await tx.rockyAiAudit.create({ data: { actor, action: "emergency_stop" } });
   });
 }
@@ -63,6 +70,9 @@ export async function pauseForHuman(channel: AiChannel, externalId: string, acto
     const changed = await tx.rockyAiConversation.updateMany({ where: { id }, data: { humanControl: true, revision: { increment: 1 } } });
     if (!changed.count) return;
     await tx.rockyAiDraft.updateMany({ where: { conversationId: id, state: { in: ["DRAFT", "QUEUED"] } }, data: { state: "EXPIRED", reason: "Intervención humana." } });
+    await tx.rockyAiCatalogJob.updateMany({ where: { conversationId: id, state: { in: ["WAITING_ACK", "QUEUED", "RENDERING", "READY", "DELIVERING"] } }, data: {
+      state: "CANCELLED", processingToken: null, leaseExpiresAt: null, reason: "human_takeover", finishedAt: new Date(),
+    } });
     await tx.rockyAiAudit.create({ data: { actor, action: "human_takeover", conversationId: id } });
   });
 }
@@ -91,6 +101,36 @@ export async function productsByIds(ids: string[]): Promise<ProductFact[]> {
     wholesalePrice: p.wholesalePrice == null ? null : Number(p.wholesalePrice), wholesaleMinQty: p.wholesaleMinQty,
     boxPrice: p.boxPrice == null ? null : Number(p.boxPrice), unitsPerBox: p.unitsPerBox,
   }] : []; });
+}
+
+async function productCandidates(content: string) {
+  // Product query terms are parsed on the server. This makes broad requests
+  // such as "parlantes JBL" usable even when an LLM does not issue the tool
+  // call it was instructed to make.
+  if (!productQueryTerms(content).length) return [];
+  return productsByIds((await searchCatalogIdentity(content, 8)).ids);
+}
+
+function decisionForCatalog(plan: SuperBotCatalogPlan): Decision {
+  const { prepared } = plan;
+  if (prepared.kind === "ready") {
+    return {
+      intent: "catalog", productIds: [], quantity: 1, priceMode: null, policyKey: "none", reason: "routine",
+      catalog: { state: "ready", scopeKey: prepared.scope.key, title: prepared.scope.title, productCount: prepared.snapshot.products.length, message: null },
+    };
+  }
+  return {
+    intent: "catalog", productIds: [], quantity: 1, priceMode: null, policyKey: "none", reason: prepared.kind === "ambiguous" ? "ambiguous" : "routine",
+    catalog: { state: prepared.kind === "ambiguous" ? "clarify" : "empty", scopeKey: null, title: null, productCount: 0, message: prepared.message },
+  };
+}
+
+function catalogPreview(plan: SuperBotCatalogPlan | null) {
+  if (!plan) return null;
+  const { prepared } = plan;
+  return prepared.kind === "ready"
+    ? { state: "ready" as const, title: prepared.scope.title, productCount: prepared.snapshot.products.length, fromConversationContext: plan.fromConversationContext }
+    : { state: prepared.kind === "ambiguous" ? "clarify" as const : "empty" as const, title: null, productCount: 0, fromConversationContext: plan.fromConversationContext };
 }
 export async function reserveUsage(config: RockyAiSettings, conversationId: string, tokens: number) {
   return prisma.$transaction(async tx => {
@@ -137,21 +177,31 @@ export async function simulateSuperBot(turns: Array<Pick<HistoryItem, "role" | "
   let decision: ReturnType<typeof decisionSchema.parse>;
   let products: ProductFact[] = [];
   let providerUsed = false;
+  let catalogPlan: SuperBotCatalogPlan | null = null;
   if (needsHuman(latest.text)) {
-    decision = { intent: "handoff", reason: "human_requested", productIds: [], quantity: 1, priceMode: null, policyKey: "none" };
+    decision = { intent: "handoff", reason: "human_requested", productIds: [], quantity: 1, priceMode: null, policyKey: "none", catalog: null };
   } else {
-    const result = await generateDecision({
-      model: config.model, maxOutputTokens: config.maxOutputTokens, history, policies,
-      search: async query => productsByIds((await searchCatalogIdentity(query, 8)).ids),
-      reserve: tokens => reserveSimulationUsage(config, actor, tokens), record: recordUsage,
-    });
-    providerUsed = true;
-    decision = result.decision;
-    products = result.products;
+    catalogPlan = await prepareSuperBotCatalog(history);
+    if (catalogPlan) {
+      decision = decisionForCatalog(catalogPlan);
+    } else {
+      const candidates = await productCandidates(latest.text);
+      const result = await generateDecision({
+        model: config.model, maxOutputTokens: config.maxOutputTokens, history, policies,
+        search: async query => productsByIds((await searchCatalogIdentity(query, 8)).ids),
+        initialProducts: candidates, fallbackToInitialProducts: candidates.length > 0, forceBrowse: candidates.length > 1,
+        reserve: tokens => reserveSimulationUsage(config, actor, tokens), record: recordUsage,
+      });
+      providerUsed = true;
+      decision = result.decision;
+      products = result.products;
+    }
   }
   const rendered = renderDecision(decision, products, policies);
-  await audit(actor, "live_simulation", undefined, { turns: history.length, providerUsed, intent: decision.intent, policyKey: decision.policyKey, reason: rendered.reason });
-  return { ...rendered, providerUsed, decision: { intent: decision.intent, policyKey: decision.policyKey, reason: decision.reason }, model: config.model };
+  const catalog = catalogPreview(catalogPlan);
+  await audit(actor, "live_simulation", undefined, { turns: history.length, providerUsed, intent: decision.intent, policyKey: decision.policyKey, reason: rendered.reason,
+    ...(catalog ? { catalog } : {}) });
+  return { ...rendered, providerUsed, catalog, decision: { intent: decision.intent, policyKey: decision.policyKey, reason: decision.reason }, model: config.model };
 }
 async function withConversationLock<T>(id: string, work: () => Promise<T>): Promise<T | null> {
   return prisma.$transaction(async tx => {
@@ -177,16 +227,24 @@ export async function generateDraft(id: string, actor: string, explicit = false)
     const latest = state.history.filter(m => m.role === "user").at(-1)!;
     let decision: ReturnType<typeof decisionSchema.parse>;
     let products: ProductFact[] = [];
+    let catalogPlan: SuperBotCatalogPlan | null = null;
     if (needsHuman(latest.text) || latest.attachment) {
-      decision = { intent: "handoff", reason: latest.attachment ? "unsupported" : "human_requested", productIds: [], quantity: 1, priceMode: null, policyKey: "none" };
+      decision = { intent: "handoff", reason: latest.attachment ? "unsupported" : "human_requested", productIds: [], quantity: 1, priceMode: null, policyKey: "none", catalog: null };
     } else {
-      const result = await generateDecision({
-        model: config.model, maxOutputTokens: config.maxOutputTokens, history: state.history, policies,
-        search: async query => productsByIds((await searchCatalogIdentity(query, 8)).ids),
-        reserve: tokens => reserveUsage(config, id, tokens),
-        record: recordUsage,
-      });
-      decision = result.decision; products = result.products;
+      catalogPlan = await prepareSuperBotCatalog(state.history);
+      if (catalogPlan) {
+        decision = decisionForCatalog(catalogPlan);
+      } else {
+        const candidates = await productCandidates(latest.text);
+        const result = await generateDecision({
+          model: config.model, maxOutputTokens: config.maxOutputTokens, history: state.history, policies,
+          search: async query => productsByIds((await searchCatalogIdentity(query, 8)).ids),
+          initialProducts: candidates, fallbackToInitialProducts: candidates.length > 0, forceBrowse: candidates.length > 1,
+          reserve: tokens => reserveUsage(config, id, tokens),
+          record: recordUsage,
+        });
+        decision = result.decision; products = result.products;
+      }
     }
     const rendered = renderDecision(decision, products, policies);
     const freshState = await snapshot(c.channel as AiChannel, c.externalId);
@@ -202,6 +260,17 @@ export async function generateDraft(id: string, actor: string, explicit = false)
         controlRevision: c.revision, settingsRevision: config.revision, state: auto ? "QUEUED" : "DRAFT",
         text: rendered.text, decision: json(decision), evidence: json(products), reason: rendered.reason,
         expiresAt: new Date(Date.now() + 5 * 60000) } });
+      // A ready catalog is a durable, immutable snapshot. It stays inert until
+      // the acknowledgement itself has been delivered successfully.
+      if (catalogPlan?.prepared.kind === "ready") {
+        await tx.rockyAiCatalogJob.create({ data: {
+          draftId: draft.id, conversationId: id, triggerId: state.triggerId,
+          controlRevision: c.revision, settingsRevision: config.revision,
+          scopeKey: catalogPlan.prepared.scope.key, title: catalogPlan.prepared.scope.title,
+          snapshot: json(catalogPlan.prepared.snapshot), snapshotHash: catalogPlan.prepared.snapshotHash,
+          state: "WAITING_ACK",
+        } });
+      }
       await tx.rockyAiConversation.update({ where: { id }, data: { lastTrigger: state.triggerId, lastError: null,
         ...(!rendered.safe && c.mode !== "COPILOT" ? { humanControl: true } : {}) } });
       await tx.rockyAiAudit.create({ data: { actor, action: auto ? "auto_queued" : "draft_created", conversationId: id, detail: { draftId: draft.id, reason: rendered.reason } } });
@@ -230,13 +299,18 @@ export async function approveDraft(id: string, text: string, actor: string) {
 }
 export async function discardDraft(id: string, actor: string) {
   const d = await prisma.rockyAiDraft.findUniqueOrThrow({ where: { id } });
-  await prisma.rockyAiDraft.updateMany({ where: { id, state: { in: ["DRAFT", "QUEUED"] } }, data: { state: "DISCARDED" } });
+  await prisma.$transaction(async tx => {
+    await tx.rockyAiDraft.updateMany({ where: { id, state: { in: ["DRAFT", "QUEUED"] } }, data: { state: "DISCARDED" } });
+    await tx.rockyAiCatalogJob.updateMany({ where: { draftId: id, state: { in: ["WAITING_ACK", "QUEUED", "RENDERING", "READY", "DELIVERING"] } }, data: {
+      state: "CANCELLED", processingToken: null, leaseExpiresAt: null, reason: "draft_discarded", finishedAt: new Date(),
+    } });
+  });
   await audit(actor, "draft_discarded", d.conversationId, { draftId: id });
 }
 export async function dispatchDraft(id: string) {
   const initial = await prisma.rockyAiDraft.findUniqueOrThrow({ where: { id } });
   return withConversationLock(initial.conversationId, async () => {
-    const d = await prisma.rockyAiDraft.findUniqueOrThrow({ where: { id }, include: { conversation: true } });
+    const d = await prisma.rockyAiDraft.findUniqueOrThrow({ where: { id }, include: { conversation: true, catalogJob: true } });
     if (d.state !== "QUEUED") return;
     const c = d.conversation, config = await settings();
     const state = await snapshot(c.channel as AiChannel, c.externalId);
@@ -245,6 +319,7 @@ export async function dispatchDraft(id: string) {
     // by `decisionSchema` in the provider.
     const decision = decisionSchema.parse({
       priceMode: null,
+      catalog: null,
       ...(d.decision && typeof d.decision === "object" && !Array.isArray(d.decision) ? d.decision : {}),
     });
     const products = await productsByIds(decision.productIds);
@@ -252,10 +327,20 @@ export async function dispatchDraft(id: string) {
     const rendered = renderDecision(decision, products, policies);
     const previous = decision.productIds.map(id => (d.evidence as unknown as ProductFact[]).find(p => p.id === id));
     const factsUnchanged = hash(products) === hash(previous);
+    const catalogReady = decision.intent === "catalog" && decision.catalog?.state === "ready";
+    const catalogValid = decision.intent !== "catalog" || Boolean(decision.catalog) && (!catalogReady || Boolean(
+      d.catalogJob && d.catalogJob.state === "WAITING_ACK" && d.catalogJob.scopeKey === decision.catalog?.scopeKey &&
+      d.catalogJob.snapshotHash && d.catalogJob.title === decision.catalog?.title,
+    ));
     const permitted = config.enabled && c.mode !== "OFF" && currentDraft(d, state, c.revision, config.revision) &&
-      (Boolean(d.approvedBy) || !c.humanControl && automaticAllowed(c.mode, decision, rendered.safe)) && factsUnchanged;
+      (Boolean(d.approvedBy) || !c.humanControl && automaticAllowed(c.mode, decision, rendered.safe)) && factsUnchanged && catalogValid;
     if (!permitted) {
-      await prisma.rockyAiDraft.updateMany({ where: { id, state: "QUEUED" }, data: { state: "EXPIRED", reason: "Cambió el contexto, el control o el catálogo." } });
+      await prisma.$transaction(async tx => {
+        await tx.rockyAiDraft.updateMany({ where: { id, state: "QUEUED" }, data: { state: "EXPIRED", reason: "Cambió el contexto, el control o el catálogo." } });
+        await tx.rockyAiCatalogJob.updateMany({ where: { draftId: id, state: { in: ["WAITING_ACK", "QUEUED", "RENDERING", "READY", "DELIVERING"] } }, data: {
+          state: "CANCELLED", processingToken: null, leaseExpiresAt: null, reason: "draft_not_permitted", finishedAt: new Date(),
+        } });
+      });
       return;
     }
     const claimed = await prisma.$transaction(async tx => {
@@ -269,10 +354,22 @@ export async function dispatchDraft(id: string) {
     if (!claimed) return;
     try {
       const providerMessageId = await deliver(c.channel as AiChannel, c.externalId, d.text, d.id, d.approvedBy);
-      await prisma.rockyAiDraft.update({ where: { id }, data: { state: "SUBMITTED", providerMessageId } });
-      await audit(d.approvedBy || "rocky-ai", "reply_submitted", c.id, { draftId: id, providerMessageId });
+      await prisma.$transaction(async tx => {
+        const submitted = await tx.rockyAiDraft.updateMany({ where: { id, state: "SENDING" }, data: { state: "SUBMITTED", providerMessageId } });
+        if (!submitted.count) throw new Error("DRAFT_SUBMISSION_LOST");
+        if (catalogReady) {
+          const queued = await tx.rockyAiCatalogJob.updateMany({ where: { draftId: id, state: "WAITING_ACK" }, data: { state: "QUEUED", dueAt: new Date(), reason: null } });
+          if (!queued.count) throw new Error("CATALOG_JOB_LOST");
+        }
+        await tx.rockyAiAudit.create({ data: { actor: d.approvedBy || "rocky-ai", action: "reply_submitted", conversationId: c.id, detail: { draftId: id, providerMessageId } } });
+      });
     } catch {
-      await prisma.rockyAiDraft.update({ where: { id }, data: { state: "UNCERTAIN", reason: "Entrega sin confirmar. No se reintentará automáticamente." } });
+      await prisma.$transaction(async tx => {
+        await tx.rockyAiDraft.updateMany({ where: { id, state: "SENDING" }, data: { state: "UNCERTAIN", reason: "Entrega sin confirmar. No se reintentará automáticamente." } });
+        await tx.rockyAiCatalogJob.updateMany({ where: { draftId: id, state: { in: ["WAITING_ACK", "QUEUED", "RENDERING", "READY", "DELIVERING"] } }, data: {
+          state: "CANCELLED", processingToken: null, leaseExpiresAt: null, reason: "acknowledgement_unconfirmed", finishedAt: new Date(),
+        } });
+      });
       await pauseForHuman(c.channel as AiChannel, c.externalId, "delivery_uncertain");
     }
   });
@@ -331,6 +428,9 @@ export async function workerTick() {
     if (global && !global.botMasterSwitch) {
       await lock.rockyAiSettings.updateMany({ where: { id: 1, enabled: true }, data: { enabled: false, revision: { increment: 1 } } });
       await lock.rockyAiDraft.updateMany({ where: { state: { in: ["DRAFT", "QUEUED"] } }, data: { state: "EXPIRED", reason: "Automatización global detenida." } });
+      await lock.rockyAiCatalogJob.updateMany({ where: { state: { in: ["WAITING_ACK", "QUEUED", "RENDERING", "READY", "DELIVERING"] } }, data: {
+        state: "CANCELLED", processingToken: null, leaseExpiresAt: null, reason: "global_automation_stopped", finishedAt: new Date(),
+      } });
       return;
     }
     await prisma.rockyAiSettings.update({ where: { id: 1 }, data: { workerSeenAt: new Date(), workerError: null } });

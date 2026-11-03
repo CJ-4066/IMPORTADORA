@@ -4,7 +4,7 @@ import { z } from "zod";
 import { automaticAllowed, currentDraft, decisionSchema, hash, maskPersonalData, needsHuman, renderDecision, settingsSchema, simulationHistorySchema, targetKey, type Decision, type Snapshot } from "./policy";
 const policies = { hours: "De 8 a 20 horas.", location: "", payment: "", shipping: "", returns: "", pricing: "Precios por unidad o mayorista; no hay descuentos." };
 const product = { id: "p1", code: "HY300", name: "Proyector", price: 100, stock: 20, wholesalePrice: 90, wholesaleMinQty: 3 };
-const decision: Decision = { intent: "product", productIds: ["p1"], quantity: 3, priceMode: null, policyKey: "none", reason: "routine" };
+const decision: Decision = { intent: "product", productIds: ["p1"], quantity: 3, priceMode: null, policyKey: "none", reason: "routine", catalog: null };
 test("evidence fingerprints survive PostgreSQL JSONB property reordering", () => {
   assert.equal(hash([{ price: 12, id: "p", stock: 2 }]), hash([{ stock: 2, id: "p", price: 12 }]));
 });
@@ -17,6 +17,21 @@ test("catalog quotes use stock internally without disclosing its quantity", () =
   assert.ok(!reply.includes("20 unidades"));
   assert.ok(!reply.includes("Disponibilidad consultada"));
   assert.match(reply, /La disponibilidad se confirma al realizar el pedido\./);
+});
+test("browsing verified options remains natural and never reveals stock", () => {
+  const reply = renderDecision({ ...decision, intent: "browse", quantity: 1 }, [product], policies);
+  assert.equal(reply.safe, true);
+  assert.match(reply.text, /Proyector \(HY300\): S\/ 100.00 por unidad/);
+  assert.match(reply.text, /por mayor desde 3: S\/ 90.00/);
+  assert.ok(!reply.text.includes("20 unidades"));
+  assert.match(reply.text, /deseas el catálogo/i);
+});
+test("catalog acknowledgement uses a server-verified scope, not model product facts", () => {
+  const reply = renderDecision({ ...decision, intent: "catalog", productIds: [], catalog: {
+    state: "ready", scopeKey: "parlantes:sony", title: "CATÁLOGO DE PARLANTES SONY", productCount: 5, message: null,
+  } }, [], policies);
+  assert.equal(reply.safe, true);
+  assert.match(reply.text, /preparando catálogo de parlantes sony/i);
 });
 test("box pricing is used only when explicitly selected and validates whole-box availability", () => {
   const boxed = { ...product, stock: 24, boxPrice: 250, unitsPerBox: 12 };
@@ -78,8 +93,12 @@ test("different channel identifiers never alias and unsafe settings fail validat
   const withoutPriceMode: Partial<Decision> = { ...decision };
   delete withoutPriceMode.priceMode;
   assert.equal(decisionSchema.safeParse(withoutPriceMode).success, false);
+  const withoutCatalog: Partial<Decision> = { ...decision };
+  delete withoutCatalog.catalog;
+  assert.equal(decisionSchema.safeParse(withoutCatalog).success, false);
   const jsonSchema = z.toJSONSchema(decisionSchema, { target: "draft-7" }) as { required?: string[] };
   assert.ok(jsonSchema.required?.includes("priceMode"));
+  assert.ok(jsonSchema.required?.includes("catalog"));
   assert.equal(decisionSchema.safeParse({ ...decision, quantity: -1 }).success, false);
   assert.equal(settingsSchema.safeParse({ enabled: true, model: "../../", dailyRequests: 0 }).success, false);
 });
