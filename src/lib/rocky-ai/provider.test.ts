@@ -6,7 +6,7 @@ function options(transport: typeof fetch) {
   return {
     apiKey: "synthetic-key", model: "gpt-4.1-mini", maxOutputTokens: 700,
     history: [{ id: "m1", role: "user" as const, text: "Precio del HY300 cliente@example.com", at: new Date().toISOString() }],
-    policies: { hours: "", shipping: "", location: "", payment: "", returns: "", pricing: "No hay descuentos." },
+    policies: { hours: "", shipping: "", location: "", payment: "CUENTA_PRIVADA_DE_PRUEBA", returns: "", pricing: "No hay descuentos." },
     search: async () => [{ id: "p1", name: "Proyector HY300", code: "HY300", price: 100, stock: 10, wholesalePrice: null, wholesaleMinQty: 3 }],
     reserve: async () => "reservation", record: async () => {}, transport,
   };
@@ -19,6 +19,8 @@ test("Responses flow executes a bounded catalog tool and validates final IDs wit
     assert.equal(body.store, false); assert.equal(body.parallel_tool_calls, false);
     assert.match(String(init?.body), /priceMode BOX/);
     assert.equal(String(init?.body).includes("cliente@example.com"), false);
+    assert.equal(String(init?.body).includes("CUENTA_PRIVADA_DE_PRUEBA"), false);
+    assert.equal(body.input[0].content.includes('"payment":true'), true);
     return Response.json({ status: "completed", usage: { input_tokens: 50, output_tokens: 20 }, output: calls === 1
       ? [{ type: "function_call", name: "search_products", call_id: "c1", arguments: '{"query":"HY300"}' }]
       : [{ type: "message", content: [{ type: "output_text", text: JSON.stringify(decision) }] }] });
