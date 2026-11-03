@@ -65,7 +65,7 @@ export function SuperBotSimulator() {
         if (response.status === 409 && /clave|OpenAI/i.test(payload.error || "")) setConnection("rejected");
         throw new Error(payload.error || "No se pudo obtener una respuesta de prueba.");
       }
-      setTurns(current => [...current, { role: "assistant", text: payload.text! }].slice(-12));
+      setTurns(current => [...current, { role: "assistant" as const, text: payload.text! }].slice(-12));
       if (payload.providerUsed) setConnection("verified");
       else setConnection(current => current === "rejected" ? current : "ready");
       setModel(payload.model || model);
