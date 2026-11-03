@@ -32,8 +32,15 @@ export async function generateDecision(options: Options): Promise<{ decision: De
   // The model only needs to know which response categories are approved; the
   // server renders the approved text after its decision has been validated.
   const availablePolicies = Object.fromEntries(Object.entries(options.policies).map(([key, value]) => [key, Boolean(value.trim())]));
+  const paymentPolicy = options.policies.payment.trim();
+  const redactHistory = (text: string) => {
+    // Sent assistant replies return in the local conversation snapshot. Replace
+    // the approved payment policy before the snapshot is used as model context.
+    const withoutPayment = paymentPolicy ? text.split(paymentPolicy).join("[instrucciones de pago ocultas]") : text;
+    return maskPersonalData(withoutPayment.slice(0, 600));
+  };
   const input: unknown[] = [{ role: "user", content: JSON.stringify({
-    history: options.history.slice(-12).map(m => ({ role: m.role, text: maskPersonalData(m.text.slice(0, 600)), attachment: Boolean(m.attachment) })),
+    history: options.history.slice(-12).map(m => ({ role: m.role, text: redactHistory(m.text), attachment: Boolean(m.attachment) })),
     availablePolicies,
   }) }];
   const products = new Map<string, ProductFact>();

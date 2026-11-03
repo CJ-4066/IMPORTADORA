@@ -65,8 +65,10 @@ test("draft checks reject stale context, control, configuration, expiration and 
   assert.equal(currentDraft(draft, state, 2, 3, Date.now() + 70000), false);
 });
 test("personal identifiers are redacted while product codes remain available", () => {
-  const safe = maskPersonalData("Escríbeme a cliente@example.com +51 999 888 777 por el HY300");
-  assert.ok(!safe.includes("cliente@")); assert.ok(!safe.includes("999")); assert.ok(safe.includes("HY300"));
+  const safe = maskPersonalData("Escríbeme a cliente@example.com +51 999 888 777, 11111111111111111111 o 111-111-111111111111-11 por el HY300");
+  assert.ok(!safe.includes("cliente@")); assert.ok(!safe.includes("999"));
+  assert.ok(!safe.includes("11111111111111111111")); assert.ok(!safe.includes("111-111-111111111111-11"));
+  assert.ok(safe.includes("HY300"));
 });
 test("different channel identifiers never alias and unsafe settings fail validation", () => {
   assert.notEqual(targetKey("messenger", "123"), targetKey("tiktok", "123"));

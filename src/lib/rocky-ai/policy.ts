@@ -19,7 +19,7 @@ export const settingsSchema = z.object({
   }),
   policies: z.object({
     hours: z.string().max(600), shipping: z.string().max(600),
-    location: z.string().max(600), payment: z.string().max(600), returns: z.string().max(600), pricing: z.string().max(600).default(defaultPricingPolicy),
+    location: z.string().max(600), payment: z.string().max(1200), returns: z.string().max(600), pricing: z.string().max(600).default(defaultPricingPolicy),
   }),
 });
 export type Policies = z.infer<typeof settingsSchema>["policies"];
@@ -44,7 +44,9 @@ function canonical(value: unknown): unknown {
 export function hash(value: unknown) { return createHash("sha256").update(JSON.stringify(canonical(value))).digest("hex"); }
 export function maskPersonalData(text: string) {
   return text.replace(/\b[\w.+-]+@[\w.-]+\.[a-z]{2,}\b/gi, "[correo]")
-    .replace(/(?<!\w)(?:\+?\d[\s()-]*){9,16}(?!\w)/g, "[teléfono o documento]");
+    // Covers phone numbers, documents and Peruvian CCI/account formats, even
+    // when they contain separators. Product codes remain outside this pattern.
+    .replace(/(?<!\w)(?:\+?\d[\s()-]*){9,30}(?!\w)/g, "[teléfono, documento o cuenta]");
 }
 export function needsHuman(text: string) {
   return /\b(asesor[a]?|humano|persona|reclamo|estafa|devolucion|reembolso|denuncia|comprobante|ya pague)\b/i.test(text.normalize("NFD").replace(/[\u0300-\u036f]/g, ""));
