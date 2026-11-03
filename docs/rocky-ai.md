@@ -17,7 +17,7 @@ Los adaptadores utilizan las conexiones existentes a YCloud, Telegram y ChatbotX
 
 ## Respuestas y límites
 
-OpenAI clasifica la consulta mediante Responses y una herramienta de consulta de catálogo de solo lectura. El servidor compone precios, cantidades e importes con información verificada; el stock se valida internamente, pero su cantidad nunca se comunica al cliente. El modelo no puede escribir en inventario ni confirmar pedidos/pagos. Se reutiliza la información comercial ya aprobada en Super Bot. Las políticas vacías requieren asesor.
+OpenAI clasifica la consulta mediante Responses y una herramienta de consulta de catálogo de solo lectura. El servidor compone precios, cantidades e importes con información verificada; el stock se valida internamente, pero su cantidad nunca se comunica al cliente. El modelo no puede escribir en inventario ni confirmar pedidos/pagos. Sólo se informa al modelo qué categorías de políticas están disponibles: el texto aprobado —incluidos datos de pago— permanece en el servidor y se compone después de validar la decisión. Las políticas vacías requieren asesor.
 
 La regla comercial predeterminada es precio publicado por unidad o por mayor según la cantidad configurada en el producto; no hay descuentos ni negociación de precios. El precio por cajón se considera únicamente si el cliente lo solicita de forma explícita y el catálogo confirma precio, unidades por cajón y disponibilidad suficientes. La cantidad de inventario no se revela en ninguno de estos casos.
 
