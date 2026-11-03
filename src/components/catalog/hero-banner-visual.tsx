@@ -3,7 +3,7 @@
 import Link from "next/link";
 import type { CSSProperties } from "react";
 import { cn } from "@/lib/utils";
-import { getSafeMediaUrl } from "@/lib/media-url";
+import { getVersionedUploadUrl } from "@/lib/media-url";
 import {
   getHeroBannerLayoutMeta,
   type HeroBannerContentPosition,
@@ -82,8 +82,8 @@ export function HeroBannerVisual({
 }: HeroBannerVisualProps) {
   const layout = getHeroBannerLayoutMeta(banner.layout);
   const modeClass = mode === "mobile" ? "is-mobile-mode" : mode === "desktop" ? "is-desktop-mode" : "is-auto-mode";
-  const desktopUrl = getSafeMediaUrl(banner.desktopImageUrl)?.trim() || "";
-  const mobileUrl = banner.mobileImageUrl ? (getSafeMediaUrl(banner.mobileImageUrl)?.trim() || "") : "";
+  const desktopUrl = getVersionedUploadUrl(banner.desktopImageUrl)?.trim() || "";
+  const mobileUrl = banner.mobileImageUrl ? (getVersionedUploadUrl(banner.mobileImageUrl)?.trim() || "") : "";
   const src = mode === "mobile" ? mobileUrl || desktopUrl : desktopUrl || mobileUrl;
   const hasMobileImage = mobileUrl.length > 0;
   const hasVisibleImage = src.length > 0;
