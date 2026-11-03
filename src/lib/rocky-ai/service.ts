@@ -138,7 +138,7 @@ export async function simulateSuperBot(turns: Array<Pick<HistoryItem, "role" | "
   let products: ProductFact[] = [];
   let providerUsed = false;
   if (needsHuman(latest.text)) {
-    decision = { intent: "handoff", reason: "human_requested", productIds: [], quantity: 1, policyKey: "none" };
+    decision = { intent: "handoff", reason: "human_requested", productIds: [], quantity: 1, priceMode: null, policyKey: "none" };
   } else {
     const result = await generateDecision({
       model: config.model, maxOutputTokens: config.maxOutputTokens, history, policies,
@@ -178,7 +178,7 @@ export async function generateDraft(id: string, actor: string, explicit = false)
     let decision: ReturnType<typeof decisionSchema.parse>;
     let products: ProductFact[] = [];
     if (needsHuman(latest.text) || latest.attachment) {
-      decision = { intent: "handoff", reason: latest.attachment ? "unsupported" : "human_requested", productIds: [], quantity: 1, policyKey: "none" };
+      decision = { intent: "handoff", reason: latest.attachment ? "unsupported" : "human_requested", productIds: [], quantity: 1, priceMode: null, policyKey: "none" };
     } else {
       const result = await generateDecision({
         model: config.model, maxOutputTokens: config.maxOutputTokens, history: state.history, policies,
@@ -240,7 +240,13 @@ export async function dispatchDraft(id: string) {
     if (d.state !== "QUEUED") return;
     const c = d.conversation, config = await settings();
     const state = await snapshot(c.channel as AiChannel, c.externalId);
-    const decision = decisionSchema.parse(d.decision);
+    // Drafts created before `priceMode` became an explicit nullable field can
+    // still be reviewed safely. Live model responses remain strictly checked
+    // by `decisionSchema` in the provider.
+    const decision = decisionSchema.parse({
+      priceMode: null,
+      ...(d.decision && typeof d.decision === "object" && !Array.isArray(d.decision) ? d.decision : {}),
+    });
     const products = await productsByIds(decision.productIds);
     const policies = { ...emptyPolicies, ...(config.policies as object) };
     const rendered = renderDecision(decision, products, policies);

@@ -24,6 +24,7 @@ function failure(error: unknown) {
   const known: Record<string, string> = {
     OPENAI_NOT_CONFIGURED_OR_DISABLED: "Configura OPENAI_API_KEY en el servidor y activa Super Bot.",
     OPENAI_NOT_CONFIGURED: "No se detectó una clave de OpenAI en el servidor.",
+    OPENAI_HTTP_400: "OpenAI rechazó la estructura de la prueba. Revisa la configuración técnica del simulador.",
     OPENAI_HTTP_401: "OpenAI rechazó la clave configurada en el servidor. Reemplázala por una clave activa.",
     OPENAI_HTTP_403: "La clave de OpenAI no tiene permiso para usar el modelo configurado.",
     OPENAI_HTTP_429: "OpenAI rechazó la prueba por límite o saldo. Revisa la cuenta de OpenAI.",

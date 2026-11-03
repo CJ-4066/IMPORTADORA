@@ -28,7 +28,9 @@ export const decisionSchema = z.object({
   intent: z.enum(["greeting", "product", "policy", "clarify", "handoff"]),
   productIds: z.array(z.string()).max(3),
   quantity: z.number().int().min(1).max(10000),
-  priceMode: z.enum(["UNIT", "BOX"]).optional(),
+  // Strict Structured Outputs requires every property to be present. `null`
+  // explicitly means the regular unit/wholesale pricing flow applies.
+  priceMode: z.enum(["UNIT", "BOX"]).nullable(),
   policyKey: z.enum(["hours", "shipping", "location", "payment", "returns", "pricing", "none"]),
   reason: z.enum(["routine", "ambiguous", "human_requested", "complaint", "negotiation", "unsupported"]),
 });

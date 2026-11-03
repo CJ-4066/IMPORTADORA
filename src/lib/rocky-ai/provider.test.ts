@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { generateDecision } from "./provider";
 import type { HistoryItem } from "./policy";
-const decision = { intent: "product", productIds: ["p1"], quantity: 1, policyKey: "none", reason: "routine" };
+const decision = { intent: "product", productIds: ["p1"], quantity: 1, priceMode: null, policyKey: "none", reason: "routine" };
 function options(transport: typeof fetch) {
   return {
     apiKey: "synthetic-key", model: "gpt-4.1-mini", maxOutputTokens: 700,
@@ -19,6 +19,7 @@ test("Responses flow executes a bounded catalog tool and validates final IDs wit
     const body = JSON.parse(String(init?.body));
     assert.equal(body.store, false); assert.equal(body.parallel_tool_calls, false);
     assert.match(String(init?.body), /priceMode BOX/);
+    assert.ok(body.text.format.schema.required.includes("priceMode"));
     assert.equal(String(init?.body).includes("cliente@example.com"), false);
     assert.equal(String(init?.body).includes("CUENTA_PRIVADA_DE_PRUEBA"), false);
     assert.equal(String(init?.body).includes("11111111111111111111"), false);

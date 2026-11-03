@@ -12,7 +12,7 @@ if (url.hostname !== "127.0.0.1" || url.pathname !== "/rocky_ai_test" || process
 const originalFetch = global.fetch;
 let sends = 0, calls = 0, failDelivery = false;
 let duringGeneration: (() => Promise<void>) | null = null;
-const greeting = { intent: "greeting", productIds: [], quantity: 1, policyKey: "none", reason: "routine" };
+const greeting = { intent: "greeting", productIds: [], quantity: 1, priceMode: null, policyKey: "none", reason: "routine" };
 beforeEach(async () => {
   await prisma.rockyAiDraft.deleteMany();
   await prisma.rockyAiConversation.deleteMany();
@@ -157,7 +157,7 @@ test("interrupted deliveries are recovered as uncertain without resending", asyn
 test("a price change after approval prevents an outdated quotation from being sent", async () => {
   const c = await fixture(); const d = (await generateDraft(c.id, "admin", true))!;
   const product = await prisma.product.create({ data: { code: randomUUID(), slug: randomUUID(), name: "Prueba", unitPrice: 20, stockUnits: 10 } });
-  const decision = { intent: "product", productIds: [product.id], quantity: 1, policyKey: "none", reason: "routine" };
+  const decision = { intent: "product", productIds: [product.id], quantity: 1, priceMode: null, policyKey: "none", reason: "routine" };
   await prisma.rockyAiDraft.update({ where: { id: d.id }, data: { decision, evidence: [{ id: product.id, name: product.name, code: product.code, price: 20, stock: 10, wholesalePrice: null, wholesaleMinQty: 3 }] } });
   await approveDraft(d.id, "Prueba: S/ 20.00", "admin");
   await prisma.product.update({ where: { id: product.id }, data: { unitPrice: 25 } });
