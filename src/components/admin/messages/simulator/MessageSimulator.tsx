@@ -5,6 +5,12 @@ import { Bot, Bug, FileDown, RefreshCw, Send, UserRound } from "lucide-react";
 import type { ChatMessage } from "@/types/messages";
 
 type SimulatorResponse = {
+  aiSimulation?: {
+    enabled: boolean;
+    provider: "openai" | "verified" | null;
+    model: string | null;
+    fallbackReason: string | null;
+  };
   automationError: string | null;
   automationExecutionId: string | null;
   automationName: string | null;
@@ -52,6 +58,7 @@ export function MessageSimulator() {
   const [pendingSince, setPendingSince] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [waitingForN8n, setWaitingForN8n] = useState(false);
+  const [aiSimulation, setAiSimulation] = useState<SimulatorResponse["aiSimulation"]>(undefined);
   const [notice, setNotice] = useState<string | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
 
@@ -161,6 +168,7 @@ export function MessageSimulator() {
       setConversationId(payload.conversationId ?? null);
       setPendingCustomerMessageId(payload.customerMessageId ?? null);
       setPendingSince(payload.pendingSince ?? null);
+      setAiSimulation(payload.aiSimulation);
 
       if (payload.automationError) {
         setWaitingForN8n(false);
@@ -174,7 +182,13 @@ export function MessageSimulator() {
         );
       } else {
         setWaitingForN8n(false);
-        setNotice("Respuesta del motor único de Super Bot. No se enviaron mensajes a WhatsApp.");
+        if (payload.aiSimulation?.enabled && payload.aiSimulation.provider === "openai") {
+          setNotice(`Respuesta generada por ${payload.aiSimulation.model ?? "la IA de prueba"}. No se enviaron mensajes a WhatsApp.`);
+        } else if (payload.aiSimulation?.enabled) {
+          setNotice("La IA de prueba usó el respaldo verificado del catálogo. No se enviaron mensajes a WhatsApp.");
+        } else {
+          setNotice("Respuesta del motor único de Super Bot. No se enviaron mensajes a WhatsApp.");
+        }
       }
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "No se pudo simular el mensaje.");
@@ -191,6 +205,7 @@ export function MessageSimulator() {
     setMessages([]);
     setContent("");
     setWaitingForN8n(false);
+    setAiSimulation(undefined);
     setNotice(null);
   }
 
@@ -234,7 +249,13 @@ export function MessageSimulator() {
             <p>Prueba el motor de producción con transporte simulado</p>
           </div>
           <span className="conversation-badge badge-automatico">
-            {waitingForN8n ? "ESPERANDO N8N" : "N8N REAL"}
+            {waitingForN8n
+              ? "ESPERANDO N8N"
+              : aiSimulation?.enabled
+                ? aiSimulation.provider === "openai"
+                  ? `IA ${aiSimulation.model ?? "PRUEBA"}`
+                  : "IA RESPALDO"
+                : "SIMULADOR"}
           </span>
         </div>
 
